@@ -1,0 +1,7 @@
+Alembic migration environment for the backend service.
+
+Common commands run from src/backend:
+
+- alembic revision --autogenerate -m "init schema"
+- alembic upgrade head
+- alembic downgrade -1

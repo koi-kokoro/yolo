@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic-settings
+sqlalchemy
+psycopg2-binary
+alembic
+python-jose[cryptography]
+bcrypt
+minio
+redis
+langchain
+langgraph
+ultralytics
+opencv-python
+python-multipart
