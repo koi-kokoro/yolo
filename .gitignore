@@ -1,1 +1,26 @@
 .env
+
+# Backend logs
+backend/logs/*
+!backend/logs/.gitkeep
+backend/*.log
+
+# Backend test and coverage artifacts
+backend/.pytest_cache/
+backend/.coverage
+backend/.coverage.*
+backend/htmlcov/
+backend/coverage.xml
+backend/test.db
+backend/test.sqlite
+backend/test.sqlite3
+
+# Backend local databases
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Python cache files
+backend/**/__pycache__/
+backend/**/*.py[cod]
+backend/**/*.pyo

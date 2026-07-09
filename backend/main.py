@@ -6,7 +6,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.health import router as health_router
 from app.config.settings import settings
+from app.core.exceptions import register_exception_handlers
+from app.core.logger import get_logger, setup_logging
+from app.middleware.request_logger import RequestLoggerMiddleware
+
+setup_logging()
+logger = get_logger(__name__)
 
 
 def init_minio() -> None:
@@ -16,19 +23,19 @@ def init_minio() -> None:
 
     try:
         minio_client = MinIOClient()
-        print(f"MinIO 存储桶 '{minio_client.bucket_name}' 初始化完成")
+        logger.info("MinIO bucket '%s' initialized", minio_client.bucket_name)
     except Exception as exc:
-        print(f"MinIO 初始化失败: {exc}")
+        logger.warning("MinIO initialization failed: %s", exc)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Application startup and shutdown hooks."""
 
-    print("正在初始化服务...")
+    logger.info("Initializing services")
     init_minio()
     yield
-    print("服务已关闭")
+    logger.info("Service shutdown complete")
 
 
 app = FastAPI(
@@ -40,6 +47,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(RequestLoggerMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -47,8 +55,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+register_exception_handlers(app)
 
 app.include_router(auth_router)
+app.include_router(health_router)
 
 
 @app.get("/")
@@ -61,43 +71,7 @@ def root() -> dict[str, str]:
     }
 
 
-@app.get("/api/health")
-def health_check() -> dict[str, str]:
-    return {
-        "status": "healthy",
-        "app_name": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-    }
-
-
-@app.get("/api/health/database")
-def database_health() -> dict[str, str]:
-    return {
-        "status": "configured",
-        "database": "postgresql",
-        "host": settings.DB_HOST,
-        "database_name": settings.DB_NAME,
-    }
-
-
-@app.get("/api/health/redis")
-def redis_health() -> dict[str, str]:
-    return {
-        "status": "configured",
-        "redis": settings.REDIS_URL,
-    }
-
-
-@app.get("/api/health/minio")
-def minio_health() -> dict[str, str]:
-    return {
-        "status": "configured",
-        "minio": settings.MINIO_ENDPOINT,
-        "bucket": settings.MINIO_BUCKET,
-    }
-
-
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

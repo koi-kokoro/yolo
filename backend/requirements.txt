@@ -13,3 +13,6 @@ langgraph
 ultralytics
 opencv-python
 python-multipart
+pytest
+pytest-asyncio
+httpx
