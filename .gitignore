@@ -159,3 +159,4 @@ dmypy.json
 
 # 忽略项目中所有 datasets 文件夹
 datasets/
+datasets.zip
