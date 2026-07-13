@@ -78,7 +78,7 @@ class SemanticTaskService:
             import io
             with Image.open(io.BytesIO(storage.read_bytes(task.source_object_key))) as source:
                 original = ImageOps.exif_transpose(source).convert("RGB")
-            tensor = preprocess(original, (settings.SEMANTIC_INPUT_SIZE, settings.SEMANTIC_INPUT_SIZE))
+            tensor = preprocess(original, semantic_runtime.engine.input_size)
             output, inference_ms = semantic_runtime.engine.infer(tensor)
             artifacts = build_artifacts(original, output, semantic_runtime.engine.metadata["classes"], settings.SEMANTIC_OVERLAY_ALPHA)
             prefix = f"semantic/users/{task.user_id}/tasks/{task.task_uuid}/outputs"
@@ -86,7 +86,7 @@ class SemanticTaskService:
             for key, data in zip(keys, (artifacts.index_mask, artifacts.color_mask, artifacts.overlay)):
                 storage.upload_bytes(key, data, "image/png")
                 uploaded.append(key)
-            metadata = {"engine": semantic_runtime.engine.engine, "provider": semantic_runtime.engine.provider, "model_name": semantic_runtime.engine.metadata["model"], "model_version": task.model_version.version, "model_sha256": semantic_runtime.engine.model_sha256, "metadata_sha256": semantic_runtime.engine.metadata_sha256, "input_name": semantic_runtime.engine.input_name, "output_name": semantic_runtime.engine.output_name, "input_size": [512, 512], "source_size": [task.image_width, task.image_height], "resize_mode": "stretch", "color_space": "RGB", "normalization": "float32_0_1", "batch_size": 1, "output_shape": artifacts.output_shape, "public_class_count": 7, "internal_label_7_collapsed": artifacts.internal_label_7_collapsed, "runtime_version": semantic_runtime.engine.runtime_version, "app_version": settings.APP_VERSION}
+            metadata = {"engine": semantic_runtime.engine.engine, "provider": semantic_runtime.engine.provider, "model_name": semantic_runtime.engine.metadata["model"], "model_version": semantic_runtime.engine.model_version, "model_sha256": semantic_runtime.engine.model_sha256, "metadata_sha256": semantic_runtime.engine.metadata_sha256, "input_name": semantic_runtime.engine.input_name, "output_name": semantic_runtime.engine.output_name, "input_size": list(semantic_runtime.engine.input_size), "source_size": [task.image_width, task.image_height], "resize_mode": "stretch", "color_space": "RGB", "normalization": "float32_0_1", "batch_size": 1, "output_shape": artifacts.output_shape, "public_class_count": 7, "internal_label_7_collapsed": artifacts.internal_label_7_collapsed, "runtime_version": semantic_runtime.engine.runtime_version, "app_version": settings.APP_VERSION}
             total_ms = round((time.perf_counter() - started_total) * 1000)
             db.add(SemanticResult(task_id=task.id, index_mask_object_key=keys[0], color_mask_object_key=keys[1], overlay_object_key=keys[2], class_statistics=artifacts.class_statistics, inference_metadata=metadata, inference_time_ms=inference_ms, total_time_ms=total_ms))
             task.status, task.completed_at = "succeeded", datetime.now()

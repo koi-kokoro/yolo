@@ -25,9 +25,9 @@ def test_default_training_paths_resolve_inside_src_tree() -> None:
     src_dir = Path(__file__).resolve().parents[2]
     expected_root = (src_dir / "training/loveda_semantic").resolve()
 
-    assert config.semantic_deploy_path == expected_root / "artifacts/baseline_e50_i512_b2/deploy"
+    assert config.semantic_deploy_path == expected_root / "artifacts/current/deploy"
     assert config.model_management_trusted_root_path == expected_root
-    assert config.MODEL_MANAGEMENT_DEPLOY_DIR == "artifacts/baseline_e50_i512_b2/deploy"
+    assert config.MODEL_MANAGEMENT_DEPLOY_DIR == "artifacts/current/deploy"
     assert config.MODEL_MANAGEMENT_TRAINING_RUN_DIR == "runs/v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z"
     assert src_dir.parent / "training" not in config.semantic_deploy_path.parents
 

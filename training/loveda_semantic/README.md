@@ -54,6 +54,24 @@ data/loveda_yolo_semantic/
 "D:\programfile\anaconda\envs\yolo\python.exe" "src\training\loveda_semantic\visualize_samples.py" --count 4 --seed 42
 ```
 
+## PT → 后端完整 ONNX 部署包
+
+更换 checkpoint 后运行以下一条标准命令。`--output-dir` 可省略，默认固定发布到基于脚本位置解析的 `artifacts/current/deploy`，不依赖当前工作目录。脚本从相邻 `args.yaml` 或 checkpoint `train_args` 推断 `imgsz`（均无有效值时才回退 1024），包装语义 logits 为后端要求的单输入 `images`、单输出 `output0`、`[1,H,W]` 公共类别图，并在发布目录前完成 ONNX checker、ONNX Runtime、动态空间尺寸、类别范围和固定随机输入 PT/ONNX 一致率校验：
+
+```bat
+"D:\programfile\anaconda\envs\yolo\python.exe" "src\training\loveda_semantic\build_deploy_package.py" --pt "src\training\loveda_semantic\runs\v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z\weights\best.pt" --version "v2-hr1024-yolo26s-sem-full-e50-b4-m1" --device cpu --opset 17
+```
+
+输出至少包含 `best.pt`、`best_dynamic.onnx`、`metadata.json`、`SHA256SUMS.txt`、`environment.json`、`manifest.json`；相邻训练参数可靠存在时还会复制为 `training_args.yaml`。固定 `current/deploy` 日常更新无需 `--force`：新包始终先在同级临时目录完整构建并验证，成功后才安全替换；构建或替换失败会保留现有 current。若显式指定任意非默认 `--output-dir` 且目录已存在，仍必须添加 `--force`。内部 checkpoint 类别 7 在 ONNX 图内折叠到公开背景类 0，公开类别始终为 0..6。
+
+后端 `.env` 长期指向固定 `artifacts/current/deploy`，成功换模后只需重启后端，不再修改 `.env`。后端从包内 metadata 读取实际输入尺寸/版本，并从 `SHA256SUMS.txt` 校验 ONNX；`SEMANTIC_ONNX_SHA256` 仅用于显式覆盖。替换 PT 文件本身不会触发转换，运行中的后端也不会监测或热加载文件，因此每次更换 PT 后仍须重新运行构建命令并重启后端。旧 baseline 和版本化部署包不会被固定目录流程修改，需回滚时可从旧版本化包重新构建 current，或临时将配置指回旧包后重启。
+
+Linux 使用同样参数和正斜杠路径，例如：
+
+```bash
+python src/training/loveda_semantic/build_deploy_package.py --pt src/training/loveda_semantic/runs/example/weights/best.pt --version example --device cpu --opset 17
+```
+
 ## 测试
 
 ```bat
