@@ -68,8 +68,6 @@ training/loveda_semantic/temp/
 # and metadata; model binaries are distributed outside normal Git.
 training/loveda_semantic/artifacts/**
 !training/loveda_semantic/artifacts/*/
-!training/loveda_semantic/artifacts/*/deploy/
-training/loveda_semantic/artifacts/*/deploy/**
 !training/loveda_semantic/artifacts/*/deploy/INFERENCE.md
 !training/loveda_semantic/artifacts/*/deploy/metadata.json
 !training/loveda_semantic/artifacts/*/deploy/metrics.json
