@@ -36,7 +36,7 @@ from typing import Any, Optional
 from app.config.settings import settings
 from app.core.logger import get_logger
 from app.database.session import SessionLocal
-from app.entity.db_models import TrainingMetric, TrainingTask
+from app.entity.db_models import ModelVersion, TrainingMetric, TrainingTask
 
 logger = get_logger(__name__)
 
@@ -218,6 +218,7 @@ class TrainingService:
                 "imgsz": config.get("img_size", 640),
                 "batch": config.get("batch_size", 8),
                 "device": config.get("device", "cpu"),
+                "workers": 0,
                 "optimizer": config.get("optimizer", "SGD"),
                 "lr0": config.get("lr0", 0.01),
                 "project": os.path.join(original_cwd, settings.TRAIN_OUTPUT_DIR),
@@ -235,26 +236,31 @@ class TrainingService:
                     # 从 trainer 获取当前 epoch 指标
                     epoch = trainer.epoch + 1  # ultralytics epoch 从 0 开始
                     metrics = trainer.metrics or {}
-                    loss_items = (
-                        trainer.loss_items if hasattr(trainer, "loss_items") else {}
-                    )
+                    loss_items = {}
+                    if hasattr(trainer, "label_loss_items") and hasattr(
+                        trainer, "tloss"
+                    ):
+                        loss_items = trainer.label_loss_items(
+                            trainer.tloss,
+                            prefix="train",
+                        )
 
                     metric_record = TrainingMetric(
                         task_id=task_id,
                         epoch=epoch,
                         box_loss=float(
-                            metrics.get("metrics/box_loss", 0)
-                            if isinstance(metrics, dict)
+                            loss_items.get("train/box_loss", 0)
+                            if isinstance(loss_items, dict)
                             else 0
                         ),
                         cls_loss=float(
-                            metrics.get("metrics/cls_loss", 0)
-                            if isinstance(metrics, dict)
+                            loss_items.get("train/cls_loss", 0)
+                            if isinstance(loss_items, dict)
                             else 0
                         ),
                         dfl_loss=float(
-                            metrics.get("metrics/dfl_loss", 0)
-                            if isinstance(metrics, dict)
+                            loss_items.get("train/dfl_loss", 0)
+                            if isinstance(loss_items, dict)
                             else 0
                         ),
                         precision=float(
@@ -305,6 +311,16 @@ class TrainingService:
                 "开始训练：data=%s, epochs=%d", data_yaml, train_kwargs["epochs"]
             )
             results = model.train(**train_kwargs)
+
+            db.refresh(task)
+
+            if task.status == "cancelled":
+                logger.info(
+                    "训练任务已取消：task_id=%d, uuid=%s",
+                    task_id,
+                    task_uuid,
+                )
+                return
 
             # ── 训练完成，解析最终结果 ──
             task.status = "completed"
@@ -562,7 +578,7 @@ class TrainingService:
                 try:
                     trainer = getattr(model, "trainer", None)
                     if trainer is not None:
-                        trainer.stop()
+                        trainer.stop = True
                 except Exception as e:
                     logger.warning("停止训练异常：%s", str(e))
 
@@ -609,6 +625,44 @@ class TrainingService:
             }
             for t in tasks
         ]
+
+    @staticmethod
+    def delete_training_task(db, task_id: int, user_id: int) -> dict:
+        task = (
+            db.query(TrainingTask)
+            .filter(
+                TrainingTask.id == task_id,
+                TrainingTask.user_id == user_id,
+            )
+            .first()
+        )
+        if not task:
+            return {"error": "Training task not found"}
+
+        if task.status in ("running", "pending"):
+            return {
+                "error": "Running or pending tasks cannot be deleted; stop the task first"
+            }
+
+        task_uuid = task.task_uuid
+        try:
+            db.query(ModelVersion).filter(
+                ModelVersion.training_task_id == task_id
+            ).update(
+                {"training_task_id": None},
+                synchronize_session=False,
+            )
+            db.query(TrainingMetric).filter(TrainingMetric.task_id == task_id).delete(
+                synchronize_session=False
+            )
+            db.delete(task)
+            db.commit()
+        except Exception:
+            db.rollback()
+            raise
+
+        logger.info("Training task deleted: task_id=%d, uuid=%s", task_id, task_uuid)
+        return {"message": "Training task deleted", "task_id": task_id}
 
     @staticmethod
     def parse_results_csv(results_csv_path: str) -> list:

@@ -170,6 +170,23 @@ async def stop_training(
     return result
 
 
+@router.delete("/tasks/{task_id}")
+async def delete_training_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    result = training_service.delete_training_task(
+        db=db,
+        task_id=task_id,
+        user_id=current_user.id,
+    )
+    if "error" in result:
+        status_code = 404 if result["error"] == "Training task not found" else 400
+        raise HTTPException(status_code=status_code, detail=result["error"])
+    return result
+
+
 @router.get("/results/{task_uuid}")
 async def get_results_csv(
     task_uuid: str,

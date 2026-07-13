@@ -56,7 +56,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="170" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <el-button
               size="small"
@@ -74,6 +74,15 @@
               @click="stopTask(row.id)"
             >
               停止
+            </el-button>
+            <el-button
+              v-if="row.status !== 'running' && row.status !== 'pending'"
+              size="small"
+              type="danger"
+              text
+              @click="deleteTask(row)"
+            >
+              &#21024;&#38500;
             </el-button>
           </template>
         </el-table-column>
@@ -156,9 +165,9 @@
         <el-form-item label="训练轮数">
           <el-slider
             v-model="trainForm.epochs"
-            :min="10"
+            :min="5"
             :max="500"
-            :step="10"
+            :step="5"
             show-input
           />
         </el-form-item>
@@ -332,14 +341,16 @@ async function fetchTasks() {
 
 // ── 选择任务并开始监�?──
 async function selectTask(task) {
+  stopPolling();
   selectedTask.value = task;
   await nextTick();
   initCharts();
-  fetchMetrics();
-  startPolling();
-}
+  await fetchMetrics(task.id);
 
-// ── 初始�?ECharts 图表 ──
+  if (selectedTask.value?.id === task.id) {
+    startPolling(task.id);
+  }
+}
 function initCharts() {
   if (lossChart) lossChart.dispose();
   if (mapChart) mapChart.dispose();
@@ -353,28 +364,40 @@ function initCharts() {
 }
 
 // ── 获取训练指标并更新图�?──
-async function fetchMetrics() {
-  if (!selectedTask.value) return;
+async function fetchMetrics(taskId = selectedTask.value?.id) {
+  if (!taskId || selectedTask.value?.id !== taskId) return;
+
   try {
-    const taskId = selectedTask.value.id || selectedTask.value.task?.id;
     const res = await request.get(`/training/metrics/${taskId}`);
     const metrics = res.metrics || [];
-
-    // 更新任务状态
     const statusRes = await request.get(`/training/status/${taskId}`);
-    if (statusRes) {
-      selectedTask.value = { ...selectedTask.value, ...statusRes };
+
+    if (selectedTask.value?.id !== taskId) return;
+
+    if (statusRes?.task) {
+      selectedTask.value = {
+        ...selectedTask.value,
+        ...statusRes.task,
+        latest_metric: statusRes.latest_metric,
+      };
     }
 
     if (metrics.length > 0) {
       updateCharts(metrics);
     }
   } catch (e) {
-    console.error("获取训练指标失败", e);
+    if (e.response?.status === 404 || e.status === 404) {
+      if (selectedTask.value?.id === taskId) {
+        stopPolling();
+        selectedTask.value = null;
+        await fetchTasks();
+      }
+      return;
+    }
+
+    console.error("Failed to fetch training metrics", e);
   }
 }
-
-// ── 更新图表 ──
 function updateCharts(metrics) {
   const epochs = metrics.map((m) => m.epoch);
 
@@ -472,15 +495,16 @@ function updateCharts(metrics) {
 }
 
 // ── 轮询监控 ──
-function startPolling() {
+function startPolling(taskId) {
   stopPolling();
   pollTimer = setInterval(() => {
-    if (selectedTask.value) {
-      fetchMetrics();
+    if (selectedTask.value?.id === taskId) {
+      fetchMetrics(taskId);
+    } else {
+      stopPolling();
     }
-  }, 5000); // 每 5 秒轮询一次
+  }, 5000);
 }
-
 function stopPolling() {
   if (pollTimer) {
     clearInterval(pollTimer);
@@ -498,7 +522,7 @@ async function createTask() {
     await fetchTasks();
     // 自动选中新创建的任务
     if (res.id) {
-      const newTask = taskList.value.find((t) => t.id === res.data.id);
+      const newTask = taskList.value.find((t) => t.id === res.id);
       if (newTask) selectTask(newTask);
     }
   } catch (e) {
@@ -529,6 +553,41 @@ async function stopTask(taskId) {
 }
 
 // ── 生命周期 ──
+async function deleteTask(task) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除训练任务 ${task.task_uuid} 吗？指标记录会同时删除。`,
+      "确认删除",
+      {
+        type: "warning",
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+      },
+    );
+
+    await request.delete(`/training/tasks/${task.id}`);
+
+    if (selectedTask.value?.id === task.id) {
+      stopPolling();
+      selectedTask.value = null;
+      if (lossChart) {
+        lossChart.dispose();
+        lossChart = null;
+      }
+      if (mapChart) {
+        mapChart.dispose();
+        mapChart = null;
+      }
+    }
+
+    ElMessage.success("训练任务已删除");
+    await fetchTasks();
+  } catch (e) {
+    if (e === "cancel" || e === "close") return;
+    ElMessage.error(e.response?.data?.detail || "删除训练任务失败");
+  }
+}
+
 onMounted(() => {
   fetchTasks();
 });
