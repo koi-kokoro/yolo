@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
+from app.api.model_management import router as model_management_router
+from app.api.semantic_tasks import router as semantic_router
 from app.config.settings import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logger import get_logger, setup_logging
@@ -32,9 +34,24 @@ def init_minio() -> None:
 async def lifespan(_app: FastAPI):
     """Application startup and shutdown hooks."""
 
+    from app.database.session import SessionLocal
+    from app.services.semantic_runtime import semantic_runtime
+    from app.services.semantic_task_service import semantic_task_service
+
     logger.info("Initializing services")
     init_minio()
+    db = SessionLocal()
+    try:
+        recovered = semantic_task_service.recover_interrupted(db)
+        if recovered:
+            logger.warning("Marked %s interrupted semantic tasks as failed", recovered)
+    except Exception as exc:
+        logger.warning("Semantic recovery skipped: %s", exc)
+    finally:
+        db.close()
+    semantic_runtime.start()
     yield
+    semantic_runtime.shutdown()
     logger.info("Service shutdown complete")
 
 
@@ -59,6 +76,8 @@ register_exception_handlers(app)
 
 app.include_router(auth_router)
 app.include_router(health_router)
+app.include_router(semantic_router)
+app.include_router(model_management_router)
 
 
 @app.get("/")

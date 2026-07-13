@@ -16,3 +16,6 @@ python-multipart
 pytest
 pytest-asyncio
 httpx
+onnxruntime>=1.18,<2
+numpy>=1.26,<3
+Pillow>=10.3,<12

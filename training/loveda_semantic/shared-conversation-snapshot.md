@@ -1,0 +1,1612 @@
+- generic [ref=f4e1]:
+  - link "跳至内容" [ref=f4e2] [cursor=pointer]:
+    - /url: "#main"
+  - generic [ref=f4e6]:
+    - generic [ref=f4e8]:
+      - navigation "侧边栏":
+        - generic:
+          - generic:
+            - generic:
+              - button "打开边栏"
+        - generic:
+          - generic:
+            - link "新聊天":
+              - /url: /
+          - generic: 搜索聊天
+          - generic:
+            - link "图片":
+              - /url: /images
+        - generic:
+          - generic:
+            - button "打开“个人资料”菜单"
+      - generic [ref=f4e9]:
+        - heading "历史聊天记录" [level=2] [ref=f4e10]
+        - navigation "历史聊天记录" [ref=f4e12]:
+          - generic [ref=f4e15]:
+            - link "主页" [ref=f4e16] [cursor=pointer]:
+              - /url: /
+            - button "关闭边栏" [expanded] [ref=f4e20]
+          - list [ref=f4e24]:
+            - listitem [ref=f4e25]:
+              - link "新聊天 控制 Shift O" [ref=f4e155] [cursor=pointer]:
+                - /url: /
+                - generic [ref=f4e27]: 新聊天
+                - generic [ref=f4e161]:
+                  - generic "控制" [ref=f4e162]:
+                    - generic [ref=f4e163]: Ctrl
+                    - text: +
+                  - generic "Shift" [ref=f4e164]: +
+                  - generic [ref=f4e166]: O
+            - listitem
+            - listitem [ref=f4e33]:
+              - generic [ref=f4e34] [cursor=pointer]: 搜索聊天
+          - link "图片" [ref=f4e40] [cursor=pointer]:
+            - /url: /images
+          - generic [ref=f4e47]:
+            - link "应用" [ref=f4e48] [cursor=pointer]:
+              - /url: /apps
+            - generic [ref=f4e54] [cursor=pointer]: 深度研究
+          - generic [ref=f4e61]:
+            - link [ref=f4e62] [cursor=pointer]:
+              - /url: https://openai.com/chatgpt/pricing/
+            - generic [ref=f4e70] [cursor=pointer]: 设置
+            - generic [ref=f4e74] [cursor=pointer]: 帮助
+          - generic [ref=f4e84]:
+            - generic [ref=f4e85]:
+              - paragraph [ref=f4e86]: 获取为你量身定制的回复
+              - paragraph [ref=f4e87]: 登录以获取基于已保存聊天的回答，并可创建图片和上传文件。
+            - button "登录" [ref=f4e89] [cursor=pointer]
+    - generic [ref=f4e93]:
+      - generic [ref=f4e94]:
+        - banner:
+          - button "模型选择器" [ref=f4e96] [cursor=pointer]:
+            - generic [ref=f4e97]: ChatGPT
+          - generic [ref=f4e105]:
+            - button "登录" [ref=f4e106] [cursor=pointer]
+            - button "免费注册" [ref=f4e108] [cursor=pointer]
+      - main [ref=f4e111]:
+        - generic [ref=f4e112]:
+          - generic [ref=f4e168]:
+            - paragraph [ref=f4e170]: 这是已分享的 ChatGPT 对话副本
+            - button "举报对话" [ref=f4e172] [cursor=pointer]
+            - generic [ref=f4e173]:
+              - generic [ref=f4e176]:
+                - button "Prompt 1" [ref=f4e177] [cursor=pointer]
+                - button "Prompt 2" [ref=f4e178] [cursor=pointer]
+                - button "Prompt 3" [ref=f4e179] [cursor=pointer]
+                - button "Prompt 4" [ref=f4e180] [cursor=pointer]
+                - button "Prompt 5" [ref=f4e181] [cursor=pointer]
+                - button "Prompt 6" [ref=f4e182] [cursor=pointer]
+                - button "Prompt 7" [ref=f4e183] [cursor=pointer]
+                - button "Prompt 8" [ref=f4e184] [cursor=pointer]
+                - button "Prompt 9" [ref=f4e185] [cursor=pointer]
+              - generic [ref=f4e186]:
+                - separator "星期三 20:41" [ref=f4e187]
+                - generic [ref=f4e190]:
+                  - heading "你说：" [level=4] [ref=f4e191]
+                  - generic [ref=f4e196]:
+                    - generic [ref=f4e197]: 已上传图片
+                    - generic [ref=f4e202]: 对于这些yolo相关选题项目，你帮我找一找相关的数据集，是否好找有用？例如kaggle上是否有相关数据集？@网页搜索
+              - generic [ref=f4e206]:
+                - separator "星期四 21:10" [ref=f4e207]
+                - generic [ref=f4e210]:
+                  - heading "你说：" [level=4] [ref=f4e211]
+                  - generic [ref=f4e216]:
+                    - generic [ref=f4e217]: 已上传图片
+                    - generic [ref=f4e222]: 最终从这两个里面挑，该选哪一个？ 着重要在创新点上，还要考虑数据集，难易度来看
+              - separator "星期五 9:13" [ref=f4e227]
+              - generic [ref=f4e232]:
+                - heading "你说：" [level=4] [ref=f4e233]
+                - generic [ref=f4e238]:
+                  - generic [ref=f4e239]: 上传文件
+                  - generic [ref=f4e244]: 你看看这个计划，最终该选什么数据集比较好
+              - generic [ref=f4e254]:
+                - heading "ChatGPT 说：" [level=4] [ref=f4e255]
+                - generic [ref=f4e257]:
+                  - generic [ref=f4e258]:
+                    - button "思考了 1m 56s" [ref=f4e260] [cursor=pointer]
+                    - generic [ref=f4e265]:
+                      - paragraph [ref=f4e266]: "**可行，而且比只训练一个数据集更有项目亮点。**但建议把它定义为："
+                      - blockquote [ref=f4e267]:
+                        - paragraph [ref=f4e268]:
+                          - strong [ref=f4e269]: 多模型协同 + 多 Agent 编排 + 结果级融合
+                      - paragraph [ref=f4e270]: 而不是把几个数据集直接混在一起训练成一个模型。
+                      - paragraph [ref=f4e271]:
+                        - text: LoveDA 是土地覆盖
+                        - strong [ref=f4e272]: 语义分割
+                        - text: 任务，DIOR 是遥感目标
+                        - strong [ref=f4e273]: 检测
+                        - text: 任务，LEVIR-CD 是双时相建筑
+                        - strong [ref=f4e274]: 变化检测
+                        - text: 任务，三者的标注形式、训练目标和评价指标都不同，不能直接合并进同一个
+                        - code [ref=f4e275]: data.yaml
+                        - text: 训练。LoveDA 官方定位就是城乡土地覆盖语义分割；DIOR 是包含 20 类遥感地物的目标检测数据集；LEVIR-CD 专门用于建筑变化检测。
+                        - link "GitHub +2 arXiv +2" [ref=f4e278] [cursor=pointer]:
+                          - /url: https://github.com/junjue-wang/loveda?utm_source=chatgpt.com
+                          - generic [ref=f4e279]:
+                            - generic [ref=f4e280]:
+                              - generic [ref=f4e281]: GitHub
+                              - generic [ref=f4e284]: "+2"
+                            - generic [ref=f4e285]:
+                              - generic [ref=f4e286]: arXiv
+                              - generic [ref=f4e289]: "+2"
+                      - heading "一、最合适的最终目的" [level=2] [ref=f4e290]
+                      - paragraph [ref=f4e291]: 我建议把项目目的定为：
+                      - blockquote [ref=f4e292]:
+                        - heading "面向国土空间巡查的遥感土地覆盖、重点设施与变化协同分析平台" [level=1] [ref=f4e293]:
+                          - strong [ref=f4e295]: 面向国土空间巡查的遥感土地覆盖、重点设施与变化协同分析平台
+                      - paragraph [ref=f4e296]: 更适合作为正式题目的版本是：
+                      - blockquote [ref=f4e297]:
+                        - paragraph [ref=f4e298]:
+                          - strong [ref=f4e299]: 基于多模型协同与多 Agent 编排的遥感国土空间智能巡查平台
+                      - paragraph [ref=f4e300]: 副标题可以写：
+                      - blockquote [ref=f4e301]:
+                        - paragraph [ref=f4e302]: 土地覆盖识别、重点基础设施检测与建筑变化预警
+                      - paragraph [ref=f4e303]: 这个目的能够把三个模型自然地连起来：
+                      - list [ref=f4e304]:
+                        - listitem [ref=f4e305]:
+                          - paragraph [ref=f4e306]:
+                            - strong [ref=f4e307]: 这里是什么土地？
+                            - text: 识别农田、森林、水体、裸地、建筑区、道路。
+                        - listitem [ref=f4e308]:
+                          - paragraph [ref=f4e309]:
+                            - strong [ref=f4e310]: 这片区域里有什么重点设施？
+                            - text: 检测油罐、桥梁、立交桥、港口、船舶、水坝、车站等。
+                        - listitem [ref=f4e311]:
+                          - paragraph [ref=f4e312]:
+                            - strong [ref=f4e313]: 与历史影像相比发生了什么变化？
+                            - text: 检测建筑新增、拆除或扩张区域。
+                      - paragraph [ref=f4e314]: 系统定位应是“辅助巡查与分析”，不要写成“自动判定违法用地”。公开数据集并没有“合法/违法”标签，模型无法直接给出法律结论。
+                      - separator [ref=f4e315]
+                      - heading "二、最推荐的数据集组合" [level=1] [ref=f4e316]
+                      - heading "核心组合：LoveDA + DIOR" [level=2] [ref=f4e317]
+                      - paragraph [ref=f4e318]:
+                        - text: 这是我认为
+                        - strong [ref=f4e319]: 创新性、业务完整性和实现难度最平衡
+                        - text: 的组合。
+                      - generic [ref=f4e321]:
+                        - table [ref=f4e322]:
+                          - rowgroup [ref=f4e323]:
+                            - row "模块 数据集 任务 系统输出" [ref=f4e324]:
+                              - columnheader "模块" [ref=f4e325]
+                              - columnheader "数据集" [ref=f4e326]
+                              - columnheader "任务" [ref=f4e327]
+                              - columnheader "系统输出" [ref=f4e328]
+                          - rowgroup [ref=f4e329]:
+                            - row "土地覆盖识别 LoveDA 语义分割 农田、森林、水体、裸地、建筑、道路区域" [ref=f4e330]:
+                              - cell "土地覆盖识别" [ref=f4e331]
+                              - cell "LoveDA" [ref=f4e332]:
+                                - strong [ref=f4e333]: LoveDA
+                              - cell "语义分割" [ref=f4e334]
+                              - cell "农田、森林、水体、裸地、建筑、道路区域" [ref=f4e335]
+                            - row "重点设施检测 DIOR YOLOv11 目标检测 油罐、桥梁、港口、船舶、水坝等检测框" [ref=f4e336]:
+                              - cell "重点设施检测" [ref=f4e337]
+                              - cell "DIOR" [ref=f4e338]:
+                                - strong [ref=f4e339]: DIOR
+                              - cell "YOLOv11 目标检测" [ref=f4e340]
+                              - cell "油罐、桥梁、港口、船舶、水坝等检测框" [ref=f4e341]
+                            - row "变化分析，可选 LEVIR-CD 双时相变化检测 建筑新增、减少和变化区域" [ref=f4e342]:
+                              - cell "变化分析，可选" [ref=f4e343]
+                              - cell "LEVIR-CD" [ref=f4e344]:
+                                - strong [ref=f4e345]: LEVIR-CD
+                              - cell "双时相变化检测" [ref=f4e346]
+                              - cell "建筑新增、减少和变化区域" [ref=f4e347]
+                        - generic [ref=f4e349]:
+                          - button "复制表格"
+                      - paragraph [ref=f4e350]:
+                        - text: LoveDA 包含 5987 张高分辨率遥感图像，覆盖城市和农村场景，适合识别 building、road、water、barren、forest、agriculture 等土地覆盖类别。DIOR 包含 23463 张图像、192472 个实例和 20 类遥感目标，适合检测基础设施和地物目标。
+                        - link "arXiv +1" [ref=f4e353] [cursor=pointer]:
+                          - /url: https://arxiv.org/abs/2110.08733?utm_source=chatgpt.com
+                          - generic [ref=f4e355]:
+                            - generic [ref=f4e356]: arXiv
+                            - generic [ref=f4e359]: "+1"
+                      - separator [ref=f4e360]
+                      - heading "1. LoveDA 训练什么" [level=2] [ref=f4e361]
+                      - paragraph [ref=f4e362]: 建议使用全部主要类别：
+                      - list [ref=f4e363]:
+                        - listitem [ref=f4e364]:
+                          - paragraph [ref=f4e365]: agriculture：农业用地
+                        - listitem [ref=f4e366]:
+                          - paragraph [ref=f4e367]: forest：林地
+                        - listitem [ref=f4e368]:
+                          - paragraph [ref=f4e369]: water：水体
+                        - listitem [ref=f4e370]:
+                          - paragraph [ref=f4e371]: barren：裸地
+                        - listitem [ref=f4e372]:
+                          - paragraph [ref=f4e373]: building：建筑区
+                        - listitem [ref=f4e374]:
+                          - paragraph [ref=f4e375]: road：道路
+                      - paragraph [ref=f4e376]: 它负责回答：
+                      - list [ref=f4e377]:
+                        - listitem [ref=f4e378]:
+                          - paragraph [ref=f4e379]: 这张遥感图里农业用地占比多少？
+                        - listitem [ref=f4e380]:
+                          - paragraph [ref=f4e381]: 建筑区、道路、水体分别分布在哪里？
+                        - listitem [ref=f4e382]:
+                          - paragraph [ref=f4e383]: 城市和农村土地结构有什么不同？
+                        - listitem [ref=f4e384]:
+                          - paragraph [ref=f4e385]: 是否存在大面积裸地或建筑密集区？
+                      - paragraph [ref=f4e386]: 输出不只是彩色分割图，还可以生成：
+                      - generic [ref=f4e395]:
+                        - button "复制" [ref=f4e396] [cursor=pointer]
+                        - code [ref=f4e405]: 农业用地：38.6% 森林：21.4% 建筑区：17.8% 道路：8.2% 水体：7.5% 裸地：6.5%
+                      - heading "注意模型选择" [level=3] [ref=f4e406]
+                      - paragraph [ref=f4e407]:
+                        - text: LoveDA 是
+                        - strong [ref=f4e408]: 语义分割
+                        - text: ，而 YOLO11 官方主要支持目标检测、实例分割、分类、姿态和 OBB 等任务；YOLO11 的实例分割和土地覆盖语义分割不是完全相同的任务。
+                        - link "Ultralytics Docs +1" [ref=f4e411] [cursor=pointer]:
+                          - /url: https://docs.ultralytics.com/models/yolo11?utm_source=chatgpt.com
+                          - generic [ref=f4e413]:
+                            - generic [ref=f4e414]: Ultralytics Docs
+                            - generic [ref=f4e417]: "+1"
+                      - paragraph [ref=f4e418]: 因此更合理的是：
+                      - list [ref=f4e419]:
+                        - listitem [ref=f4e420]:
+                          - paragraph [ref=f4e421]: DIOR 使用 YOLO11；
+                        - listitem [ref=f4e422]:
+                          - paragraph [ref=f4e423]: LoveDA 使用轻量级语义分割模型；
+                        - listitem [ref=f4e424]:
+                          - paragraph [ref=f4e425]: 由多 Agent 把两个模型统一起来。
+                      - paragraph [ref=f4e426]:
+                        - text: 项目仍然可以称为“基于 YOLOv11 的智能巡查平台”，因为核心设施检测模块使用 YOLOv11，但它本质上是一个
+                        - strong [ref=f4e427]: 多模型平台
+                        - text: 。
+                      - paragraph [ref=f4e428]: 如果老师明确要求所有视觉模型都必须是 YOLO11，也可以把 LoveDA 的 mask 转成多边形后尝试 YOLO11-seg，但这属于工程适配，土地覆盖区域通常很大且相互连接，不如专门的语义分割模型自然。
+                      - separator [ref=f4e429]
+                      - heading "2. DIOR 训练什么" [level=2] [ref=f4e430]
+                      - paragraph [ref=f4e431]:
+                        - text: 不建议一开始训练 DIOR 全部 20 类。应当围绕“国土空间与基础设施巡查”，选择
+                        - strong [ref=f4e432]: 6—8 类
+                        - text: 。
+                      - heading "推荐类别" [level=3] [ref=f4e433]
+                      - generic [ref=f4e435]:
+                        - table [ref=f4e436]:
+                          - rowgroup [ref=f4e437]:
+                            - row "业务方向 DIOR 类别 用途" [ref=f4e438]:
+                              - columnheader "业务方向" [ref=f4e439]
+                              - columnheader "DIOR 类别" [ref=f4e440]
+                              - columnheader "用途" [ref=f4e441]
+                          - rowgroup [ref=f4e442]:
+                            - row "工业设施 storage tank、chimney 油罐区、工业设施集中区域" [ref=f4e443]:
+                              - cell "工业设施" [ref=f4e444]
+                              - cell "storage tank、chimney" [ref=f4e445]
+                              - cell "油罐区、工业设施集中区域" [ref=f4e446]
+                            - row "交通设施 bridge、overpass、train station 桥梁、立交桥、铁路交通设施" [ref=f4e447]:
+                              - cell "交通设施" [ref=f4e448]
+                              - cell "bridge、overpass、train station" [ref=f4e449]
+                              - cell "桥梁、立交桥、铁路交通设施" [ref=f4e450]
+                            - row "水域设施 harbor、ship、dam 港口、船舶和水利设施" [ref=f4e451]:
+                              - cell "水域设施" [ref=f4e452]
+                              - cell "harbor、ship、dam" [ref=f4e453]
+                              - cell "港口、船舶和水利设施" [ref=f4e454]
+                            - row "能源设施，可选 windmill 风力发电设施" [ref=f4e455]:
+                              - cell "能源设施，可选" [ref=f4e456]
+                              - cell "windmill" [ref=f4e457]
+                              - cell "风力发电设施" [ref=f4e458]
+                            - row "活动目标，可选 vehicle 区域车辆活动情况" [ref=f4e459]:
+                              - cell "活动目标，可选" [ref=f4e460]
+                              - cell "vehicle" [ref=f4e461]
+                              - cell "区域车辆活动情况" [ref=f4e462]
+                        - generic [ref=f4e464]:
+                          - button "复制表格"
+                      - paragraph [ref=f4e465]: 推荐最终保留：
+                      - blockquote [ref=f4e466]:
+                        - paragraph [ref=f4e467]:
+                          - code [ref=f4e468]: storage tank、chimney、bridge、overpass、harbor、ship、dam、train station
+                      - paragraph [ref=f4e469]: 这比飞机、篮球场、网球场等类别更符合“国土空间巡查”的目的。
+                      - paragraph [ref=f4e470]: DIOR 负责回答：
+                      - list [ref=f4e471]:
+                        - listitem [ref=f4e472]:
+                          - paragraph [ref=f4e473]: 该区域有哪些重点设施？
+                        - listitem [ref=f4e474]:
+                          - paragraph [ref=f4e475]: 是否存在油罐或大型工业设施？
+                        - listitem [ref=f4e476]:
+                          - paragraph [ref=f4e477]: 水域附近是否存在港口、船舶或水坝？
+                        - listitem [ref=f4e478]:
+                          - paragraph [ref=f4e479]: 检测到多少座桥梁、立交桥和车站？
+                        - listitem [ref=f4e480]:
+                          - paragraph [ref=f4e481]: 不同设施的数量和置信度分布如何？
+                      - separator [ref=f4e482]
+                      - heading "3. LEVIR-CD 作为可选扩展" [level=2] [ref=f4e483]
+                      - paragraph [ref=f4e484]:
+                        - text: LEVIR-CD 适合加入“建筑变化预警”，它是专门面向遥感建筑变化检测的数据集。
+                        - link "Hao Chen (陈浩) +1" [ref=f4e487] [cursor=pointer]:
+                          - /url: https://justchenhao.github.io/LEVIR/?utm_source=chatgpt.com
+                          - generic [ref=f4e489]:
+                            - generic [ref=f4e490]: Hao Chen (陈浩)
+                            - generic [ref=f4e493]: "+1"
+                      - paragraph [ref=f4e494]: 输入是同一区域两个时间点的图像：
+                      - generic [ref=f4e503]:
+                        - button "复制" [ref=f4e504] [cursor=pointer]
+                        - code [ref=f4e513]: 2024 年影像 + 2026 年影像
+                      - paragraph [ref=f4e514]: 输出：
+                      - list [ref=f4e515]:
+                        - listitem [ref=f4e516]:
+                          - paragraph [ref=f4e517]: 新增建筑区域；
+                        - listitem [ref=f4e518]:
+                          - paragraph [ref=f4e519]: 消失或拆除的建筑区域；
+                        - listitem [ref=f4e520]:
+                          - paragraph [ref=f4e521]: 建筑变化面积；
+                        - listitem [ref=f4e522]:
+                          - paragraph [ref=f4e523]: 变化区域位置。
+                      - paragraph [ref=f4e524]: 这个模块能把项目从“识别现状”提升到“发现变化”。
+                      - paragraph [ref=f4e525]:
+                        - text: 但你们的计划中，数据与模型阶段只有 Day 5—7，Agent 集中集成在 Day 11，同时还要完成前后端、视频、历史记录、训练服务和部署，因此我建议把 LEVIR-CD 定为
+                        - strong [ref=f4e526]: 加分模块
+                        - text: ，不要列为第一阶段必做。
+                        - button "2. 基于YOLOv11的目标检测智能体平台-实训计划" [ref=f4e528] [cursor=pointer]:
+                          - paragraph [ref=f4e531]: 2. 基于YOLOv11的目标检测智能体平台-实训计划
+                      - separator [ref=f4e532]
+                      - heading "三、三个模型怎样产生“联合效果”" [level=1] [ref=f4e533]
+                      - paragraph [ref=f4e534]:
+                        - text: 真正的亮点不是三个模型各显示一次结果，而是进行
+                        - strong [ref=f4e535]: 空间关系融合
+                        - text: 。
+                      - heading "示例一：工业设施区域分析" [level=2] [ref=f4e536]
+                      - paragraph [ref=f4e537]: LoveDA 输出：
+                      - generic [ref=f4e546]:
+                        - button "复制" [ref=f4e547] [cursor=pointer]
+                        - code [ref=f4e556]: 该区域主要由建筑区、裸地和道路组成
+                      - paragraph [ref=f4e557]: DIOR 输出：
+                      - generic [ref=f4e566]:
+                        - button "复制" [ref=f4e567] [cursor=pointer]
+                        - code [ref=f4e576]: 检测到 12 个储油罐、2 个烟囱、1 座铁路车站
+                      - paragraph [ref=f4e577]: 融合 Agent 输出：
+                      - blockquote [ref=f4e578]:
+                        - paragraph [ref=f4e579]: 该区域建筑和裸地占比较高，并存在较密集的储油罐及烟囱目标，初步判断为工业设施集中区域。该结论仅用于辅助巡查。
+                      - paragraph [ref=f4e580]: 这里就不是两个孤立模型，而是：
+                      - generic [ref=f4e589]:
+                        - button "复制" [ref=f4e590] [cursor=pointer]
+                        - code [ref=f4e599]: 土地覆盖 + 设施目标 → 区域功能辅助判断
+                      - separator [ref=f4e600]
+                      - heading "示例二：港口和水域设施分析" [level=2] [ref=f4e601]
+                      - paragraph [ref=f4e602]: LoveDA：
+                      - generic [ref=f4e611]:
+                        - button "复制" [ref=f4e612] [cursor=pointer]
+                        - code [ref=f4e621]: 检测到大面积水体以及临水建筑区
+                      - paragraph [ref=f4e622]: DIOR：
+                      - generic [ref=f4e631]:
+                        - button "复制" [ref=f4e632] [cursor=pointer]
+                        - code [ref=f4e641]: 检测到港口、船舶和桥梁目标
+                      - paragraph [ref=f4e642]: 融合结果：
+                      - blockquote [ref=f4e643]:
+                        - paragraph [ref=f4e644]: 水体西侧存在港口设施，共检测到 8 艘船舶和 2 座桥梁，设施主要集中于水陆交界区域。
+                      - separator [ref=f4e645]
+                      - heading "示例三：城乡建设变化分析" [level=2] [ref=f4e646]
+                      - paragraph [ref=f4e647]: LoveDA：
+                      - generic [ref=f4e656]:
+                        - button "复制" [ref=f4e657] [cursor=pointer]
+                        - code [ref=f4e666]: 当前建筑区占比 26.4%，农业用地占比 31.7%
+                      - paragraph [ref=f4e667]: LEVIR-CD：
+                      - generic [ref=f4e676]:
+                        - button "复制" [ref=f4e677] [cursor=pointer]
+                        - code [ref=f4e686]: 检测到 3 处新增建筑区域
+                      - paragraph [ref=f4e687]: 融合结果：
+                      - blockquote [ref=f4e688]:
+                        - paragraph [ref=f4e689]: 当前影像中建筑区占比较高，与历史影像相比出现 3 处新增建筑区域，新增区域主要位于原有农业用地边缘，建议进一步人工核查。
+                      - paragraph [ref=f4e690]: 这里可以描述“疑似占用”或“建议核查”，但不能直接说“违法占地”。
+                      - separator [ref=f4e691]
+                      - heading "四、推荐的多 Agent 架构" [level=1] [ref=f4e692]
+                      - generic [ref=f4e701]:
+                        - button "复制" [ref=f4e702] [cursor=pointer]
+                        - code [ref=f4e711]: 用户上传遥感图像或双时相图像 ↓ Supervisor / RouterAgent │ ┌───────┼────────┐ ↓ ↓ ↓ 土地覆盖 设施检测 变化检测 Agent Agent Agent LoveDA DIOR LEVIR-CD 模型 YOLO11 可选模型 └───────┼────────┘ ↓ SpatialFusionAgent 空间关系、面积和数量融合 ↓ AnalysisAgent 风险提示、统计分析、趋势说明 ↓ QAAgent 领域知识解释与自然语言问答 ↓ ReportAgent 生成巡查摘要和结构化报告
+                      - heading "各 Agent 的职责" [level=2] [ref=f4e712]
+                      - heading "RouterAgent" [level=3] [ref=f4e713]
+                      - paragraph [ref=f4e714]: 判断用户需要什么任务：
+                      - list [ref=f4e715]:
+                        - listitem [ref=f4e716]:
+                          - paragraph [ref=f4e717]: 单张土地覆盖识别；
+                        - listitem [ref=f4e718]:
+                          - paragraph [ref=f4e719]: 重点设施检测；
+                        - listitem [ref=f4e720]:
+                          - paragraph [ref=f4e721]: 综合分析；
+                        - listitem [ref=f4e722]:
+                          - paragraph [ref=f4e723]: 两期影像变化分析；
+                        - listitem [ref=f4e724]:
+                          - paragraph [ref=f4e725]: 查询历史检测记录。
+                      - heading "LandCoverAgent" [level=3] [ref=f4e726]
+                      - paragraph [ref=f4e727]: 调用土地覆盖模型，返回：
+                      - generic [ref=f4e733]:
+                        - generic [ref=f4e735]:
+                          - generic [ref=f4e736]: JSON
+                          - button "复制" [ref=f4e740] [cursor=pointer]
+                        - code [ref=f4e753]: "{ \"agriculture_ratio\": 0.386, \"forest_ratio\": 0.214, \"water_ratio\": 0.075, \"building_ratio\": 0.178 }"
+                      - heading "FacilityDetectionAgent" [level=3] [ref=f4e754]
+                      - paragraph [ref=f4e755]: 调用 DIOR-YOLO11 模型，返回：
+                      - generic [ref=f4e761]:
+                        - generic [ref=f4e763]:
+                          - generic [ref=f4e764]: JSON
+                          - button "复制" [ref=f4e768] [cursor=pointer]
+                        - code [ref=f4e781]: "{ \"storage_tank\": 12, \"bridge\": 2, \"ship\": 8, \"harbor\": 1 }"
+                      - heading "SpatialFusionAgent" [level=3] [ref=f4e782]
+                      - paragraph [ref=f4e783]: 把检测框和分割区域放到同一个坐标系中，分析：
+                      - list [ref=f4e784]:
+                        - listitem [ref=f4e785]:
+                          - paragraph [ref=f4e786]: 目标位于哪类土地覆盖区域；
+                        - listitem [ref=f4e787]:
+                          - paragraph [ref=f4e788]: 目标是否靠近水体、道路或建筑区；
+                        - listitem [ref=f4e789]:
+                          - paragraph [ref=f4e790]: 某类设施是否密集；
+                        - listitem [ref=f4e791]:
+                          - paragraph [ref=f4e792]: 不同目标之间是否存在空间关联。
+                      - paragraph [ref=f4e793]: 可以用检测框中心点判断所属分割区域：
+                      - generic [ref=f4e802]:
+                        - button "复制" [ref=f4e803] [cursor=pointer]
+                        - code [ref=f4e812]: storage_tank_1 → 位于 building 区域 ship_3 → 位于 water 区域 bridge_1 → 横跨 water 与 road 区域
+                      - heading "AnalysisAgent" [level=3] [ref=f4e813]
+                      - paragraph [ref=f4e814]: 根据结构化结果生成分析，不直接查看原始图像，也不凭空猜测。
+                      - heading "ReportAgent" [level=3] [ref=f4e815]
+                      - paragraph [ref=f4e816]: 输出：
+                      - list [ref=f4e817]:
+                        - listitem [ref=f4e818]:
+                          - paragraph [ref=f4e819]: 土地覆盖比例；
+                        - listitem [ref=f4e820]:
+                          - paragraph [ref=f4e821]: 设施数量；
+                        - listitem [ref=f4e822]:
+                          - paragraph [ref=f4e823]: 重点区域描述；
+                        - listitem [ref=f4e824]:
+                          - paragraph [ref=f4e825]: 变化情况；
+                        - listitem [ref=f4e826]:
+                          - paragraph [ref=f4e827]: 建议人工复核事项。
+                      - separator [ref=f4e828]
+                      - heading "五、不要把数据集直接混成一个模型" [level=1] [ref=f4e829]
+                      - paragraph [ref=f4e830]: 下面这种做法不建议：
+                      - generic [ref=f4e839]:
+                        - button "复制" [ref=f4e840] [cursor=pointer]
+                        - code [ref=f4e849]: LoveDA + DIOR + LEVIR-CD ↓ 同一个 YOLO 模型
+                      - paragraph [ref=f4e850]: 原因是：
+                      - generic [ref=f4e852]:
+                        - table [ref=f4e853]:
+                          - rowgroup [ref=f4e854]:
+                            - row "数据集 标注类型 主要评价指标" [ref=f4e855]:
+                              - columnheader "数据集" [ref=f4e856]
+                              - columnheader "标注类型" [ref=f4e857]
+                              - columnheader "主要评价指标" [ref=f4e858]
+                          - rowgroup [ref=f4e859]:
+                            - row "LoveDA 像素级语义标签 mIoU、每类 IoU" [ref=f4e860]:
+                              - cell "LoveDA" [ref=f4e861]
+                              - cell "像素级语义标签" [ref=f4e862]
+                              - cell "mIoU、每类 IoU" [ref=f4e863]
+                            - row "DIOR 检测框 mAP50、mAP50-95、Precision、Recall" [ref=f4e864]:
+                              - cell "DIOR" [ref=f4e865]
+                              - cell "检测框" [ref=f4e866]
+                              - cell "mAP50、mAP50-95、Precision、Recall" [ref=f4e867]
+                            - row "LEVIR-CD 双时相变化掩膜 F1、IoU、Precision、Recall" [ref=f4e868]:
+                              - cell "LEVIR-CD" [ref=f4e869]
+                              - cell "双时相变化掩膜" [ref=f4e870]
+                              - cell "F1、IoU、Precision、Recall" [ref=f4e871]
+                        - generic [ref=f4e873]:
+                          - button "复制表格"
+                      - paragraph [ref=f4e874]: 它们的输入、输出和损失函数都不同。正确方式是：
+                      - generic [ref=f4e883]:
+                        - button "复制" [ref=f4e884] [cursor=pointer]
+                        - code [ref=f4e893]: 分别训练 → 分别评估 → 统一接口 → Agent 联合调用 → 结果融合
+                      - paragraph [ref=f4e894]: 多 Agent 的作用是：
+                      - list [ref=f4e895]:
+                        - listitem [ref=f4e896]:
+                          - paragraph [ref=f4e897]: 选择合适的模型；
+                        - listitem [ref=f4e898]:
+                          - paragraph [ref=f4e899]: 并行调用不同模型；
+                        - listitem [ref=f4e900]:
+                          - paragraph [ref=f4e901]: 合并结构化结果；
+                        - listitem [ref=f4e902]:
+                          - paragraph [ref=f4e903]: 生成统一报告。
+                      - paragraph [ref=f4e904]: Agent 本身不会让模型检测得更准，但会让系统具备更完整的分析能力。
+                      - separator [ref=f4e905]
+                      - heading "六、必须解决的数据域问题" [level=1] [ref=f4e906]
+                      - paragraph [ref=f4e907]: LoveDA 和 DIOR 不是同一批图像，它们的拍摄区域、分辨率和图像风格不同。因此即使两个模型分别在自己的测试集上效果很好，也不代表它们一定能同时适应同一张新图。
+                      - paragraph [ref=f4e908]:
+                        - text: 建议建立一个
+                        - strong [ref=f4e909]: 联合测试集
+                        - text: ：
+                      - list [ref=f4e910]:
+                        - listitem [ref=f4e911]:
+                          - paragraph [ref=f4e912]: 选择 30—100 张具有公开使用许可的遥感图像；
+                        - listitem [ref=f4e913]:
+                          - paragraph [ref=f4e914]: 同一张图同时运行土地覆盖模型和设施检测模型；
+                        - listitem [ref=f4e915]:
+                          - paragraph [ref=f4e916]: 人工检查土地覆盖和目标检测结果；
+                        - listitem [ref=f4e917]:
+                          - paragraph [ref=f4e918]: 挑选 10—20 张作为答辩演示案例；
+                        - listitem [ref=f4e919]:
+                          - paragraph [ref=f4e920]: 必要时对少量图像进行补充标注和微调。
+                      - paragraph [ref=f4e921]: 这比只展示两个数据集各自的测试图更有说服力。
+                      - paragraph [ref=f4e922]: 你们最终应该展示：
+                      - blockquote [ref=f4e923]:
+                        - paragraph [ref=f4e924]: 同一张遥感图像经过两个模型联合分析后，能够同时得到土地覆盖结构和重点设施分布。
+                      - separator [ref=f4e925]
+                      - heading "七、输入类型也应按 Agent 区分" [level=1] [ref=f4e926]
+                      - paragraph [ref=f4e927]:
+                        - text: 实训计划要求单图、批量、文件夹、视频和摄像头等模式。
+                        - button "2. 基于YOLOv11的目标检测智能体平台-实训计划" [ref=f4e929] [cursor=pointer]:
+                          - paragraph [ref=f4e932]: 2. 基于YOLOv11的目标检测智能体平台-实训计划
+                      - paragraph [ref=f4e933]: 但不是所有模型都适合所有模式：
+                      - generic [ref=f4e935]:
+                        - table [ref=f4e936]:
+                          - rowgroup [ref=f4e937]:
+                            - row "模块 单图 批量 视频 摄像头 双时相" [ref=f4e938]:
+                              - columnheader "模块" [ref=f4e939]
+                              - columnheader "单图" [ref=f4e940]
+                              - columnheader "批量" [ref=f4e941]
+                              - columnheader "视频" [ref=f4e942]
+                              - columnheader "摄像头" [ref=f4e943]
+                              - columnheader "双时相" [ref=f4e944]
+                          - rowgroup [ref=f4e945]:
+                            - row "DIOR 设施检测 是 是 是 可选 否" [ref=f4e946]:
+                              - cell "DIOR 设施检测" [ref=f4e947]
+                              - cell "是" [ref=f4e948]
+                              - cell "是" [ref=f4e949]
+                              - cell "是" [ref=f4e950]
+                              - cell "可选" [ref=f4e951]
+                              - cell "否" [ref=f4e952]
+                            - row "LoveDA 土地覆盖 是 是 不必 不必 可比较" [ref=f4e953]:
+                              - cell "LoveDA 土地覆盖" [ref=f4e954]
+                              - cell "是" [ref=f4e955]
+                              - cell "是" [ref=f4e956]
+                              - cell "不必" [ref=f4e957]
+                              - cell "不必" [ref=f4e958]
+                              - cell "可比较" [ref=f4e959]
+                            - row "LEVIR-CD 变化检测 否 可批量 否 否 是" [ref=f4e960]:
+                              - cell "LEVIR-CD 变化检测" [ref=f4e961]
+                              - cell "否" [ref=f4e962]
+                              - cell "可批量" [ref=f4e963]
+                              - cell "否" [ref=f4e964]
+                              - cell "否" [ref=f4e965]
+                              - cell "是" [ref=f4e966]
+                        - generic [ref=f4e968]:
+                          - button "复制表格"
+                      - paragraph [ref=f4e969]: 遥感土地覆盖通常不需要普通电脑摄像头实时识别。你们可以让 DIOR 检测模块完成视频和实时模式，而土地覆盖模块只提供单图、批量和面积统计。
+                      - paragraph [ref=f4e970]: 这反而能够体现 RouterAgent 的价值：
+                      - blockquote [ref=f4e971]:
+                        - paragraph [ref=f4e972]: 不同输入类型自动路由到不同专业模型。
+                      - separator [ref=f4e973]
+                      - heading "八、项目范围建议" [level=1] [ref=f4e974]
+                      - paragraph [ref=f4e975]: 考虑到你们还要实现完整的平台，我建议按两级目标推进。
+                      - heading "必做版本" [level=2] [ref=f4e976]
+                      - heading "数据集" [level=3] [ref=f4e977]
+                      - list [ref=f4e978]:
+                        - listitem [ref=f4e979]:
+                          - paragraph [ref=f4e980]:
+                            - strong [ref=f4e981]: LoveDA
+                        - listitem [ref=f4e982]:
+                          - paragraph [ref=f4e983]:
+                            - strong [ref=f4e984]: DIOR，选择 6—8 类
+                      - heading "功能" [level=3] [ref=f4e985]
+                      - list [ref=f4e986]:
+                        - listitem [ref=f4e987]:
+                          - paragraph [ref=f4e988]: 土地覆盖分割；
+                        - listitem [ref=f4e989]:
+                          - paragraph [ref=f4e990]: 重点设施检测；
+                        - listitem [ref=f4e991]:
+                          - paragraph [ref=f4e992]: 面积占比统计；
+                        - listitem [ref=f4e993]:
+                          - paragraph [ref=f4e994]: 目标数量统计；
+                        - listitem [ref=f4e995]:
+                          - paragraph [ref=f4e996]: 检测框与分割结果叠加；
+                        - listitem [ref=f4e997]:
+                          - paragraph [ref=f4e998]: 空间关系分析；
+                        - listitem [ref=f4e999]:
+                          - paragraph [ref=f4e1000]: 多 Agent 自然语言问答；
+                        - listitem [ref=f4e1001]:
+                          - paragraph [ref=f4e1002]: 自动生成巡查摘要。
+                      - paragraph [ref=f4e1003]: 仅完成这些，项目已经很完整。
+                      - heading "加分版本" [level=2] [ref=f4e1004]
+                      - list [ref=f4e1005]:
+                        - listitem [ref=f4e1006]:
+                          - paragraph [ref=f4e1007]: 加入 LEVIR-CD；
+                        - listitem [ref=f4e1008]:
+                          - paragraph [ref=f4e1009]: 支持双时相建筑变化检测；
+                        - listitem [ref=f4e1010]:
+                          - paragraph [ref=f4e1011]: 生成变化前后对比图；
+                        - listitem [ref=f4e1012]:
+                          - paragraph [ref=f4e1013]: 输出疑似变化区域清单。
+                      - paragraph [ref=f4e1014]: 不要再同时加入 DOTA、xView、RSOD 等更多数据集。数据集数量并不等于创新程度，过多模型会导致训练、接口和展示都做不完整。
+                      - separator [ref=f4e1015]
+                      - heading "九、如果老师要求“必须全部使用 YOLOv11”" [level=1] [ref=f4e1016]
+                      - paragraph [ref=f4e1017]: 这种情况下有两个方案。
+                      - heading "方案 A：保留 LoveDA，但做格式转换" [level=2] [ref=f4e1018]
+                      - list [ref=f4e1019]:
+                        - listitem [ref=f4e1020]:
+                          - paragraph [ref=f4e1021]: DIOR：YOLO11-detect；
+                        - listitem [ref=f4e1022]:
+                          - paragraph [ref=f4e1023]: LoveDA：mask 转多边形，尝试 YOLO11-seg；
+                        - listitem [ref=f4e1024]:
+                          - paragraph [ref=f4e1025]: 分别训练，分别调用。
+                      - paragraph [ref=f4e1026]: 优点是名义上都属于 YOLO11。
+                      - paragraph [ref=f4e1027]: 缺点是土地覆盖本质上是语义分割，而 YOLO11-seg 更偏实例分割，转换和训练效果存在风险。
+                      - heading "方案 B：全部改成遥感目标检测" [level=2] [ref=f4e1028]
+                      - list [ref=f4e1029]:
+                        - listitem [ref=f4e1030]:
+                          - paragraph [ref=f4e1031]: DIOR：普通水平框检测；
+                        - listitem [ref=f4e1032]:
+                          - paragraph [ref=f4e1033]: DOTA：旋转框检测；
+                        - listitem [ref=f4e1034]:
+                          - paragraph [ref=f4e1035]: Agent 根据场景选择 HBB 或 OBB 模型。
+                      - paragraph [ref=f4e1036]:
+                        - text: DOTA 中的目标具有明显的尺度和方向变化，标注使用任意方向四边形，适合旋转目标检测。
+                        - link "arXiv" [ref=f4e1039] [cursor=pointer]:
+                          - /url: https://arxiv.org/abs/1711.10398?utm_source=chatgpt.com
+                      - paragraph [ref=f4e1045]: 题目改为：
+                      - blockquote [ref=f4e1046]:
+                        - paragraph [ref=f4e1047]:
+                          - strong [ref=f4e1048]: 基于多模型协同的复杂遥感场景重点设施检测平台
+                      - paragraph [ref=f4e1049]: 这个方案更符合“纯 YOLO”，但业务完整性不如“LoveDA + DIOR”，因为两个模型都在检测目标，互补性没有土地覆盖与设施检测那么强。
+                      - separator [ref=f4e1050]
+                      - heading "最终建议" [level=1] [ref=f4e1051]
+                      - heading "项目题目" [level=2] [ref=f4e1052]
+                      - blockquote [ref=f4e1053]:
+                        - paragraph [ref=f4e1054]:
+                          - strong [ref=f4e1055]: 基于多模型协同与多 Agent 编排的遥感国土空间智能巡查平台
+                      - heading "核心任务" [level=2] [ref=f4e1056]
+                      - blockquote [ref=f4e1057]:
+                        - paragraph [ref=f4e1058]: 土地覆盖识别 + 重点设施检测 + 空间关系分析
+                      - heading "数据集" [level=2] [ref=f4e1059]
+                      - list [ref=f4e1060]:
+                        - listitem [ref=f4e1061]:
+                          - paragraph [ref=f4e1062]:
+                            - strong [ref=f4e1063]: LoveDA：土地覆盖语义分割
+                        - listitem [ref=f4e1064]:
+                          - paragraph [ref=f4e1065]:
+                            - strong [ref=f4e1066]: DIOR：重点设施目标检测，选择 6—8 类
+                        - listitem [ref=f4e1067]:
+                          - paragraph [ref=f4e1068]:
+                            - strong [ref=f4e1069]: LEVIR-CD：建筑变化检测，作为加分扩展
+                      - heading "最终联合效果" [level=2] [ref=f4e1070]
+                      - paragraph [ref=f4e1071]: 系统不是简单地展示三个模型结果，而是回答：
+                      - blockquote [ref=f4e1072]:
+                        - paragraph [ref=f4e1073]: 该区域主要是什么土地覆盖类型？存在哪些重点设施？这些设施位于什么区域？与历史影像相比是否出现明显建设变化？
+                      - paragraph [ref=f4e1074]:
+                        - text: 这套组合既有明确的共同目的，也真正体现了
+                        - strong [ref=f4e1075]: 多模型、多任务和多 Agent 联合工作
+                        - text: 。
+                  - button "来源" [ref=f4e1076] [cursor=pointer]
+              - generic [ref=f4e1088]:
+                - heading "你说：" [level=4] [ref=f4e1089]
+                - generic [ref=f4e1090]: 像结果分析和生成数据报告这种agent怎么实现比较好？
+              - generic [ref=f4e1099]:
+                - heading "ChatGPT 说：" [level=4] [ref=f4e1100]
+                - generic [ref=f4e1102]:
+                  - generic [ref=f4e1103]:
+                    - button "思考了 46s" [ref=f4e1105] [cursor=pointer]
+                    - generic [ref=f4e1110]:
+                      - paragraph [ref=f4e1111]:
+                        - text: 可以实现，但
+                        - strong [ref=f4e1112]: 结果分析和报告生成不应该都做成“自由调用工具、自由推理”的 Agent
+                        - text: 。对你们这个项目，更稳的方案是：
+                      - blockquote [ref=f4e1113]:
+                        - paragraph [ref=f4e1114]:
+                          - strong [ref=f4e1115]: 模型负责识别，代码负责统计，AnalysisAgent 负责解释，ReviewAgent 负责核验，ReportAgent 负责组织文字，模板服务负责生成最终报告。
+                      - paragraph [ref=f4e1116]:
+                        - text: 你们的实训计划本身已经安排了检测统计接口、ECharts 数据看板、
+                        - code [ref=f4e1117]: AnalysisAgent
+                        - text: 的
+                        - code [ref=f4e1118]: query_history/get_statistics
+                        - text: 工具以及 RAG 知识库，因此这套设计与原计划是衔接的，不需要推翻现有架构。
+                        - button "2. 基于YOLOv11的目标检测智能体平台-实训计划" [ref=f4e1120] [cursor=pointer]:
+                          - paragraph [ref=f4e1123]: 2. 基于YOLOv11的目标检测智能体平台-实训计划
+                      - separator [ref=f4e1124]
+                      - heading "一、整体流程怎么设计" [level=1] [ref=f4e1125]
+                      - paragraph [ref=f4e1126]: 建议使用下面这条固定工作流：
+                      - generic [ref=f4e1135]:
+                        - button "复制" [ref=f4e1136] [cursor=pointer]
+                        - code [ref=f4e1145]: 用户上传遥感图像 ↓ 并行调用视觉模型 ├─ 土地覆盖模型：农田、森林、水体、建筑、道路、裸地 ├─ 设施检测模型：油罐、港口、桥梁、船舶、水坝等 └─ 变化检测模型：有双时相图像时才调用 ↓ 结果标准化 ↓ 统计与空间关系计算 ↓ AnalysisAgent 生成结构化分析 ↓ ReviewAgent 核对数字和证据 ↓ ReportAgent 组织报告内容 ↓ 图表服务 + 报告模板渲染 ↓ 网页报告 / PDF / 历史记录
+                      - paragraph [ref=f4e1146]:
+                        - text: 这里更适合采用
+                        - strong [ref=f4e1147]: LangGraph 工作流
+                        - text: ，而不是让一个大 Agent 自己决定所有步骤。LangGraph 官方将“固定执行路径的流程”定义为 workflow，将自主决定工具和步骤的系统定义为 agent；你们的模型调用、统计、核验、报告生成顺序基本固定，因此应用
+                        - code [ref=f4e1148]: StateGraph
+                        - text: 编排更容易测试和控制。
+                        - code [ref=f4e1149]: StateGraph
+                        - text: 通过共享 State、Node 和 Edge 组织流程，也支持并行节点。
+                        - link "Docs by LangChain +1" [ref=f4e1152] [cursor=pointer]:
+                          - /url: https://docs.langchain.com/oss/python/langgraph/workflows-agents
+                          - generic [ref=f4e1154]:
+                            - generic [ref=f4e1155]: Docs by LangChain
+                            - generic [ref=f4e1158]: "+1"
+                      - separator [ref=f4e1159]
+                      - heading "二、最关键的原则：LLM 不负责算数据" [level=1] [ref=f4e1160]
+                      - paragraph [ref=f4e1161]: 例如土地覆盖模型输出了一张 mask，真正的统计应该由 Python 完成：
+                      - generic [ref=f4e1170]:
+                        - button "复制" [ref=f4e1171] [cursor=pointer]
+                        - code [ref=f4e1180]: 农田占比 = 农田像素数 / 有效图像像素数 水体占比 = 水体像素数 / 有效图像像素数 建筑占比 = 建筑像素数 / 有效图像像素数
+                      - paragraph [ref=f4e1181]: 设施检测结果也由代码统计：
+                      - generic [ref=f4e1190]:
+                        - button "复制" [ref=f4e1191] [cursor=pointer]
+                        - code [ref=f4e1200]: 油罐数量 船舶数量 桥梁数量 每类平均置信度 每类目标面积 目标密度 目标空间分布
+                      - paragraph [ref=f4e1201]: 空间关系也通过程序计算，例如：
+                      - generic [ref=f4e1210]:
+                        - button "复制" [ref=f4e1211] [cursor=pointer]
+                        - code [ref=f4e1220]: 油罐检测框中心位于 building 区域 船舶检测框与 water 区域重叠 桥梁目标横跨 road 和 water 区域 港口目标距离水体边界 12 像素
+                      - paragraph [ref=f4e1221]: 然后把这些已经算好的数据交给 AnalysisAgent。
+                      - heading "为什么这样做" [level=2] [ref=f4e1222]
+                      - paragraph [ref=f4e1223]: 如果让大模型直接根据检测结果自己算百分比、数目标、比较大小，它可能出现：
+                      - list [ref=f4e1224]:
+                        - listitem [ref=f4e1225]:
+                          - paragraph [ref=f4e1226]: 数字计算错误；
+                        - listitem [ref=f4e1227]:
+                          - paragraph [ref=f4e1228]: 把 0.36 写成 36 个目标；
+                        - listitem [ref=f4e1229]:
+                          - paragraph [ref=f4e1230]: 报告里的数字和数据库不一致；
+                        - listitem [ref=f4e1231]:
+                          - paragraph [ref=f4e1232]: 根据常识补出不存在的设施；
+                        - listitem [ref=f4e1233]:
+                          - paragraph [ref=f4e1234]: 将“疑似”写成确定结论。
+                      - paragraph [ref=f4e1235]: 正确分工应该是：
+                      - generic [ref=f4e1237]:
+                        - table [ref=f4e1238]:
+                          - rowgroup [ref=f4e1239]:
+                            - row "模块 负责内容" [ref=f4e1240]:
+                              - columnheader "模块" [ref=f4e1241]
+                              - columnheader "负责内容" [ref=f4e1242]
+                          - rowgroup [ref=f4e1243]:
+                            - row "视觉模型 输出检测框、掩膜、变化区域" [ref=f4e1244]:
+                              - cell "视觉模型" [ref=f4e1245]
+                              - cell "输出检测框、掩膜、变化区域" [ref=f4e1246]
+                            - row "Python 统计服务 数量、比例、均值、距离、空间关系" [ref=f4e1247]:
+                              - cell "Python 统计服务" [ref=f4e1248]
+                              - cell "数量、比例、均值、距离、空间关系" [ref=f4e1249]
+                            - row "AnalysisAgent 对结构化数据进行解释和归纳" [ref=f4e1250]:
+                              - cell "AnalysisAgent" [ref=f4e1251]
+                              - cell "对结构化数据进行解释和归纳" [ref=f4e1252]
+                            - row "ReviewAgent 验证分析中引用的数据是否真实存在" [ref=f4e1253]:
+                              - cell "ReviewAgent" [ref=f4e1254]
+                              - cell "验证分析中引用的数据是否真实存在" [ref=f4e1255]
+                            - row "ReportAgent 把审核后的分析组织成报告" [ref=f4e1256]:
+                              - cell "ReportAgent" [ref=f4e1257]
+                              - cell "把审核后的分析组织成报告" [ref=f4e1258]
+                            - row "模板渲染服务 生成网页、图表、PDF" [ref=f4e1259]:
+                              - cell "模板渲染服务" [ref=f4e1260]
+                              - cell "生成网页、图表、PDF" [ref=f4e1261]
+                        - generic [ref=f4e1263]:
+                          - button "复制表格"
+                      - separator [ref=f4e1264]
+                      - heading "三、先定义统一的“证据数据结构”" [level=1] [ref=f4e1265]
+                      - paragraph [ref=f4e1266]: 不同模型输出形式不同，必须先转为统一结构，不能直接把 YOLO 原始输出丢给 Agent。
+                      - paragraph [ref=f4e1267]:
+                        - text: 建议所有模型输出最终都变成一个
+                        - code [ref=f4e1268]: EvidencePack
+                        - text: ：
+                      - generic [ref=f4e1274]:
+                        - generic [ref=f4e1276]:
+                          - generic [ref=f4e1277]: JSON
+                          - button "复制" [ref=f4e1281] [cursor=pointer]
+                        - code [ref=f4e1294]: "{ \"case_id\": \"case_20260710_001\", \"image\": { \"width\": 1024, \"height\": 1024, \"capture_time\": null, \"has_geospatial_metadata\": false }, \"land_cover\": { \"agriculture_ratio\": 0.386, \"forest_ratio\": 0.214, \"building_ratio\": 0.178, \"road_ratio\": 0.082, \"water_ratio\": 0.075, \"barren_ratio\": 0.065 }, \"facilities\": { \"storage_tank\": { \"count\": 12, \"mean_confidence\": 0.87 }, \"bridge\": { \"count\": 2, \"mean_confidence\": 0.81 }, \"ship\": { \"count\": 8, \"mean_confidence\": 0.84 }, \"harbor\": { \"count\": 1, \"mean_confidence\": 0.91 } }, \"spatial_relations\": [ { \"subject\": \"storage_tank\", \"relation\": \"mainly_located_in\", \"object\": \"building\", \"ratio\": 0.83 }, { \"subject\": \"ship\", \"relation\": \"located_in\", \"object\": \"water\", \"ratio\": 1.0 } ], \"change\": null }"
+                      - heading "每一项数据都附带证据编号" [level=2] [ref=f4e1295]
+                      - paragraph [ref=f4e1296]: 最好进一步转换为：
+                      - generic [ref=f4e1302]:
+                        - generic [ref=f4e1304]:
+                          - generic [ref=f4e1305]: JSON
+                          - button "复制" [ref=f4e1309] [cursor=pointer]
+                        - code [ref=f4e1322]: "{ \"id\": \"ev_facility_storage_tank_count\", \"source\": \"facility_detection\", \"metric\": \"storage_tank_count\", \"value\": 12, \"unit\": \"object\", \"confidence\": 0.87, \"model_version\": \"dior_yolo11_v3\" }"
+                      - paragraph [ref=f4e1323]: 这样 AnalysisAgent 输出一句：
+                      - blockquote [ref=f4e1324]:
+                        - paragraph [ref=f4e1325]: 检测到较密集的储油罐设施。
+                      - paragraph [ref=f4e1326]: 必须同时返回：
+                      - generic [ref=f4e1332]:
+                        - generic [ref=f4e1334]:
+                          - generic [ref=f4e1335]: JSON
+                          - button "复制" [ref=f4e1339] [cursor=pointer]
+                        - code [ref=f4e1352]: "{ \"evidence_ids\": [ \"ev_facility_storage_tank_count\", \"ev_relation_tank_building\" ] }"
+                      - paragraph [ref=f4e1353]: 后续 ReviewAgent 就能判断这句话有没有实际证据。
+                      - separator [ref=f4e1354]
+                      - heading "四、AnalysisAgent 应该怎么实现" [level=1] [ref=f4e1355]
+                      - paragraph [ref=f4e1356]: AnalysisAgent 不需要拥有很多工具。它的主要输入应该是：
+                      - list [ref=f4e1357]:
+                        - listitem [ref=f4e1358]:
+                          - paragraph [ref=f4e1359]: 土地覆盖统计；
+                        - listitem [ref=f4e1360]:
+                          - paragraph [ref=f4e1361]: 设施检测统计；
+                        - listitem [ref=f4e1362]:
+                          - paragraph [ref=f4e1363]: 空间关系；
+                        - listitem [ref=f4e1364]:
+                          - paragraph [ref=f4e1365]: 变化检测结果；
+                        - listitem [ref=f4e1366]:
+                          - paragraph [ref=f4e1367]: 模型置信度；
+                        - listitem [ref=f4e1368]:
+                          - paragraph [ref=f4e1369]: 少量领域知识；
+                        - listitem [ref=f4e1370]:
+                          - paragraph [ref=f4e1371]: 用户的分析需求。
+                      - paragraph [ref=f4e1372]: 它输出的不是自由文本，而是一个固定结构。
+                      - paragraph [ref=f4e1373]:
+                        - text: LangChain 当前支持用 Pydantic、dataclass 或 JSON Schema 约束 Agent 的结构化输出；使用结构化输出后，结果可直接作为对象处理，而不是再从一段自然语言中提取字段。
+                        - link "Docs by LangChain" [ref=f4e1376] [cursor=pointer]:
+                          - /url: https://docs.langchain.com/oss/python/langchain/structured-output
+                      - heading "推荐的数据模型" [level=2] [ref=f4e1382]
+                      - generic [ref=f4e1388]:
+                        - generic [ref=f4e1390]:
+                          - generic [ref=f4e1391]: Python
+                          - button "复制" [ref=f4e1395] [cursor=pointer]
+                        - code [ref=f4e1408]: "from typing import Literal from pydantic import BaseModel, Field class Finding(BaseModel): title: str level: Literal[\"information\", \"attention\", \"manual_review\"] statement: str # 该结论依据哪些实际数据 evidence_ids: list[str] # 是直接观测，还是模型进一步推断 conclusion_type: Literal[\"observation\", \"inference\"] confidence: float = Field(ge=0.0, le=1.0) limitation: str | None = None class AnalysisResult(BaseModel): overall_summary: str land_cover_summary: str facility_summary: str change_summary: str | None = None findings: list[Finding] data_quality_notes: list[str] limitations: list[str] suggested_actions: list[str]"
+                      - heading "调用方式" [level=2] [ref=f4e1409]
+                      - generic [ref=f4e1415]:
+                        - generic [ref=f4e1417]:
+                          - generic [ref=f4e1418]: Python
+                          - button "复制" [ref=f4e1422] [cursor=pointer]
+                        - code [ref=f4e1435]: "analysis_model = llm.with_structured_output(AnalysisResult) def run_analysis_agent(evidence_pack: dict) -> AnalysisResult: prompt = f\"\"\" 你是遥感巡查辅助分析 Agent。 必须遵守： 1. 只能使用输入数据中的事实，不得虚构目标、数量、比例或位置。 2. 每个 finding 必须提供有效的 evidence_ids。 3. 区分 observation 和 inference。 4. 不得直接判定违法用地、违规建设或环境违法。 5. 不得把像素面积占比写成真实平方米或公顷，除非输入包含可靠地理尺度。 6. 低置信度结果必须提示人工复核。 7. 输出必须符合 AnalysisResult。 输入数据： {evidence_pack} \"\"\" return analysis_model.invoke(prompt)"
+                      - paragraph [ref=f4e1436]:
+                        - text: 官方示例同样使用
+                        - code [ref=f4e1437]: with_structured_output(PydanticModel)
+                        - text: 让模型按指定结构返回数据。
+                        - link "Docs by LangChain" [ref=f4e1440] [cursor=pointer]:
+                          - /url: https://docs.langchain.com/oss/python/langgraph/workflows-agents
+                      - separator [ref=f4e1446]
+                      - heading "五、AnalysisAgent 应该分析什么" [level=1] [ref=f4e1447]
+                      - paragraph [ref=f4e1448]: 它不应该只是把数字重新念一遍，而应当完成三层分析。
+                      - heading "第一层：事实汇总" [level=2] [ref=f4e1449]
+                      - paragraph [ref=f4e1450]: 例如：
+                      - blockquote [ref=f4e1451]:
+                        - paragraph [ref=f4e1452]: 图像中农业用地占比为 38.6%，森林占比为 21.4%，建筑区域占比为17.8%。共检测到12个储油罐、8艘船舶、2座桥梁和1处港口目标。
+                      - paragraph [ref=f4e1453]: 这些都是直接事实，类型为：
+                      - generic [ref=f4e1462]:
+                        - button "复制" [ref=f4e1463] [cursor=pointer]
+                        - code [ref=f4e1472]: observation
+                      - heading "第二层：空间关系分析" [level=2] [ref=f4e1473]
+                      - paragraph [ref=f4e1474]: 例如：
+                      - blockquote [ref=f4e1475]:
+                        - paragraph [ref=f4e1476]: 83%的储油罐目标位于建筑覆盖区域内，且分布较为集中。
+                      - paragraph [ref=f4e1477]: 这也是程序已经计算出的事实。
+                      - heading "第三层：辅助推断" [level=2] [ref=f4e1478]
+                      - paragraph [ref=f4e1479]: 例如：
+                      - blockquote [ref=f4e1480]:
+                        - paragraph [ref=f4e1481]: 建筑和裸地占比较高，同时存在较密集的储油罐设施，该区域可能具有工业设施集中区特征。
+                      - paragraph [ref=f4e1482]: 这属于：
+                      - generic [ref=f4e1491]:
+                        - button "复制" [ref=f4e1492] [cursor=pointer]
+                        - code [ref=f4e1501]: inference
+                      - paragraph [ref=f4e1502]: 必须写成“可能”“具有……特征”“建议进一步核查”，不能写成：
+                      - blockquote [ref=f4e1503]:
+                        - paragraph [ref=f4e1504]: 该区域就是工业区。
+                      - paragraph [ref=f4e1505]: 更不能写成：
+                      - blockquote [ref=f4e1506]:
+                        - paragraph [ref=f4e1507]: 该区域存在违法工业用地。
+                      - separator [ref=f4e1508]
+                      - heading "六、规则引擎和 AnalysisAgent 要配合使用" [level=1] [ref=f4e1509]
+                      - paragraph [ref=f4e1510]: 不要完全依赖 LLM 判断“是否值得关注”。可以先由代码产生规则事件：
+                      - generic [ref=f4e1516]:
+                        - generic [ref=f4e1518]:
+                          - generic [ref=f4e1519]: Python
+                          - button "复制" [ref=f4e1523] [cursor=pointer]
+                        - code [ref=f4e1536]: "def generate_rule_events(metrics: dict) -> list[dict]: events = [] tank_count = metrics[\"facilities\"].get(\"storage_tank\", {}).get(\"count\", 0) tank_conf = metrics[\"facilities\"].get( \"storage_tank\", {} ).get(\"mean_confidence\", 0) if tank_count >= 8 and tank_conf >= 0.75: events.append({ \"rule_id\": \"dense_storage_tank\", \"level\": \"attention\", \"message\": \"检测到较密集的储油罐目标\", \"evidence_ids\": [ \"ev_facility_storage_tank_count\", \"ev_facility_storage_tank_confidence\" ] }) return events"
+                      - paragraph [ref=f4e1537]: 具体阈值不要凭感觉永久写死，应在验证集和联合测试集上调整，并保存在配置文件中：
+                      - generic [ref=f4e1543]:
+                        - generic [ref=f4e1545]:
+                          - generic [ref=f4e1546]: YAML
+                          - button "复制" [ref=f4e1550] [cursor=pointer]
+                        - code [ref=f4e1563]: "rules: dense_storage_tank: minimum_count: 8 minimum_mean_confidence: 0.75 low_confidence: threshold: 0.55"
+                      - paragraph [ref=f4e1564]: 这样：
+                      - generic [ref=f4e1573]:
+                        - button "复制" [ref=f4e1574] [cursor=pointer]
+                        - code [ref=f4e1583]: 代码决定是否触发规则 Agent负责结合上下文解释规则
+                      - paragraph [ref=f4e1584]: 报告的可复现性会明显更好。
+                      - separator [ref=f4e1585]
+                      - heading "七、ReviewAgent 怎么实现" [level=1] [ref=f4e1586]
+                      - paragraph [ref=f4e1587]: ReviewAgent 的作用不是重新分析图像，而是审查 AnalysisAgent 的结果。
+                      - paragraph [ref=f4e1588]: 建议审查以下内容：
+                      - list [ref=f4e1589]:
+                        - listitem [ref=f4e1590]:
+                          - paragraph [ref=f4e1591]:
+                            - text: 每个
+                            - code [ref=f4e1592]: evidence_id
+                            - text: 是否存在；
+                        - listitem [ref=f4e1593]:
+                          - paragraph [ref=f4e1594]: 报告中出现的数量是否和证据一致；
+                        - listitem [ref=f4e1595]:
+                          - paragraph [ref=f4e1596]: 百分数是否转换正确；
+                        - listitem [ref=f4e1597]:
+                          - paragraph [ref=f4e1598]: 是否把“比例”误写成“真实面积”；
+                        - listitem [ref=f4e1599]:
+                          - paragraph [ref=f4e1600]: 是否把推断写成确定事实；
+                        - listitem [ref=f4e1601]:
+                          - paragraph [ref=f4e1602]: 是否引用了低置信度检测结果；
+                        - listitem [ref=f4e1603]:
+                          - paragraph [ref=f4e1604]: 是否出现“违法”“确定属于”等越界结论。
+                      - paragraph [ref=f4e1605]: 很多检查甚至不需要 LLM，用 Python 就能完成。
+                      - generic [ref=f4e1611]:
+                        - generic [ref=f4e1613]:
+                          - generic [ref=f4e1614]: Python
+                          - button "复制" [ref=f4e1618] [cursor=pointer]
+                        - code [ref=f4e1631]: "def verify_analysis( analysis: AnalysisResult, evidence_items: list[dict], ) -> list[str]: errors: list[str] = [] valid_ids = {item[\"id\"] for item in evidence_items} for finding in analysis.findings: if not finding.evidence_ids: errors.append(f\"{finding.title} 没有引用证据\") for evidence_id in finding.evidence_ids: if evidence_id not in valid_ids: errors.append( f\"{finding.title} 引用了不存在的证据：{evidence_id}\" ) if ( finding.conclusion_type == \"inference\" and finding.confidence > 0.95 ): errors.append( f\"{finding.title} 是推断结论，但置信度设置过高\" ) return errors"
+                      - paragraph [ref=f4e1632]: 只有通过核验，结果才能进入 ReportAgent。
+                      - generic [ref=f4e1641]:
+                        - button "复制" [ref=f4e1642] [cursor=pointer]
+                        - code [ref=f4e1651]: AnalysisAgent → VerifyNode ├─ 通过 → ReportAgent └─ 不通过 → 带错误信息重新生成一次
+                      - paragraph [ref=f4e1652]: 建议最多重试一次或两次，避免循环调用。
+                      - separator [ref=f4e1653]
+                      - heading "八、ReportAgent 怎么实现" [level=1] [ref=f4e1654]
+                      - paragraph [ref=f4e1655]: ReportAgent 不应该再次查询原始模型，也不应该重新计算结果。它只接收：
+                      - list [ref=f4e1656]:
+                        - listitem [ref=f4e1657]:
+                          - paragraph [ref=f4e1658]: 已验证的 AnalysisResult；
+                        - listitem [ref=f4e1659]:
+                          - paragraph [ref=f4e1660]: 统计数据；
+                        - listitem [ref=f4e1661]:
+                          - paragraph [ref=f4e1662]: 图表 ID；
+                        - listitem [ref=f4e1663]:
+                          - paragraph [ref=f4e1664]: 项目元数据；
+                        - listitem [ref=f4e1665]:
+                          - paragraph [ref=f4e1666]: 模型版本；
+                        - listitem [ref=f4e1667]:
+                          - paragraph [ref=f4e1668]: 用户选择的报告类型。
+                      - heading "推荐报告结构" [level=2] [ref=f4e1669]
+                      - generic [ref=f4e1678]:
+                        - button "复制" [ref=f4e1679] [cursor=pointer]
+                        - code [ref=f4e1688]: 1. 基本信息 2. 数据与模型说明 3. 土地覆盖分析 4. 重点设施检测结果 5. 空间关系分析 6. 变化分析（可选） 7. 重点发现 8. 数据质量与局限性 9. 人工复核建议 10. 附录：模型版本、置信度阈值、证据清单
+                      - heading "ReportAgent 的输出也要结构化" [level=2] [ref=f4e1689]
+                      - generic [ref=f4e1695]:
+                        - generic [ref=f4e1697]:
+                          - generic [ref=f4e1698]: Python
+                          - button "复制" [ref=f4e1702] [cursor=pointer]
+                        - code [ref=f4e1715]: "class ReportSection(BaseModel): heading: str content: str evidence_ids: list[str] = [] chart_ids: list[str] = [] class ReportResult(BaseModel): title: str executive_summary: str sections: list[ReportSection] conclusion: str disclaimer: str"
+                      - paragraph [ref=f4e1716]: 调用时：
+                      - generic [ref=f4e1722]:
+                        - generic [ref=f4e1724]:
+                          - generic [ref=f4e1725]: Python
+                          - button "复制" [ref=f4e1729] [cursor=pointer]
+                        - code [ref=f4e1742]: "report_model = llm.with_structured_output(ReportResult) def run_report_agent( analysis: AnalysisResult, report_context: dict, ) -> ReportResult: prompt = f\"\"\" 你是遥感巡查报告编制 Agent。 请根据审核通过的分析结果生成正式报告。 要求： 1. 不得新增任何统计数字。 2. 不得修改输入中的数量、比例、类别和置信度。 3. 只引用已经提供的 evidence_ids 和 chart_ids。 4. 将 observation 写为客观检测结果。 5. 将 inference 写为辅助判断，并明确需要人工复核。 6. 不直接作出法律或行政性质判断。 7. 输出 ReportResult 结构。 审核通过的分析结果： {analysis.model_dump_json()} 报告上下文： {report_context} \"\"\" return report_model.invoke(prompt)"
+                      - separator [ref=f4e1743]
+                      - heading "九、图表不要让 ReportAgent 自己生成数据" [level=1] [ref=f4e1744]
+                      - paragraph [ref=f4e1745]: Agent 只决定：
+                      - list [ref=f4e1746]:
+                        - listitem [ref=f4e1747]:
+                          - paragraph [ref=f4e1748]: 使用什么图；
+                        - listitem [ref=f4e1749]:
+                          - paragraph [ref=f4e1750]: 图表标题；
+                        - listitem [ref=f4e1751]:
+                          - paragraph [ref=f4e1752]: 图表放在哪个章节；
+                        - listitem [ref=f4e1753]:
+                          - paragraph [ref=f4e1754]: 图表说明写什么。
+                      - paragraph [ref=f4e1755]: 真正的图表数据由统计服务提供。
+                      - paragraph [ref=f4e1756]: 例如：
+                      - generic [ref=f4e1762]:
+                        - generic [ref=f4e1764]:
+                          - generic [ref=f4e1765]: JSON
+                          - button "复制" [ref=f4e1769] [cursor=pointer]
+                        - code [ref=f4e1782]: "{ \"chart_id\": \"chart_land_cover_ratio\", \"type\": \"pie\", \"title\": \"土地覆盖类型占比\", \"data\": [ {\"name\": \"农业用地\", \"value\": 38.6}, {\"name\": \"森林\", \"value\": 21.4}, {\"name\": \"建筑\", \"value\": 17.8} ] }"
+                      - paragraph [ref=f4e1783]: 前端 ECharts 根据这个 JSON 绘制即可。
+                      - paragraph [ref=f4e1784]: 推荐至少做四种图：
+                      - generic [ref=f4e1786]:
+                        - table [ref=f4e1787]:
+                          - rowgroup [ref=f4e1788]:
+                            - row "图表 内容" [ref=f4e1789]:
+                              - columnheader "图表" [ref=f4e1790]
+                              - columnheader "内容" [ref=f4e1791]
+                          - rowgroup [ref=f4e1792]:
+                            - row "土地覆盖饼图 农田、森林、水体、建筑等面积比例" [ref=f4e1793]:
+                              - cell "土地覆盖饼图" [ref=f4e1794]
+                              - cell "农田、森林、水体、建筑等面积比例" [ref=f4e1795]
+                            - row "设施数量柱状图 油罐、船舶、桥梁等数量" [ref=f4e1796]:
+                              - cell "设施数量柱状图" [ref=f4e1797]
+                              - cell "油罐、船舶、桥梁等数量" [ref=f4e1798]
+                            - row "置信度分布图 不同类别检测置信度" [ref=f4e1799]:
+                              - cell "置信度分布图" [ref=f4e1800]
+                              - cell "不同类别检测置信度" [ref=f4e1801]
+                            - row "空间叠加图 土地覆盖 mask + 设施检测框" [ref=f4e1802]:
+                              - cell "空间叠加图" [ref=f4e1803]
+                              - cell "土地覆盖 mask + 设施检测框" [ref=f4e1804]
+                        - generic [ref=f4e1806]:
+                          - button "复制表格"
+                      - paragraph [ref=f4e1807]: 有双时相变化模型时，再增加：
+                      - generic [ref=f4e1809]:
+                        - table [ref=f4e1810]:
+                          - rowgroup [ref=f4e1811]:
+                            - row "图表 内容" [ref=f4e1812]:
+                              - columnheader "图表" [ref=f4e1813]
+                              - columnheader "内容" [ref=f4e1814]
+                          - rowgroup [ref=f4e1815]:
+                            - row "变化面积对比图 新增建筑、减少建筑、未变化区域" [ref=f4e1816]:
+                              - cell "变化面积对比图" [ref=f4e1817]
+                              - cell "新增建筑、减少建筑、未变化区域" [ref=f4e1818]
+                            - row "前后对照图 时相 A、时相 B、变化 mask" [ref=f4e1819]:
+                              - cell "前后对照图" [ref=f4e1820]
+                              - cell "时相 A、时相 B、变化 mask" [ref=f4e1821]
+                        - generic [ref=f4e1823]:
+                          - button "复制表格"
+                      - separator [ref=f4e1824]
+                      - heading "十、LangGraph 状态怎么设计" [level=1] [ref=f4e1825]
+                      - paragraph [ref=f4e1826]: 可以把整个任务状态定义成：
+                      - generic [ref=f4e1832]:
+                        - generic [ref=f4e1834]:
+                          - generic [ref=f4e1835]: Python
+                          - button "复制" [ref=f4e1839] [cursor=pointer]
+                        - code [ref=f4e1852]: "from typing import TypedDict class WorkflowState(TypedDict, total=False): case_id: str input_image_ids: list[str] land_cover_result: dict facility_result: dict change_result: dict | None evidence_pack: dict rule_events: list[dict] analysis_result: dict verification_errors: list[str] analysis_retry_count: int chart_specs: list[dict] report_result: dict report_file_url: str error: str | None"
+                      - paragraph [ref=f4e1853]: 流程结构：
+                      - generic [ref=f4e1859]:
+                        - generic [ref=f4e1861]:
+                          - generic [ref=f4e1862]: Python
+                          - button "复制" [ref=f4e1866] [cursor=pointer]
+                        - code [ref=f4e1879]: "from langgraph.graph import StateGraph, START, END builder = StateGraph(WorkflowState) builder.add_node(\"load_case\", load_case) builder.add_node(\"land_cover_model\", run_land_cover) builder.add_node(\"facility_model\", run_facility_detection) builder.add_node(\"change_model\", run_change_detection) builder.add_node(\"build_evidence\", build_evidence_pack) builder.add_node(\"rule_engine\", run_rule_engine) builder.add_node(\"analysis_agent\", run_analysis) builder.add_node(\"verify_analysis\", verify_analysis_node) builder.add_node(\"build_charts\", build_chart_specs) builder.add_node(\"report_agent\", run_report) builder.add_node(\"render_report\", render_report) builder.add_node(\"save_result\", save_result) builder.add_edge(START, \"load_case\") # 两个模型并行 builder.add_edge(\"load_case\", \"land_cover_model\") builder.add_edge(\"load_case\", \"facility_model\") # 两条分支结束后汇总 builder.add_edge(\"land_cover_model\", \"build_evidence\") builder.add_edge(\"facility_model\", \"build_evidence\") builder.add_edge(\"build_evidence\", \"rule_engine\") builder.add_edge(\"rule_engine\", \"analysis_agent\") builder.add_edge(\"analysis_agent\", \"verify_analysis\") builder.add_conditional_edges( \"verify_analysis\", route_after_verification, { \"pass\": \"build_charts\", \"retry\": \"analysis_agent\", \"fail\": END, }, ) builder.add_edge(\"build_charts\", \"report_agent\") builder.add_edge(\"report_agent\", \"render_report\") builder.add_edge(\"render_report\", \"save_result\") builder.add_edge(\"save_result\", END) graph = builder.compile()"
+                      - paragraph [ref=f4e1880]:
+                        - text: LangGraph 的节点既可以是 LLM Agent，也可以只是普通 Python 函数；共享状态可以使用
+                        - code [ref=f4e1881]: TypedDict
+                        - text: 或 Pydantic 模型。这个特点很适合把模型调用、规则计算、LLM 分析、核验和报告渲染放在同一条可观察流程里。
+                        - link "Docs by LangChain" [ref=f4e1884] [cursor=pointer]:
+                          - /url: https://docs.langchain.com/oss/python/langgraph/graph-api
+                      - separator [ref=f4e1890]
+                      - heading "十一、如何与前端做流式交互" [level=1] [ref=f4e1891]
+                      - paragraph [ref=f4e1892]: 报告不一定要等全部完成后一次性返回。可以在前端依次显示：
+                      - generic [ref=f4e1901]:
+                        - button "复制" [ref=f4e1902] [cursor=pointer]
+                        - code [ref=f4e1911]: 正在运行土地覆盖识别…… 正在运行重点设施检测…… 正在计算空间关系…… 正在生成综合分析…… 分析结果审核通过…… 正在生成数据报告…… 报告已完成。
+                      - paragraph [ref=f4e1912]:
+                        - text: LangGraph 可以流式输出各节点的状态更新；官方接口提供同步
+                        - code [ref=f4e1913]: stream
+                        - text: 和异步
+                        - code [ref=f4e1914]: astream
+                        - text: ，可按节点更新、消息或自定义进度进行消费。
+                        - link "Docs by LangChain" [ref=f4e1917] [cursor=pointer]:
+                          - /url: https://docs.langchain.com/oss/python/langgraph/streaming
+                      - paragraph [ref=f4e1923]: 后端可以将这些事件通过 SSE 发给 Vue：
+                      - generic [ref=f4e1929]:
+                        - generic [ref=f4e1931]:
+                          - generic [ref=f4e1932]: JSON
+                          - button "复制" [ref=f4e1936] [cursor=pointer]
+                        - code [ref=f4e1949]: "{\"stage\": \"land_cover\", \"progress\": 20, \"message\": \"土地覆盖识别完成\"} {\"stage\": \"facility\", \"progress\": 40, \"message\": \"重点设施检测完成\"} {\"stage\": \"analysis\", \"progress\": 70, \"message\": \"综合分析完成\"} {\"stage\": \"report\", \"progress\": 100, \"message\": \"报告生成完成\"}"
+                      - paragraph [ref=f4e1950]:
+                        - text: 最终报告接口应声明明确的 Pydantic
+                        - code [ref=f4e1951]: response_model
+                        - text: ，由 FastAPI 对返回字段进行验证和过滤。
+                        - link "FastAPI" [ref=f4e1954] [cursor=pointer]:
+                          - /url: https://fastapi.tiangolo.com/tutorial/response-model/
+                      - separator [ref=f4e1960]
+                      - heading "十二、RAG 知识库在这里怎么用" [level=1] [ref=f4e1961]
+                      - paragraph [ref=f4e1962]: RAG 不应该用来补检测数据，而应该用来解释检测结果。
+                      - paragraph [ref=f4e1963]: 例如系统实际观测到：
+                      - generic [ref=f4e1972]:
+                        - button "复制" [ref=f4e1973] [cursor=pointer]
+                        - code [ref=f4e1982]: 12个储油罐 储油罐主要位于建筑区 附近存在道路
+                      - paragraph [ref=f4e1983]: RAG 可以检索一般性知识：
+                      - generic [ref=f4e1992]:
+                        - button "复制" [ref=f4e1993] [cursor=pointer]
+                        - code [ref=f4e2002]: 储油罐集群通常属于工业储存设施的一种典型遥感特征
+                      - paragraph [ref=f4e2003]: 最后 Agent 输出：
+                      - blockquote [ref=f4e2004]:
+                        - paragraph [ref=f4e2005]: 图像中检测到储油罐集群，并且主要位于建筑及道路覆盖区域。结合遥感地物特征知识，该区域可能具有工业储存设施特征，建议进行人工核查。
+                      - paragraph [ref=f4e2006]: 必须把两种证据分开：
+                      - generic [ref=f4e2012]:
+                        - generic [ref=f4e2014]:
+                          - generic [ref=f4e2015]: JSON
+                          - button "复制" [ref=f4e2019] [cursor=pointer]
+                        - code [ref=f4e2032]: "{ \"observation_evidence\": [ \"ev_storage_tank_count\", \"ev_tank_building_relation\" ], \"knowledge_evidence\": [ \"kb_remote_sensing_industrial_feature_03\" ] }"
+                      - paragraph [ref=f4e2033]: 这样不会把“知识库里说通常如此”误写成“这张图确定如此”。
+                      - separator [ref=f4e2034]
+                      - heading "十三、多人怎么分工最合理" [level=1] [ref=f4e2035]
+                      - paragraph [ref=f4e2036]: 针对你们多人协作，可以这样拆：
+                      - generic [ref=f4e2038]:
+                        - table [ref=f4e2039]:
+                          - rowgroup [ref=f4e2040]:
+                            - row "成员 负责内容" [ref=f4e2041]:
+                              - columnheader "成员" [ref=f4e2042]
+                              - columnheader "负责内容" [ref=f4e2043]
+                          - rowgroup [ref=f4e2044]:
+                            - row "模型成员 A 土地覆盖模型与面积统计" [ref=f4e2045]:
+                              - cell "模型成员 A" [ref=f4e2046]
+                              - cell "土地覆盖模型与面积统计" [ref=f4e2047]
+                            - row "模型成员 B DIOR 设施检测与目标统计" [ref=f4e2048]:
+                              - cell "模型成员 B" [ref=f4e2049]
+                              - cell "DIOR 设施检测与目标统计" [ref=f4e2050]
+                            - row "后端成员 A 统一 EvidencePack、数据库、历史记录" [ref=f4e2051]:
+                              - cell "后端成员 A" [ref=f4e2052]
+                              - cell "统一 EvidencePack、数据库、历史记录" [ref=f4e2053]
+                            - row "后端成员 B LangGraph、AnalysisAgent、ReviewAgent" [ref=f4e2054]:
+                              - cell "后端成员 B" [ref=f4e2055]
+                              - cell "LangGraph、AnalysisAgent、ReviewAgent" [ref=f4e2056]
+                            - row "前端成员 A 检测结果和空间叠加可视化" [ref=f4e2057]:
+                              - cell "前端成员 A" [ref=f4e2058]
+                              - cell "检测结果和空间叠加可视化" [ref=f4e2059]
+                            - row "前端成员 B 图表、报告预览、下载页面" [ref=f4e2060]:
+                              - cell "前端成员 B" [ref=f4e2061]
+                              - cell "图表、报告预览、下载页面" [ref=f4e2062]
+                            - row "组长/全栈 ReportAgent、RAG、整体联调" [ref=f4e2063]:
+                              - cell "组长/全栈" [ref=f4e2064]
+                              - cell "ReportAgent、RAG、整体联调" [ref=f4e2065]
+                            - row "文档测试 规则测试、报告一致性测试、答辩材料" [ref=f4e2066]:
+                              - cell "文档测试" [ref=f4e2067]
+                              - cell "规则测试、报告一致性测试、答辩材料" [ref=f4e2068]
+                        - generic [ref=f4e2070]:
+                          - button "复制表格"
+                      - paragraph [ref=f4e2071]: 多人合作的重点不是“每个人写一个 Agent”，而是：
+                      - blockquote [ref=f4e2072]:
+                        - paragraph [ref=f4e2073]: 每个模型和服务拥有明确接口，最后由工作流统一编排。
+                      - separator [ref=f4e2074]
+                      - heading "十四、最适合你们先完成的版本" [level=1] [ref=f4e2075]
+                      - paragraph [ref=f4e2076]: 第一版先只做：
+                      - generic [ref=f4e2085]:
+                        - button "复制" [ref=f4e2086] [cursor=pointer]
+                        - code [ref=f4e2095]: LoveDA 土地覆盖结果 + DIOR 重点设施结果 ↓ Python 统计和空间融合 ↓ AnalysisAgent ↓ ReviewNode ↓ ReportAgent ↓ 网页报告
+                      - paragraph [ref=f4e2096]: 报告先包含：
+                      - list [ref=f4e2097]:
+                        - listitem [ref=f4e2098]:
+                          - paragraph [ref=f4e2099]: 土地覆盖占比；
+                        - listitem [ref=f4e2100]:
+                          - paragraph [ref=f4e2101]: 重点设施数量；
+                        - listitem [ref=f4e2102]:
+                          - paragraph [ref=f4e2103]: 设施与土地覆盖的空间关系；
+                        - listitem [ref=f4e2104]:
+                          - paragraph [ref=f4e2105]: 三到五条重点发现；
+                        - listitem [ref=f4e2106]:
+                          - paragraph [ref=f4e2107]: 模型置信度和局限性；
+                        - listitem [ref=f4e2108]:
+                          - paragraph [ref=f4e2109]: 人工复核建议。
+                      - paragraph [ref=f4e2110]: 变化检测、自动 PDF、历史趋势对比可以放到第二阶段。
+                      - paragraph [ref=f4e2111]: "**最重要的实现原则是：所有数字来自代码，所有结论绑定证据，Agent 只负责理解和表达。**这样才能同时体现多 Agent 的创新性，又避免最后报告内容失真。"
+                  - button "来源" [ref=f4e2112] [cursor=pointer]
+              - generic [ref=f4e2120]:
+                - separator "星期五 10:52" [ref=f4e2121]
+                - generic [ref=f4e2124]:
+                  - heading "你说：" [level=4] [ref=f4e2125]
+                  - generic [ref=f4e2126]: 我现在想先训练loveda数据集，该怎么做？yolo怎么用？
+              - generic [ref=f4e2135]:
+                - heading "ChatGPT 说：" [level=4] [ref=f4e2136]
+                - generic [ref=f4e2138]:
+                  - generic [ref=f4e2142]:
+                    - heading "先把任务类型弄清楚" [level=2] [ref=f4e2143]
+                    - paragraph [ref=f4e2144]:
+                      - text: LoveDA 不是普通的 YOLO 目标检测数据集。它给每张遥感图配一张
+                      - strong [ref=f4e2145]: 像素级语义分割掩膜
+                      - text: ，类别编号为：
+                    - generic [ref=f4e2147]:
+                      - table [ref=f4e2148]:
+                        - rowgroup [ref=f4e2149]:
+                          - row "原始像素值 类别" [ref=f4e2150]:
+                            - columnheader "原始像素值" [ref=f4e2151]
+                            - columnheader "类别" [ref=f4e2152]
+                        - rowgroup [ref=f4e2153]:
+                          - row "0 无效区域，训练时忽略" [ref=f4e2154]:
+                            - cell "0" [ref=f4e2155]
+                            - cell "无效区域，训练时忽略" [ref=f4e2156]
+                          - row "1 background" [ref=f4e2157]:
+                            - cell "1" [ref=f4e2158]
+                            - cell "background" [ref=f4e2159]
+                          - row "2 building" [ref=f4e2160]:
+                            - cell "2" [ref=f4e2161]
+                            - cell "building" [ref=f4e2162]
+                          - row "3 road" [ref=f4e2163]:
+                            - cell "3" [ref=f4e2164]
+                            - cell "road" [ref=f4e2165]
+                          - row "4 water" [ref=f4e2166]:
+                            - cell "4" [ref=f4e2167]
+                            - cell "water" [ref=f4e2168]
+                          - row "5 barren" [ref=f4e2169]:
+                            - cell "5" [ref=f4e2170]
+                            - cell "barren" [ref=f4e2171]
+                          - row "6 forest" [ref=f4e2172]:
+                            - cell "6" [ref=f4e2173]
+                            - cell "forest" [ref=f4e2174]
+                          - row "7 agriculture" [ref=f4e2175]:
+                            - cell "7" [ref=f4e2176]
+                            - cell "agriculture" [ref=f4e2177]
+                      - generic [ref=f4e2179]:
+                        - button "复制表格"
+                    - paragraph [ref=f4e2180]:
+                      - text: LoveDA 官方共有 5987 张 1024×1024 遥感图，区分 Urban 和 Rural 场景；官方建议使用 Train、Val 开发模型，Test 主要用于提交评测。
+                      - link "GitHub +2 Zenodo +2" [ref=f4e2183] [cursor=pointer]:
+                        - /url: https://github.com/junjue-wang/loveda
+                        - generic [ref=f4e2184]:
+                          - generic [ref=f4e2185]:
+                            - generic [ref=f4e2186]: GitHub
+                            - generic [ref=f4e2189]: "+2"
+                          - generic [ref=f4e2190]:
+                            - generic [ref=f4e2191]: Zenodo
+                            - generic [ref=f4e2194]: "+2"
+                    - paragraph [ref=f4e2195]: 而你们计划中原本讲的：
+                    - generic [ref=f4e2204]:
+                      - button "复制" [ref=f4e2205] [cursor=pointer]
+                      - code [ref=f4e2214]: class_id x_center y_center width height
+                    - paragraph [ref=f4e2215]:
+                      - text: 属于 YOLO
+                      - strong [ref=f4e2216]: 目标检测框
+                      - text: 格式，并不适用于 LoveDA 原始标签。
+                      - button "2. 基于YOLOv11的目标检测智能体平台-实训计划" [ref=f4e2218] [cursor=pointer]:
+                        - paragraph [ref=f4e2221]: 2. 基于YOLOv11的目标检测智能体平台-实训计划
+                    - separator [ref=f4e2222]
+                    - heading "一、到底应该用哪种 YOLO" [level=1] [ref=f4e2223]
+                    - paragraph [ref=f4e2224]: 目前有三条路线：
+                    - generic [ref=f4e2226]:
+                      - table [ref=f4e2227]:
+                        - rowgroup [ref=f4e2228]:
+                          - row "路线 是否合适 建议" [ref=f4e2229]:
+                            - columnheader "路线" [ref=f4e2230]
+                            - columnheader "是否合适" [ref=f4e2231]
+                            - columnheader "建议" [ref=f4e2232]
+                        - rowgroup [ref=f4e2233]:
+                          - row "YOLO26 Semantic 最匹配 LoveDA 最容易直接训练" [ref=f4e2234]:
+                            - cell "YOLO26 Semantic" [ref=f4e2235]:
+                              - strong [ref=f4e2236]: YOLO26 Semantic
+                            - cell "最匹配 LoveDA" [ref=f4e2237]
+                            - cell "最容易直接训练" [ref=f4e2238]
+                          - row "SegFormer/DeepLabV3+ 训练 LoveDA，YOLO11 训练 DIOR 最符合多模型项目设计 最终项目最推荐" [ref=f4e2239]:
+                            - cell "SegFormer/DeepLabV3+ 训练 LoveDA，YOLO11 训练 DIOR" [ref=f4e2240]:
+                              - strong [ref=f4e2241]: SegFormer/DeepLabV3+ 训练 LoveDA，YOLO11 训练 DIOR
+                            - cell "最符合多模型项目设计" [ref=f4e2242]
+                            - cell "最终项目最推荐" [ref=f4e2243]:
+                              - strong [ref=f4e2244]: 最终项目最推荐
+                          - row "YOLO11-seg，把 LoveDA mask 转成多边形 可以勉强实现 不建议作为第一步" [ref=f4e2245]:
+                            - cell "YOLO11-seg，把 LoveDA mask 转成多边形" [ref=f4e2246]
+                            - cell "可以勉强实现" [ref=f4e2247]
+                            - cell "不建议作为第一步" [ref=f4e2248]
+                      - generic [ref=f4e2250]:
+                        - button "复制表格"
+                    - paragraph [ref=f4e2251]:
+                      - text: 截至目前，Ultralytics 已原生支持 YOLO26 语义分割，能够直接读取单通道 PNG mask，并以 mIoU、Pixel Accuracy 进行评估；而
+                      - code [ref=f4e2252]: yolo11n-seg.pt
+                      - text: 属于
+                      - strong [ref=f4e2253]: 实例分割
+                      - text: 模型，默认需要一个目标对应一条多边形标注。
+                      - link "Ultralytics Docs +2 Ultralytics Docs +2" [ref=f4e2256] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/datasets/semantic?utm_source=chatgpt.com
+                        - generic [ref=f4e2257]:
+                          - generic [ref=f4e2258]:
+                            - generic [ref=f4e2259]: Ultralytics Docs
+                            - generic [ref=f4e2262]: "+2"
+                          - generic [ref=f4e2263]:
+                            - generic [ref=f4e2264]: Ultralytics Docs
+                            - generic [ref=f4e2267]: "+2"
+                    - paragraph [ref=f4e2268]: 因此，建议是：
+                    - blockquote [ref=f4e2269]:
+                      - paragraph [ref=f4e2270]:
+                        - strong [ref=f4e2271]: 现在先用 YOLO26 Semantic 把 LoveDA 跑通。最终项目中把它作为 LandCoverAgent 使用；DIOR 再使用 YOLO11 做设施目标检测。
+                    - paragraph [ref=f4e2272]: 这样不是“抛弃 YOLO11”，而是不同任务使用不同专业模型：
+                    - generic [ref=f4e2281]:
+                      - button "复制" [ref=f4e2282] [cursor=pointer]
+                      - code [ref=f4e2291]: LoveDA → YOLO Semantic / SegFormer → 土地覆盖分割 DIOR → YOLO11 Detect → 重点设施检测
+                    - separator [ref=f4e2292]
+                    - heading "二、下载 LoveDA" [level=1] [ref=f4e2293]
+                    - paragraph [ref=f4e2294]: 官方 Zenodo 中需要下载：
+                    - generic [ref=f4e2303]:
+                      - button "复制" [ref=f4e2304] [cursor=pointer]
+                      - code [ref=f4e2313]: Train.zip 约 4.0 GB Val.zip 约 2.4 GB
+                    - paragraph [ref=f4e2314]:
+                      - text: Test.zip 暂时不用。完整数据约 9.6 GB，只允许用于学术研究，不能商用。
+                      - link "Zenodo +1" [ref=f4e2317] [cursor=pointer]:
+                        - /url: https://zenodo.org/records/5706578
+                        - generic [ref=f4e2319]:
+                          - generic [ref=f4e2320]: Zenodo
+                          - generic [ref=f4e2323]: "+1"
+                    - paragraph [ref=f4e2324]: 解压后大致是：
+                    - generic [ref=f4e2333]:
+                      - button "复制" [ref=f4e2334] [cursor=pointer]
+                      - code [ref=f4e2343]: LoveDA_raw/ ├── Train/ │ ├── Urban/ │ │ ├── images_png/ │ │ └── masks_png/ │ └── Rural/ │ ├── images_png/ │ └── masks_png/ └── Val/ ├── Urban/ │ ├── images_png/ │ └── masks_png/ └── Rural/ ├── images_png/ └── masks_png/
+                    - separator [ref=f4e2344]
+                    - heading "三、创建 Python 环境" [level=1] [ref=f4e2345]
+                    - paragraph [ref=f4e2346]: 建议单独创建环境，不要直接装进现有项目环境：
+                    - generic [ref=f4e2352]:
+                      - generic [ref=f4e2354]:
+                        - generic [ref=f4e2355]: Bash
+                        - button "复制" [ref=f4e2359] [cursor=pointer]
+                      - code [ref=f4e2372]: conda create -n loveda-sem python=3.10 -y conda activate loveda-sem
+                    - paragraph [ref=f4e2373]: 先按照本机 CUDA 情况安装 PyTorch，然后安装最新版 Ultralytics：
+                    - generic [ref=f4e2379]:
+                      - generic [ref=f4e2381]:
+                        - generic [ref=f4e2382]: Bash
+                        - button "复制" [ref=f4e2386] [cursor=pointer]
+                      - code [ref=f4e2399]: python -m pip install --upgrade pip pip install -U ultralytics pillow numpy
+                    - paragraph [ref=f4e2400]: 验证：
+                    - generic [ref=f4e2406]:
+                      - generic [ref=f4e2408]:
+                        - generic [ref=f4e2409]: Bash
+                        - button "复制" [ref=f4e2413] [cursor=pointer]
+                      - code [ref=f4e2426]: yolo version yolo checks
+                    - paragraph [ref=f4e2427]: 检查 GPU：
+                    - generic [ref=f4e2433]:
+                      - generic [ref=f4e2435]:
+                        - generic [ref=f4e2436]: Bash
+                        - button "复制" [ref=f4e2440] [cursor=pointer]
+                      - code [ref=f4e2453]: python -c "import torch; print('PyTorch:', torch.__version__); print('CUDA:', torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+                    - paragraph [ref=f4e2454]: 因为 Ultralytics 的原生 semantic 功能是近期加入的，如果出现：
+                    - generic [ref=f4e2463]:
+                      - button "复制" [ref=f4e2464] [cursor=pointer]
+                      - code [ref=f4e2473]: "'semantic' is not a valid YOLO task"
+                    - paragraph [ref=f4e2474]:
+                      - text: 通常说明
+                      - code [ref=f4e2475]: ultralytics
+                      - text: 版本太旧，执行：
+                    - generic [ref=f4e2481]:
+                      - generic [ref=f4e2483]:
+                        - generic [ref=f4e2484]: Bash
+                        - button "复制" [ref=f4e2488] [cursor=pointer]
+                      - code [ref=f4e2501]: pip install -U ultralytics
+                    - separator [ref=f4e2502]
+                    - heading "四、整理成 Ultralytics 能识别的目录" [level=1] [ref=f4e2503]
+                    - paragraph [ref=f4e2504]: Ultralytics 原生语义分割要求：
+                    - generic [ref=f4e2513]:
+                      - button "复制" [ref=f4e2514] [cursor=pointer]
+                      - code [ref=f4e2523]: LoveDA_yolo_sem/ ├── images/ │ ├── train/ │ └── val/ └── masks/ ├── train/ └── val/
+                    - paragraph [ref=f4e2524]: 图片和 mask 必须同名，例如：
+                    - generic [ref=f4e2533]:
+                      - button "复制" [ref=f4e2534] [cursor=pointer]
+                      - code [ref=f4e2543]: images/train/urban_123.png masks/train/urban_123.png
+                    - paragraph [ref=f4e2544]:
+                      - text: 官方格式要求 mask 是单通道无损图像，每个像素保存类别编号；像素值 255 表示忽略区域。
+                      - link "Ultralytics Docs" [ref=f4e2547] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/datasets/semantic?utm_source=chatgpt.com
+                    - paragraph [ref=f4e2553]:
+                      - text: 新建
+                      - code [ref=f4e2554]: prepare_loveda.py
+                      - text: ：
+                    - generic [ref=f4e2560]:
+                      - generic [ref=f4e2562]:
+                        - generic [ref=f4e2563]: Python
+                        - button "复制" [ref=f4e2567] [cursor=pointer]
+                      - code [ref=f4e2580]: "from __future__ import annotations from pathlib import Path from shutil import copy2 import numpy as np from PIL import Image # 修改成自己的目录 SOURCE_ROOT = Path(r\"D:\\datasets\\LoveDA_raw\") OUTPUT_ROOT = Path(r\"D:\\datasets\\LoveDA_yolo_sem\") SPLITS = { \"Train\": \"train\", \"Val\": \"val\", } SCENES = (\"Urban\", \"Rural\") def prepare_split(source_split: str, output_split: str) -> int: output_images = OUTPUT_ROOT / \"images\" / output_split output_masks = OUTPUT_ROOT / \"masks\" / output_split output_images.mkdir(parents=True, exist_ok=True) output_masks.mkdir(parents=True, exist_ok=True) copied = 0 for scene in SCENES: image_dir = SOURCE_ROOT / source_split / scene / \"images_png\" mask_dir = SOURCE_ROOT / source_split / scene / \"masks_png\" if not image_dir.exists(): raise FileNotFoundError(f\"图片目录不存在：{image_dir}\") if not mask_dir.exists(): raise FileNotFoundError(f\"标注目录不存在：{mask_dir}\") for image_path in sorted(image_dir.glob(\"*.png\")): mask_path = mask_dir / image_path.name if not mask_path.exists(): raise FileNotFoundError( f\"图片没有对应的 mask：{image_path.name}\" ) # 加 urban_/rural_ 前缀，避免两个场景出现同名文件 new_name = f\"{scene.lower()}_{image_path.name}\" copy2(image_path, output_images / new_name) copy2(mask_path, output_masks / new_name) copied += 1 return copied def check_dataset() -> None: all_ids: set[int] = set() for split in (\"train\", \"val\"): image_dir = OUTPUT_ROOT / \"images\" / split mask_dir = OUTPUT_ROOT / \"masks\" / split image_names = {p.stem for p in image_dir.glob(\"*.png\")} mask_names = {p.stem for p in mask_dir.glob(\"*.png\")} if image_names != mask_names: missing_masks = image_names - mask_names missing_images = mask_names - image_names raise RuntimeError( f\"{split} 配对失败：\" f\"缺少 mask={list(missing_masks)[:5]}，\" f\"缺少 image={list(missing_images)[:5]}\" ) # 抽样检查标签值 for mask_path in list(mask_dir.glob(\"*.png\"))[:100]: mask = np.asarray(Image.open(mask_path)) if mask.ndim != 2: raise ValueError( f\"mask 不是单通道图像：{mask_path}，shape={mask.shape}\" ) all_ids.update(int(x) for x in np.unique(mask)) print(f\"{split}: {len(image_names)} 对图片和 mask\") print(\"抽样发现的标签值：\", sorted(all_ids)) unexpected = all_ids - set(range(8)) if unexpected: raise ValueError(f\"发现异常标签值：{sorted(unexpected)}\") def main() -> None: train_count = prepare_split(\"Train\", \"train\") val_count = prepare_split(\"Val\", \"val\") print(f\"已复制训练集：{train_count}\") print(f\"已复制验证集：{val_count}\") check_dataset() print(\"LoveDA 数据整理完成。\") if __name__ == \"__main__\": main()"
+                    - paragraph [ref=f4e2581]: 执行：
+                    - generic [ref=f4e2587]:
+                      - generic [ref=f4e2589]:
+                        - generic [ref=f4e2590]: Bash
+                        - button "复制" [ref=f4e2594] [cursor=pointer]
+                      - code [ref=f4e2607]: python prepare_loveda.py
+                    - paragraph [ref=f4e2608]: 正常情况下，最后应该看到：
+                    - generic [ref=f4e2617]:
+                      - button "复制" [ref=f4e2618] [cursor=pointer]
+                      - code [ref=f4e2627]: 抽样发现的标签值：[0, 1, 2, 3, 4, 5, 6, 7] LoveDA 数据整理完成。
+                    - separator [ref=f4e2628]
+                    - heading "五、编写数据集配置文件" [level=1] [ref=f4e2629]
+                    - paragraph [ref=f4e2630]:
+                      - text: 新建
+                      - code [ref=f4e2631]: loveda-sem.yaml
+                      - text: ：
+                    - generic [ref=f4e2637]:
+                      - generic [ref=f4e2639]:
+                        - generic [ref=f4e2640]: YAML
+                        - button "复制" [ref=f4e2644] [cursor=pointer]
+                      - code [ref=f4e2657]: "path: D:/datasets/LoveDA_yolo_sem train: images/train val: images/val masks_dir: masks names: 0: background 1: building 2: road 3: water 4: barren 5: forest 6: agriculture # LoveDA 原始 mask： # 0 是无效区域 # 1~7 是七个有效类别 label_mapping: 0: ignore_label 1: 0 2: 1 3: 2 4: 3 5: 4 6: 5 7: 6"
+                    - paragraph [ref=f4e2658]: 这里不需要提前修改原 mask。Ultralytics 会自动完成：
+                    - generic [ref=f4e2667]:
+                      - button "复制" [ref=f4e2668] [cursor=pointer]
+                      - code [ref=f4e2677]: LoveDA 0 → 255，忽略 LoveDA 1 → 类别 0，background LoveDA 2 → 类别 1，building …… LoveDA 7 → 类别 6，agriculture
+                    - paragraph [ref=f4e2678]:
+                      - code [ref=f4e2679]: label_mapping
+                      - text: 正是用于把数据集原始类别编号映射成连续训练编号。
+                      - link "Ultralytics Docs" [ref=f4e2682] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/datasets/semantic?utm_source=chatgpt.com
+                    - paragraph [ref=f4e2688]: Windows 的 YAML 路径建议使用：
+                    - generic [ref=f4e2694]:
+                      - generic [ref=f4e2696]:
+                        - generic [ref=f4e2697]: YAML
+                        - button "复制" [ref=f4e2701] [cursor=pointer]
+                      - code [ref=f4e2714]: "path: D:/datasets/LoveDA_yolo_sem"
+                    - paragraph [ref=f4e2715]: 不要写反斜杠：
+                    - generic [ref=f4e2721]:
+                      - generic [ref=f4e2723]:
+                        - generic [ref=f4e2724]: YAML
+                        - button "复制" [ref=f4e2728] [cursor=pointer]
+                      - code [ref=f4e2741]: "path: D:\\datasets\\LoveDA_yolo_sem"
+                    - paragraph [ref=f4e2742]: 以免出现转义问题。
+                    - separator [ref=f4e2743]
+                    - heading "六、先做一次小规模冒烟测试" [level=1] [ref=f4e2744]
+                    - paragraph [ref=f4e2745]: 不要一上来跑 100 个 epoch。先确认数据能够正常读取：
+                    - generic [ref=f4e2751]:
+                      - generic [ref=f4e2753]:
+                        - generic [ref=f4e2754]: Bash
+                        - button "复制" [ref=f4e2758] [cursor=pointer]
+                      - code [ref=f4e2771]: yolo semantic train ^ model=yolo26n-sem.pt ^ data=loveda-sem.yaml ^ epochs=2 ^ imgsz=512 ^ batch=2 ^ device=0 ^ workers=0 ^ project=runs/loveda ^ name=smoke_test
+                    - paragraph [ref=f4e2772]: 上面是 Windows CMD 写法。PowerShell 可以写成一行：
+                    - generic [ref=f4e2778]:
+                      - generic [ref=f4e2780]:
+                        - generic [ref=f4e2781]: PowerShell
+                        - button "复制" [ref=f4e2785] [cursor=pointer]
+                      - code [ref=f4e2798]: yolo semantic train model=yolo26n-sem.pt data=loveda-sem.yaml epochs=2 imgsz=512 batch=2 device=0 workers=0 project=runs/loveda name=smoke_test
+                    - paragraph [ref=f4e2799]: Linux：
+                    - generic [ref=f4e2805]:
+                      - generic [ref=f4e2807]:
+                        - generic [ref=f4e2808]: Bash
+                        - button "复制" [ref=f4e2812] [cursor=pointer]
+                      - code [ref=f4e2825]: yolo semantic train \ model=yolo26n-sem.pt \ data=loveda-sem.yaml \ epochs=2 \ imgsz=512 \ batch=2 \ device=0 \ workers=4 \ project=runs/loveda \ name=smoke_test
+                    - paragraph [ref=f4e2826]:
+                      - code [ref=f4e2827]: yolo26n-sem.pt
+                      - text: 是预训练语义分割模型。官方自定义数据训练方式就是使用 PNG mask、数据 YAML 和
+                      - code [ref=f4e2828]: model.train()
+                      - text: /
+                      - code [ref=f4e2829]: yolo semantic train
+                      - text: 。
+                      - link "Ultralytics Docs +1" [ref=f4e2832] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/tasks/semantic
+                        - generic [ref=f4e2834]:
+                          - generic [ref=f4e2835]: Ultralytics Docs
+                          - generic [ref=f4e2838]: "+1"
+                    - paragraph [ref=f4e2839]: 检查是否成功：
+                    - list [ref=f4e2840]:
+                      - listitem [ref=f4e2841]:
+                        - paragraph [ref=f4e2842]: 没有报找不到 mask；
+                      - listitem [ref=f4e2843]:
+                        - paragraph [ref=f4e2844]: 没有报标签值越界；
+                      - listitem [ref=f4e2845]:
+                        - paragraph [ref=f4e2846]: GPU 显存正常占用；
+                      - listitem [ref=f4e2847]:
+                        - paragraph [ref=f4e2848]: 训练产生 loss；
+                      - listitem [ref=f4e2849]:
+                        - paragraph [ref=f4e2850]: 验证阶段能输出 mIoU、Pixel Accuracy；
+                      - listitem [ref=f4e2851]:
+                        - paragraph [ref=f4e2852]:
+                          - code [ref=f4e2853]: runs/loveda/smoke_test/weights/
+                          - text: 下有权重。
+                    - separator [ref=f4e2854]
+                    - heading "七、开始正式训练" [level=1] [ref=f4e2855]
+                    - paragraph [ref=f4e2856]: LoveDA 原图为 1024×1024，但初次训练不建议直接使用 1024。先用 512 或 640 跑通，再提高分辨率。
+                    - paragraph [ref=f4e2857]: 一个比较稳的起始配置：
+                    - generic [ref=f4e2863]:
+                      - generic [ref=f4e2865]:
+                        - generic [ref=f4e2866]: Bash
+                        - button "复制" [ref=f4e2870] [cursor=pointer]
+                      - code [ref=f4e2883]: yolo semantic train model=yolo26n-sem.pt data=loveda-sem.yaml epochs=100 imgsz=640 batch=4 device=0 workers=4 patience=20 amp=True project=runs/loveda name=yolo26n_sem_640
+                    - paragraph [ref=f4e2884]: 如果 Windows 出现 DataLoader 卡死或子进程错误，改为：
+                    - generic [ref=f4e2893]:
+                      - button "复制" [ref=f4e2894] [cursor=pointer]
+                      - code [ref=f4e2903]: workers=0
+                    - paragraph [ref=f4e2904]: 如果显存不足：
+                    - generic [ref=f4e2913]:
+                      - button "复制" [ref=f4e2914] [cursor=pointer]
+                      - code [ref=f4e2923]: CUDA out of memory
+                    - paragraph [ref=f4e2924]: 按顺序调整：
+                    - generic [ref=f4e2933]:
+                      - button "复制" [ref=f4e2934] [cursor=pointer]
+                      - code [ref=f4e2943]: batch=4 → batch=2 → batch=1 imgsz=640 → imgsz=512
+                    - paragraph [ref=f4e2944]: 第一次正式训练建议：
+                    - generic [ref=f4e2953]:
+                      - button "复制" [ref=f4e2954] [cursor=pointer]
+                      - code [ref=f4e2963]: model = yolo26n-sem.pt imgsz = 512 或 640 epochs = 80～100 batch = 2 或 4
+                    - paragraph [ref=f4e2964]: 模型稳定后，再尝试：
+                    - generic [ref=f4e2973]:
+                      - button "复制" [ref=f4e2974] [cursor=pointer]
+                      - code [ref=f4e2983]: imgsz=768
+                    - paragraph [ref=f4e2984]: 最终确实需要更精细的道路和建筑边界时，再考虑：
+                    - generic [ref=f4e2993]:
+                      - button "复制" [ref=f4e2994] [cursor=pointer]
+                      - code [ref=f4e3003]: imgsz=1024
+                    - separator [ref=f4e3004]
+                    - heading "八、Python 方式训练" [level=1] [ref=f4e3005]
+                    - paragraph [ref=f4e3006]:
+                      - text: 新建
+                      - code [ref=f4e3007]: train_loveda.py
+                      - text: ：
+                    - generic [ref=f4e3013]:
+                      - generic [ref=f4e3015]:
+                        - generic [ref=f4e3016]: Python
+                        - button "复制" [ref=f4e3020] [cursor=pointer]
+                      - code [ref=f4e3033]: "from ultralytics import YOLO def main() -> None: model = YOLO(\"yolo26n-sem.pt\") model.train( data=\"loveda-sem.yaml\", epochs=100, imgsz=640, batch=4, device=0, workers=0, # Windows 建议先使用 0 patience=20, amp=True, project=\"runs/loveda\", name=\"yolo26n_sem_640\", ) if __name__ == \"__main__\": main()"
+                    - paragraph [ref=f4e3034]: 运行：
+                    - generic [ref=f4e3040]:
+                      - generic [ref=f4e3042]:
+                        - generic [ref=f4e3043]: Bash
+                        - button "复制" [ref=f4e3047] [cursor=pointer]
+                      - code [ref=f4e3060]: python train_loveda.py
+                    - paragraph [ref=f4e3061]: 你们之后做后端训练服务时，本质上就是把这段：
+                    - generic [ref=f4e3067]:
+                      - generic [ref=f4e3069]:
+                        - generic [ref=f4e3070]: Python
+                        - button "复制" [ref=f4e3074] [cursor=pointer]
+                      - code [ref=f4e3087]: model.train(...)
+                    - paragraph [ref=f4e3088]:
+                      - text: 封装进
+                      - code [ref=f4e3089]: TrainingService
+                      - text: 。
+                    - separator [ref=f4e3090]
+                    - heading "九、验证模型" [level=1] [ref=f4e3091]
+                    - paragraph [ref=f4e3092]: 训练完成后，最佳模型通常在：
+                    - generic [ref=f4e3101]:
+                      - button "复制" [ref=f4e3102] [cursor=pointer]
+                      - code [ref=f4e3111]: runs/loveda/yolo26n_sem_640/weights/best.pt
+                    - paragraph [ref=f4e3112]: 验证：
+                    - generic [ref=f4e3118]:
+                      - generic [ref=f4e3120]:
+                        - generic [ref=f4e3121]: Bash
+                        - button "复制" [ref=f4e3125] [cursor=pointer]
+                      - code [ref=f4e3138]: yolo semantic val model=runs/loveda/yolo26n_sem_640/weights/best.pt data=loveda-sem.yaml imgsz=640 device=0
+                    - paragraph [ref=f4e3139]: LoveDA 应重点看：
+                    - generic [ref=f4e3148]:
+                      - button "复制" [ref=f4e3149] [cursor=pointer]
+                      - code [ref=f4e3158]: mIoU Pixel Accuracy 每类 IoU
+                    - paragraph [ref=f4e3159]:
+                      - text: 不要把检测项目中的
+                      - code [ref=f4e3160]: mAP50
+                      - text: 当成 LoveDA 的主要指标。语义分割官方输出的是 mIoU 和 Pixel Accuracy。
+                      - link "Ultralytics Docs +1" [ref=f4e3163] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/tasks/semantic
+                        - generic [ref=f4e3165]:
+                          - generic [ref=f4e3166]: Ultralytics Docs
+                          - generic [ref=f4e3169]: "+1"
+                    - paragraph [ref=f4e3170]: 尤其注意每类 IoU：
+                    - generic [ref=f4e3179]:
+                      - button "复制" [ref=f4e3180] [cursor=pointer]
+                      - code [ref=f4e3189]: building IoU road IoU water IoU barren IoU forest IoU agriculture IoU
+                    - paragraph [ref=f4e3190]: 仅看总 Pixel Accuracy 容易被大面积类别“冲高”。
+                    - separator [ref=f4e3191]
+                    - heading "十、对单张图片进行预测" [level=1] [ref=f4e3192]
+                    - generic [ref=f4e3198]:
+                      - generic [ref=f4e3200]:
+                        - generic [ref=f4e3201]: Python
+                        - button "复制" [ref=f4e3205] [cursor=pointer]
+                      - code [ref=f4e3218]: "from pathlib import Path import numpy as np from ultralytics import YOLO MODEL_PATH = Path( \"runs/loveda/yolo26n_sem_640/weights/best.pt\" ) IMAGE_PATH = Path( r\"D:\\datasets\\LoveDA_yolo_sem\\images\\val\\urban_123.png\" ) model = YOLO(MODEL_PATH) results = model.predict( source=IMAGE_PATH, imgsz=640, device=0, save=True, ) result = results[0] # 语义分割输出是一张 H×W 类别图 class_map = result.semantic_mask.data.cpu().numpy() print(\"预测 mask shape：\", class_map.shape) print(\"预测类别：\", np.unique(class_map))"
+                    - paragraph [ref=f4e3219]: 原生 semantic 结果保存在：
+                    - generic [ref=f4e3225]:
+                      - generic [ref=f4e3227]:
+                        - generic [ref=f4e3228]: Python
+                        - button "复制" [ref=f4e3232] [cursor=pointer]
+                      - code [ref=f4e3245]: result.semantic_mask.data
+                    - paragraph [ref=f4e3246]:
+                      - text: 它是整张图的类别 ID 矩阵，而不是目标框或独立实例 mask。
+                      - link "Ultralytics Docs" [ref=f4e3249] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/tasks/semantic?utm_source=chatgpt.com
+                    - separator [ref=f4e3255]
+                    - heading "十一、计算土地覆盖面积占比" [level=1] [ref=f4e3256]
+                    - paragraph [ref=f4e3257]:
+                      - text: 预测得到
+                      - code [ref=f4e3258]: class_map
+                      - text: 后，可以直接统计：
+                    - generic [ref=f4e3264]:
+                      - generic [ref=f4e3266]:
+                        - generic [ref=f4e3267]: Python
+                        - button "复制" [ref=f4e3271] [cursor=pointer]
+                      - code [ref=f4e3284]: "import numpy as np CLASS_NAMES = [ \"background\", \"building\", \"road\", \"water\", \"barren\", \"forest\", \"agriculture\", ] def calculate_ratios(class_map: np.ndarray) -> dict[str, float]: total_pixels = class_map.size ratios: dict[str, float] = {} for class_id, class_name in enumerate(CLASS_NAMES): pixels = int(np.sum(class_map == class_id)) ratios[class_name] = pixels / total_pixels return ratios ratios = calculate_ratios(class_map) for name, ratio in ratios.items(): print(f\"{name:12s}: {ratio * 100:.2f}%\")"
+                    - paragraph [ref=f4e3285]: 可能输出：
+                    - generic [ref=f4e3294]:
+                      - button "复制" [ref=f4e3295] [cursor=pointer]
+                      - code [ref=f4e3304]: "background : 4.23% building : 19.41% road : 8.37% water : 5.12% barren : 6.08% forest : 21.75% agriculture : 35.04%"
+                    - paragraph [ref=f4e3305]: 这部分结果以后可以直接传给：
+                    - generic [ref=f4e3314]:
+                      - button "复制" [ref=f4e3315] [cursor=pointer]
+                      - code [ref=f4e3324]: LandCoverAgent ↓ AnalysisAgent ↓ ReportAgent
+                    - paragraph [ref=f4e3325]: 注意：如果输入图片没有地理比例尺或 GeoTIFF 空间信息，只能说“像素面积占比”，不能直接声称多少平方米或多少亩。
+                    - separator [ref=f4e3326]
+                    - heading "十二、YOLO11-seg 能不能训练 LoveDA" [level=1] [ref=f4e3327]
+                    - paragraph [ref=f4e3328]: 技术上可以，但需要先把每张语义 mask 转成：
+                    - generic [ref=f4e3337]:
+                      - button "复制" [ref=f4e3338] [cursor=pointer]
+                      - code [ref=f4e3347]: <class_id> x1 y1 x2 y2 x3 y3 ...
+                    - paragraph [ref=f4e3348]: 一般流程是：
+                    - generic [ref=f4e3357]:
+                      - button "复制" [ref=f4e3358] [cursor=pointer]
+                      - code [ref=f4e3367]: 遍历类别 → 查找每类连通区域 → OpenCV findContours → 轮廓简化 → 坐标归一化 → 每个轮廓写成一行 YOLO polygon
+                    - paragraph [ref=f4e3368]: 然后训练：
+                    - generic [ref=f4e3374]:
+                      - generic [ref=f4e3376]:
+                        - generic [ref=f4e3377]: Bash
+                        - button "复制" [ref=f4e3381] [cursor=pointer]
+                      - code [ref=f4e3394]: yolo segment train model=yolo11n-seg.pt data=loveda-instance.yaml epochs=100 imgsz=640
+                    - paragraph [ref=f4e3395]: 但不建议先这样做，原因是：
+                    - list [ref=f4e3396]:
+                      - listitem [ref=f4e3397]:
+                        - paragraph [ref=f4e3398]: YOLO11-seg 是实例分割，LoveDA 是语义分割；
+                      - listitem [ref=f4e3399]:
+                        - paragraph [ref=f4e3400]: 农田、道路、森林不是天然的独立“对象实例”；
+                      - listitem [ref=f4e3401]:
+                        - paragraph [ref=f4e3402]: 大面积区域可能产生特别长的多边形；
+                      - listitem [ref=f4e3403]:
+                        - paragraph [ref=f4e3404]: 孔洞和碎片区域在多边形转换中容易丢失；
+                      - listitem [ref=f4e3405]:
+                        - paragraph [ref=f4e3406]: 最后得到的是 mask mAP，而不是土地覆盖常用的 mIoU；
+                      - listitem [ref=f4e3407]:
+                        - paragraph [ref=f4e3408]: background 类会产生巨大、不规则区域。
+                    - paragraph [ref=f4e3409]:
+                      - text: YOLO 实例分割官方格式确实是一行一个实例、后接归一化多边形坐标。
+                      - link "Ultralytics Docs" [ref=f4e3412] [cursor=pointer]:
+                        - /url: https://docs.ultralytics.com/datasets/segment
+                    - separator [ref=f4e3418]
+                    - heading "最终建议" [level=1] [ref=f4e3419]
+                    - paragraph [ref=f4e3420]: 你们现在按这个顺序推进：
+                    - generic [ref=f4e3429]:
+                      - button "复制" [ref=f4e3430] [cursor=pointer]
+                      - code [ref=f4e3439]: 第一步：YOLO26 Semantic 跑通 LoveDA 第二步：获得土地覆盖 mask 和面积占比 第三步：封装成 LandCoverService / LandCoverAgent 第四步：再用 YOLO11 训练 DIOR 设施检测 第五步：由 FusionAgent 联合两个模型结果
+                    - paragraph [ref=f4e3440]: 最终技术表述可以写成：
+                    - blockquote [ref=f4e3441]:
+                      - paragraph [ref=f4e3442]: 系统采用多模型协同架构，其中土地覆盖模块使用语义分割模型，重点设施识别模块使用 YOLOv11，多个视觉模型通过多 Agent 工作流统一调度和融合分析。
+                    - paragraph [ref=f4e3443]: 这比强行把 LoveDA 转成 YOLO11 实例分割更加合理，也更容易得到可信的土地覆盖结果。
+                  - button "来源" [ref=f4e3444] [cursor=pointer]
+          - generic [ref=f4e114]:
+            - generic:
+              - generic:
+                - button
+            - generic [ref=f4e120]:
+              - generic [ref=f4e124]:
+                - button "添加文件等" [ref=f4e127] [cursor=pointer]
+                - textbox "与 ChatGPT 聊天" [active] [ref=f4e3454]:
+                  - paragraph [ref=f4e3455]: 给“ChatGPT”发送消息
+                - generic [ref=f4e132]:
+                  - button "开始听写" [ref=f4e133] [cursor=pointer]
+                  - button "启动语音功能" [ref=f4e137] [cursor=pointer]:
+                    - generic [ref=f4e141]: 语音
+              - button [ref=f4e142]
+              - button [ref=f4e143]
+            - generic [ref=f4e144]: ChatGPT 是 AI，可能会犯错。
+  - alert [ref=f4e153]
+  - status [ref=f4e154]

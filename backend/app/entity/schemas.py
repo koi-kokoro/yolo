@@ -399,6 +399,91 @@ class PageResponse(BaseModel):
     items: list
 
 
+class SemanticModelBrief(BaseModel):
+    id: Optional[int] = None
+    version: str
+    model_name: str
+
+
+class SemanticClassStatistic(BaseModel):
+    class_id: int
+    name: str
+    display_name: str
+    rgb: list[int]
+    pixel_count: int
+    ratio: float
+
+
+class SemanticResultResponse(BaseModel):
+    index_mask_url: str
+    color_mask_url: str
+    overlay_url: str
+    class_statistics: list[SemanticClassStatistic]
+    inference_time_ms: int
+    total_time_ms: int
+    inference_metadata: dict
+
+
+class SemanticTaskCreateResponse(BaseModel):
+    id: int
+    task_uuid: str
+    status: str
+    model_version: SemanticModelBrief
+    original_filename: str
+    created_at: datetime
+
+
+class SemanticTaskSummary(BaseModel):
+    task_uuid: str
+    status: str
+    original_filename: str
+    model_version: SemanticModelBrief
+    image_width: int
+    image_height: int
+    inference_time_ms: Optional[int] = None
+    total_time_ms: Optional[int] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
+class SemanticTaskPage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: list[SemanticTaskSummary]
+
+
+class SemanticTaskError(BaseModel):
+    code: str
+    message: str
+
+
+class SemanticTaskDetail(BaseModel):
+    task_uuid: str
+    status: str
+    original_filename: str
+    source_url: Optional[str] = None
+    model_version: SemanticModelBrief
+    result: Optional[SemanticResultResponse] = None
+    error: Optional[SemanticTaskError] = None
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+
+
+class SemanticModelInfo(BaseModel):
+    ready: bool
+    engine: Optional[str] = None
+    provider: Optional[str] = None
+    model_name: Optional[str] = None
+    model_version: Optional[str] = None
+    input_size: Optional[list[int]] = None
+    classes: list[dict] = []
+    message: Optional[str] = None
+
+
 class HealthResponse(BaseModel):
     """Health check response."""
 

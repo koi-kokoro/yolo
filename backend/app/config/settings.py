@@ -1,5 +1,8 @@
 """Application settings loaded from environment variables."""
 
+from pathlib import Path
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -34,6 +37,50 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://localhost:8080"
+
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug(cls, value):
+        if isinstance(value, str) and value.lower() in {"release", "production", "prod"}:
+            return False
+        return value
+
+    SEMANTIC_DEPLOY_DIR: str = "../training/loveda_semantic/artifacts/baseline_e50_i512_b2/deploy"
+    MODEL_MANAGEMENT_TRUSTED_ROOT: str = "../training/loveda_semantic"
+    MODEL_MANAGEMENT_DEPLOY_DIR: str = "artifacts/baseline_e50_i512_b2/deploy"
+    MODEL_MANAGEMENT_TRAINING_RUN_DIR: str = "runs/v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z"
+    MODEL_MANAGEMENT_STALE_SECONDS: int = 1800
+    MODEL_MANAGEMENT_MAX_TEXT_BYTES: int = 2 * 1024 * 1024
+    MODEL_MANAGEMENT_MAX_CSV_ROWS: int = 1000
+    SEMANTIC_ENGINE: str = "onnx"
+    SEMANTIC_FALLBACK_TO_ONNX: bool = True
+    SEMANTIC_VERIFY_SHA256: bool = True
+    SEMANTIC_ONNX_SHA256: str = "a5f7c887c20d628aabc2b8a834f6f376d4919687ebc7d2bc97f51fb9e413ba90"
+    SEMANTIC_PT_SHA256: str = "c147eff5a13d63183b4efb7d89417f7ace5354f708befd019908b5b8c2196ad9"
+    SEMANTIC_INPUT_SIZE: int = 512
+    SEMANTIC_MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
+    SEMANTIC_MAX_DIMENSION: int = 10000
+    SEMANTIC_MAX_PIXELS: int = 40_000_000
+    SEMANTIC_EXECUTOR_WORKERS: int = 1
+    SEMANTIC_QUEUE_SIZE: int = 8
+    SEMANTIC_USER_ACTIVE_LIMIT: int = 2
+    SEMANTIC_URL_EXPIRE_SECONDS: int = 900
+    SEMANTIC_OVERLAY_ALPHA: float = 0.45
+    SEMANTIC_PT_DEVICE: str = "cuda:0"
+
+    def _backend_relative_path(self, value: str) -> Path:
+        path = Path(value)
+        if path.is_absolute():
+            return path.resolve()
+        return (Path(__file__).resolve().parents[2] / path).resolve()
+
+    @property
+    def semantic_deploy_path(self) -> Path:
+        return self._backend_relative_path(self.SEMANTIC_DEPLOY_DIR)
+
+    @property
+    def model_management_trusted_root_path(self) -> Path:
+        return self._backend_relative_path(self.MODEL_MANAGEMENT_TRUSTED_ROOT)
 
     @property
     def DATABASE_URL(self) -> str:

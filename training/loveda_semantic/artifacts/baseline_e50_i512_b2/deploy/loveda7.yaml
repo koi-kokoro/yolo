@@ -1,0 +1,15 @@
+# Ultralytics YOLO semantic segmentation dataset
+# Ultralytics 8.4.89 resolves relative `path` against its global datasets_dir,
+# not this YAML's directory, so use the workspace-local absolute derived-data path.
+path: D:/homework/yolo/training/loveda_semantic/data/loveda_yolo_semantic
+train: images/train
+val: images/val
+
+names:
+  0: background
+  1: building
+  2: road
+  3: water
+  4: barren
+  5: forest
+  6: agricultural

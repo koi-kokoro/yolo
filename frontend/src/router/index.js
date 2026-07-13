@@ -40,13 +40,13 @@ const routes = [
         path: 'detection',
         name: 'Detection',
         component: () => import('@/views/DetectionPage.vue'),
-        meta: { title: '目标检测', requiresAuth: true },
+        meta: { title: '语义分割', requiresAuth: true },
       },
       {
         path: 'training',
         name: 'Training',
         component: () => import('@/views/TrainingPage.vue'),
-        meta: { title: '模型训练', requiresAuth: true },
+        meta: { title: '模型管理', requiresAuth: true },
       },
       {
         path: 'history',

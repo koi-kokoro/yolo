@@ -10,6 +10,17 @@ from app.core.logger import get_logger
 logger = get_logger(__name__)
 
 
+class DomainError(Exception):
+    """Expected domain failure with a stable public error contract."""
+
+    def __init__(self, status_code: int, code: str, message: str, details=None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.code = code
+        self.message = message
+        self.details = details
+
+
 def _error_response(status_code: int, code: str, message: str, details=None) -> JSONResponse:
     content = {
         "success": False,
@@ -23,6 +34,11 @@ def _error_response(status_code: int, code: str, message: str, details=None) -> 
 
 def register_exception_handlers(app: FastAPI) -> None:
     """Register application-wide exception handlers."""
+
+    @app.exception_handler(DomainError)
+    async def domain_exception_handler(request: Request, exc: DomainError) -> JSONResponse:
+        logger.warning("Domain error: method=%s path=%s code=%s", request.method, request.url.path, exc.code)
+        return _error_response(exc.status_code, exc.code, exc.message, exc.details)
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:

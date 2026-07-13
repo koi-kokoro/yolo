@@ -31,7 +31,7 @@ service.interceptors.request.use((config) => {
 service.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const message = error.response?.data?.detail || error.message || '请求失败'
+    const message = error.response?.data?.message || error.response?.data?.detail || error.message || '请求失败'
 
     if (error.response?.status === 401) {
       clearStoredAuth()

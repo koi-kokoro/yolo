@@ -2,6 +2,7 @@
 
 import io
 from datetime import timedelta
+from pathlib import Path
 
 from minio import Minio
 from minio.error import S3Error
@@ -31,18 +32,19 @@ class MinIOClient:
         except S3Error as exc:
             print(f"MinIO bucket 初始化警告: {exc}")
 
-    def upload_file(self, object_name: str, file_path: str) -> str:
-        """Upload a local file and return a presigned URL."""
+    def upload_file(self, object_name: str, file_path: str, content_type: str | None = None) -> str:
+        """Upload a local file and return its stable object key."""
 
         self.client.fput_object(
             bucket_name=self.bucket_name,
             object_name=object_name,
             file_path=file_path,
+            content_type=content_type,
         )
-        return self.get_presigned_url(object_name)
+        return object_name
 
     def upload_bytes(self, object_name: str, data: bytes, content_type: str = "image/jpeg") -> str:
-        """Upload bytes and return a presigned URL."""
+        """Upload bytes and return its stable object key."""
 
         self.client.put_object(
             bucket_name=self.bucket_name,
@@ -51,18 +53,42 @@ class MinIOClient:
             length=len(data),
             content_type=content_type,
         )
-        return self.get_presigned_url(object_name)
+        return object_name
 
-    def get_presigned_url(self, object_name: str) -> str:
-        """Return a seven-day presigned GET URL for an object."""
+    def read_bytes(self, object_name: str) -> bytes:
+        response = self.client.get_object(self.bucket_name, object_name)
+        try:
+            return response.read()
+        finally:
+            response.close()
+            response.release_conn()
+
+    def exists(self, object_name: str) -> bool:
+        try:
+            self.client.stat_object(self.bucket_name, object_name)
+            return True
+        except S3Error as exc:
+            if exc.code in {"NoSuchKey", "NoSuchObject", "NoSuchBucket"}:
+                return False
+            raise
+
+    def get_presigned_url(self, object_name: str, expires_seconds: int | None = None) -> str:
+        """Return a short-lived presigned GET URL for an object."""
 
         return self.client.presigned_get_object(
             bucket_name=self.bucket_name,
             object_name=object_name,
-            expires=timedelta(days=7),
+            expires=timedelta(seconds=expires_seconds or settings.SEMANTIC_URL_EXPIRE_SECONDS),
         )
 
     def delete_file(self, object_name: str) -> None:
         """Delete an object from MinIO."""
 
         self.client.remove_object(bucket_name=self.bucket_name, object_name=object_name)
+
+    def delete_many(self, object_names: list[str]) -> None:
+        for object_name in object_names:
+            try:
+                self.delete_file(object_name)
+            except Exception:
+                pass

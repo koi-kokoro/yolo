@@ -1,26 +1,96 @@
-.env
+# Local environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+!**/.env.template
+backend/**/*.pem
+backend/**/*.key
+backend/**/*.crt
+backend/secrets/
 
-# Backend logs
+# Python caches, tooling output, and virtual environments
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.coverage
+**/.coverage.*
+**/htmlcov/
+**/coverage.xml
+**/.tox/
+**/.nox/
+**/.venv/
+**/venv/
+**/env/
+
+# Backend runtime state
 backend/logs/*
 !backend/logs/.gitkeep
-backend/*.log
-
-# Backend test and coverage artifacts
-backend/.pytest_cache/
-backend/.coverage
-backend/.coverage.*
-backend/htmlcov/
-backend/coverage.xml
-backend/test.db
-backend/test.sqlite
-backend/test.sqlite3
-
-# Backend local databases
+backend/**/*.log
 backend/*.db
 backend/*.sqlite
 backend/*.sqlite3
+backend/uploads/
+backend/tmp/
+backend/temp/
+backend/.cache/
 
-# Python cache files
-backend/**/__pycache__/
-backend/**/*.py[cod]
-backend/**/*.pyo
+# Frontend dependencies, builds, caches, and preview output
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/.vite/
+frontend/.vitest/
+frontend/.nyc_output/
+frontend/playwright-report/
+frontend/test-results/
+frontend/preview*.log
+frontend/vite-acceptance*.log
+frontend/vite-acceptance*.pid
+
+# Training datasets, generated runs, reports, and visualizations
+training/history/
+training/loveda_semantic/data/**
+!training/loveda_semantic/data/**/
+!training/loveda_semantic/data/**/*.yaml
+!training/loveda_semantic/data/**/*.yml
+training/loveda_semantic/runs/
+training/loveda_semantic/reports/
+training/loveda_semantic/*.console.log
+training/loveda_semantic/**/*.cache
+training/loveda_semantic/tmp/
+training/loveda_semantic/temp/
+
+# Generated evaluation artifacts. Keep only small deployment documentation
+# and metadata; model binaries are distributed outside normal Git.
+training/loveda_semantic/artifacts/**
+!training/loveda_semantic/artifacts/*/
+!training/loveda_semantic/artifacts/*/deploy/
+training/loveda_semantic/artifacts/*/deploy/**
+!training/loveda_semantic/artifacts/*/deploy/INFERENCE.md
+!training/loveda_semantic/artifacts/*/deploy/metadata.json
+!training/loveda_semantic/artifacts/*/deploy/metrics.json
+!training/loveda_semantic/artifacts/*/deploy/export_status.json
+!training/loveda_semantic/artifacts/*/deploy/environment.json
+!training/loveda_semantic/artifacts/*/deploy/training_args.yaml
+!training/loveda_semantic/artifacts/*/deploy/training_args.yml
+!training/loveda_semantic/artifacts/*/deploy/*.yaml
+!training/loveda_semantic/artifacts/*/deploy/*.yml
+!training/loveda_semantic/artifacts/*/deploy/SHA256SUMS.txt
+
+# Downloaded and trained model weights
+training/**/*.pt
+training/**/*.onnx
+training/**/*.engine
+training/**/*.torchscript
+
+# IDE, OS, and editor state
+**/.idea/
+**/.DS_Store
+**/Thumbs.db
+**/Desktop.ini
+*.swp
+*.swo

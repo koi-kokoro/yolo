@@ -4,8 +4,8 @@ import { ChatDotRound, DataAnalysis, Files, Grid, TrendCharts } from '@element-p
 const menus = [
   { path: '/dashboard', title: '仪表盘', icon: Grid },
   { path: '/chat', title: '智能对话', icon: ChatDotRound },
-  { path: '/detection', title: '目标检测', icon: DataAnalysis },
-  { path: '/training', title: '模型训练', icon: TrendCharts },
+  { path: '/detection', title: '语义分割', icon: DataAnalysis },
+  { path: '/training', title: '模型管理', icon: TrendCharts },
   { path: '/history', title: '历史记录', icon: Files },
 ]
 </script>

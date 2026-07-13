@@ -57,4 +57,14 @@ describe('utils/request', () => {
     expect(replace).toHaveBeenCalledWith('/login')
     expect(ElMessage.error).toHaveBeenCalledWith('登录已过期')
   })
+
+  it('prefers backend message over detail and axios message', async () => {
+    const error = {
+      message: 'Axios error',
+      response: { status: 503, data: { message: '模型不可用', detail: 'fallback' } },
+    }
+
+    await expect(request.interceptors.response.handlers[0].rejected(error)).rejects.toBe(error)
+    expect(ElMessage.error).toHaveBeenCalledWith('模型不可用')
+  })
 })

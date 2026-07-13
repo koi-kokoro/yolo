@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.database.session import Base
@@ -30,6 +30,7 @@ class User(Base):
     training_tasks = relationship("TrainingTask", back_populates="user")
     chat_sessions = relationship("ChatSession", back_populates="user")
     operation_logs = relationship("OperationLog", back_populates="user")
+    semantic_tasks = relationship("SemanticTask", back_populates="user")
 
 
 class Role(Base):
@@ -242,11 +243,63 @@ class ModelVersion(Base):
     description = Column(Text, nullable=True, comment="版本描述")
     file_size = Column(BigInteger, nullable=True, comment="文件大小")
     is_default = Column(Boolean, default=False, comment="是否默认模型")
+    task_kind = Column(String(32), nullable=False, default="detection", comment="任务类型")
+    runtime = Column(String(32), nullable=True, comment="模型运行时")
+    artifact_sha256 = Column(String(64), nullable=True, comment="模型文件 SHA256")
+    model_metadata = Column("metadata", JSON, nullable=True, comment="部署元数据快照")
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")
 
     scene = relationship("DetectionScene", back_populates="model_versions")
     training_task = relationship("TrainingTask", back_populates="model_versions")
     detection_tasks = relationship("DetectionTask", back_populates="model_version")
+    semantic_tasks = relationship("SemanticTask", back_populates="model_version")
+
+
+class SemanticTask(Base):
+    """A user-owned asynchronous semantic segmentation task."""
+
+    __tablename__ = "semantic_tasks"
+    __table_args__ = (Index("ix_semantic_tasks_user_created", "user_id", "created_at"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_uuid = Column(String(36), unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    model_version_id = Column(Integer, ForeignKey("model_versions.id"), nullable=False)
+    status = Column(String(20), nullable=False, default="pending", index=True)
+    original_filename = Column(String(255), nullable=False)
+    source_object_key = Column(String(500), nullable=False)
+    source_sha256 = Column(String(64), nullable=False)
+    source_content_type = Column(String(100), nullable=False)
+    image_width = Column(Integer, nullable=False)
+    image_height = Column(Integer, nullable=False)
+    error_code = Column(String(64), nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", back_populates="semantic_tasks")
+    model_version = relationship("ModelVersion", back_populates="semantic_tasks")
+    result = relationship("SemanticResult", back_populates="task", uselist=False, cascade="all, delete-orphan")
+
+
+class SemanticResult(Base):
+    """Exactly one set of semantic artifacts and statistics per successful task."""
+
+    __tablename__ = "semantic_results"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    task_id = Column(Integer, ForeignKey("semantic_tasks.id"), unique=True, nullable=False)
+    index_mask_object_key = Column(String(500), nullable=False)
+    color_mask_object_key = Column(String(500), nullable=False)
+    overlay_object_key = Column(String(500), nullable=False)
+    class_statistics = Column(JSON, nullable=False)
+    inference_metadata = Column(JSON, nullable=False)
+    inference_time_ms = Column(Integer, nullable=False)
+    total_time_ms = Column(Integer, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
+
+    task = relationship("SemanticTask", back_populates="result")
 
 
 class ChatSession(Base):
