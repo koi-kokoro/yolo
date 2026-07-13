@@ -67,7 +67,7 @@ checkpoints/
 # YOLOv11 特定
 runs/
 ultralytics/
-# 但保留 backend/app/runs 及其所有内容
+
 
 
 # ── 日志文件 ───────────────────────────────────────
@@ -160,3 +160,5 @@ dmypy.json
 # 忽略项目中所有 datasets 文件夹
 datasets/
 datasets.zip
+
+/backend/runs/
