@@ -67,6 +67,8 @@ checkpoints/
 # YOLOv11 特定
 runs/
 ultralytics/
+# 保留 backend/runs
+!backend/runs/
 
 # ── 日志文件 ───────────────────────────────────────
 *.log
@@ -116,7 +118,6 @@ build/
 *.db
 *.sqlite
 *.sqlite3
-*.pt
 *.whl
 
 # ── 测试覆盖率 ───────────────────────────────────────

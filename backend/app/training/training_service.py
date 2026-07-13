@@ -424,7 +424,7 @@ class TrainingService:
                 for row in reader:
                     # results.csv 的列名可能带空格
                     row = {(k or "").strip(): (v or "").strip() for k, v in row.items()}
-                    epoch = int(row.get("epoch", 0)) + 1  # CSV 中 epoch 从 0 开始
+                    epoch = int(float(row.get("epoch", 0)))  # CSV 中 epoch 从 0 开始
 
                     # 跳过已存在的 epoch（回调已写入）
                     if epoch in existing_epochs:
