@@ -82,6 +82,8 @@ training/loveda_semantic/artifacts/*/deploy/**
 !training/loveda_semantic/artifacts/*/deploy/SHA256SUMS.txt
 
 # Downloaded and trained model weights
+*.onnx
+!training/loveda_semantic/artifacts/baseline_e50_i512_b2/deploy/best_dynamic.onnx
 # IDE, OS, and editor state
 **/.idea/
 **/.DS_Store
