@@ -82,11 +82,6 @@ training/loveda_semantic/artifacts/*/deploy/**
 !training/loveda_semantic/artifacts/*/deploy/SHA256SUMS.txt
 
 # Downloaded and trained model weights
-training/**/*.pt
-training/**/*.onnx
-training/**/*.engine
-training/**/*.torchscript
-
 # IDE, OS, and editor state
 **/.idea/
 **/.DS_Store
