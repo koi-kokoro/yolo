@@ -374,6 +374,57 @@ class OperationLogResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SemanticEvaluateRequest(BaseModel):
+    """Semantic model evaluation request."""
+
+    device: str = Field(default="cpu", description="评估设备: cpu / 0")
+    force: bool = Field(default=False, description="是否强制重新运行评估")
+
+
+class SemanticEvaluateResponse(BaseModel):
+    """Semantic model evaluation response."""
+
+    source: str = Field(..., description="指标来源: cached / evaluated")
+    report: dict
+    elapsed_seconds: Optional[float] = None
+    warning: Optional[str] = None
+
+
+class SemanticExportRequest(BaseModel):
+    """Semantic model export request."""
+
+    version: Optional[str] = Field(None, description="版本号，不传则自动生成")
+    description: Optional[str] = Field(None, description="版本描述")
+    set_default: bool = Field(default=False, description="是否设为默认模型")
+    upload_minio: bool = Field(default=True, description="是否上传到 MinIO")
+
+
+class SemanticExportResponse(BaseModel):
+    """Semantic model export response."""
+
+    model_version_id: int
+    version: str
+    scene_id: int
+    model_name: str
+    model_path: str
+    export_dir: str
+    minio_url: Optional[str] = None
+    file_size: Optional[int] = None
+    is_default: bool
+    evaluation: dict
+    message: str
+
+
+class SemanticPredictResponse(BaseModel):
+    """Semantic ad-hoc prediction response."""
+
+    total_objects: Optional[int] = None
+    class_statistics: list[dict]
+    annotated_image: str
+    inference_time_ms: Optional[float] = None
+    model: Optional[str] = None
+
+
 class ApiResponse(BaseModel):
     """Unified API response wrapper."""
 

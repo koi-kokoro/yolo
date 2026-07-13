@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.model_management import router as model_management_router
+from app.api.semantic_models import router as semantic_models_router
 from app.api.semantic_tasks import router as semantic_router
 from app.config.settings import settings
 from app.core.exceptions import register_exception_handlers
@@ -77,6 +78,7 @@ register_exception_handlers(app)
 app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(semantic_router)
+app.include_router(semantic_models_router)
 app.include_router(model_management_router)
 
 
