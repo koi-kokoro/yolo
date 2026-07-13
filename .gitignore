@@ -68,8 +68,8 @@ checkpoints/
 runs/
 ultralytics/
 # 但保留 backend/app/runs 及其所有内容
-!backend/app/runs/
-!backend/app/runs/**
+!backend/runs/
+!backend/runs/**
 
 
 # ── 日志文件 ───────────────────────────────────────
