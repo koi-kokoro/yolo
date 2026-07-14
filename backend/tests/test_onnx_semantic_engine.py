@@ -9,7 +9,9 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from app.config.settings import Settings
 from app.services.onnx_semantic_engine import OnnxSemanticEngine, parse_sha256sums, resolve_expected_sha256
+from app.services import semantic_runtime as semantic_runtime_module
 
 
 def metadata(size=1024, version="v2"):
@@ -29,6 +31,33 @@ def test_checksum_parser_and_resolution_priority(tmp_path: Path):
     assert resolve_expected_sha256(tmp_path, "best_dynamic.onnx", None, {}) == (actual, "SHA256SUMS.txt")
     override = "b" * 64
     assert resolve_expected_sha256(tmp_path, "best_dynamic.onnx", override, {}) == (override, "environment override")
+
+
+def test_default_settings_do_not_override_onnx_checksum(monkeypatch):
+    monkeypatch.delenv("SEMANTIC_ONNX_SHA256", raising=False)
+    assert Settings(_env_file=None).SEMANTIC_ONNX_SHA256 is None
+
+
+def test_runtime_passes_none_and_uses_package_checksum(tmp_path: Path, monkeypatch):
+    digest = "d" * 64
+    (tmp_path / "SHA256SUMS.txt").write_text(f"{digest}  best_dynamic.onnx\n", encoding="utf-8")
+    observed = {}
+
+    def engine_factory(deploy_dir, expected_sha256, verify_sha256):
+        observed["expected_sha256"] = expected_sha256
+        observed["resolved"] = resolve_expected_sha256(deploy_dir, "best_dynamic.onnx", expected_sha256)
+        return SimpleNamespace()
+
+    monkeypatch.setattr(semantic_runtime_module.settings, "SEMANTIC_ONNX_SHA256", None)
+    monkeypatch.setattr(semantic_runtime_module.settings, "SEMANTIC_DEPLOY_DIR", str(tmp_path))
+    monkeypatch.setattr(semantic_runtime_module, "OnnxSemanticEngine", engine_factory)
+    runtime = semantic_runtime_module.SemanticRuntime()
+    try:
+        runtime.start()
+        assert runtime.ready
+        assert observed == {"expected_sha256": None, "resolved": (digest, "SHA256SUMS.txt")}
+    finally:
+        runtime.shutdown()
 
 
 def test_checksum_resolution_can_use_metadata(tmp_path: Path):
