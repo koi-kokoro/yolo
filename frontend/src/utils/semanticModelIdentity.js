@@ -16,6 +16,7 @@ export function resolveRuntimeModelIdentity({ inferenceMetadata, runtimeInfo } =
   return {
     modelName: firstValue(metadata.model_name, runtime.model_name, EMPTY_VALUE),
     modelVersion: firstValue(metadata.model_version, runtime.model_version, EMPTY_VALUE),
+    modelSha256: firstValue(metadata.model_sha256, runtime.model_sha256),
     inputSize: firstValue(metadata.input_size, runtime.input_size),
     engine: firstValue(metadata.engine, runtime.engine, EMPTY_VALUE),
     provider: firstValue(metadata.provider, metadata.device, runtime.provider, EMPTY_VALUE),

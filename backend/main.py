@@ -11,6 +11,7 @@ from app.api.model_management import router as model_management_router
 from app.api.semantic_models import router as semantic_models_router
 from app.api.semantic_tasks import router as semantic_router
 from app.api.chat import router as chat_router, segmentation_router
+from app.api.training import router as training_router
 from app.config.settings import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logger import get_logger, setup_logging
@@ -39,16 +40,26 @@ async def lifespan(_app: FastAPI):
     from app.database.session import SessionLocal
     from app.services.semantic_runtime import semantic_runtime
     from app.services.semantic_task_service import semantic_task_service
+    from app.training.training_service import training_service
 
     logger.info("Initializing services")
     init_minio()
     db = SessionLocal()
     try:
-        recovered = semantic_task_service.recover_interrupted(db)
-        if recovered:
-            logger.warning("Marked %s interrupted semantic tasks as failed", recovered)
-    except Exception as exc:
-        logger.warning("Semantic recovery skipped: %s", exc)
+        try:
+            recovered = semantic_task_service.recover_interrupted(db)
+            if recovered:
+                logger.warning("Marked %s interrupted semantic tasks as failed", recovered)
+        except Exception as exc:
+            logger.warning("Semantic recovery skipped: %s", exc)
+            db.rollback()
+        try:
+            recovered_training = training_service.recover_active(db)
+            if recovered_training:
+                logger.warning("Marked %s online training tasks as interrupted", recovered_training)
+        except Exception as exc:
+            logger.warning("Online training recovery skipped: %s", exc)
+            db.rollback()
     finally:
         db.close()
     semantic_runtime.start()
@@ -83,6 +94,7 @@ app.include_router(semantic_models_router)
 app.include_router(model_management_router)
 app.include_router(chat_router)
 app.include_router(segmentation_router)
+app.include_router(training_router)
 
 
 @app.get("/")

@@ -1,6 +1,7 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 import { getSemanticModelInfo } from '@/api/semantic'
 import {
@@ -10,6 +11,9 @@ import {
   downloadSemanticModel,
   predictSemanticImage,
 } from '@/api/modelOps'
+import { downloadTrainingArtifact } from '@/api/training'
+import TrainingMetricsChart from '@/components/training/TrainingMetricsChart.vue'
+import { useTrainingStore } from '@/stores/training'
 import { formatInputSize, resolveRuntimeModelIdentity } from '@/utils/semanticModelIdentity'
 
 const loading = ref(true)
@@ -28,6 +32,20 @@ const exportForm = ref({
 })
 const modelVersions = ref([])
 const selectedVersionId = ref(null)
+const trainingStore = useTrainingStore()
+const { tasks, selectedTask, metrics, listLoading, detailLoading, creating, stopping, error, pollError } = storeToRefs(trainingStore)
+const onlineAvailable = ref(true)
+const createForm = reactive({
+  dataset_key: 'full',
+  model: 'yolo26n-sem.pt',
+  experiment: 'S0',
+  device: '0',
+  epochs: 50,
+  batch_size: 4,
+  img_size: 512,
+  patience: 15,
+  mosaic: 1,
+})
 
 const showPredictDialog = ref(false)
 const predicting = ref(false)
@@ -45,6 +63,17 @@ const trainingStatus = computed(() => {
   if (status === 'early_stopped') return { label: '早停完成', type: 'success' }
   if (status === 'completed') return { label: '训练完成', type: 'success' }
   return { label: status || '未知', type: 'info' }
+})
+
+const dbDefaultModel = computed(() => modelVersions.value.find((item) => item.is_default) || null)
+const modelIdentityConsistent = computed(() => {
+  if (!dbDefaultModel.value || actualModel.value.modelVersion === '—') return null
+  const runtimeVersion = String(actualModel.value.modelVersion).trim().toLowerCase()
+  const dbVersion = String(dbDefaultModel.value.version || '').trim().toLowerCase()
+  const runtimeSha = String(actualModel.value.modelSha256 || '').trim().toLowerCase()
+  const dbSha = String(dbDefaultModel.value.artifact_sha256 || '').trim().toLowerCase()
+  if (runtimeSha && dbSha) return runtimeVersion === dbVersion && runtimeSha === dbSha
+  return runtimeVersion === dbVersion
 })
 
 const runtimeStatus = computed(() =>
@@ -78,6 +107,65 @@ const duration = computed(() => {
   const minutes = Math.floor((seconds % 3600) / 60)
   return `${hours} 小时 ${minutes} 分钟`
 })
+
+const statusLabel = (status) => ({
+  pending: '等待中', starting: '启动中', running: '训练中', stopping: '停止中', completed: '已完成',
+  early_stopped: '早停完成', cancelled: '已取消', failed: '失败', interrupted: '已中断',
+}[status] || status || '未知')
+const artifactNames = computed(() => {
+  const manifest = selectedTask.value?.artifact_manifest
+  if (Array.isArray(manifest)) return manifest
+  if (manifest && typeof manifest === 'object') return Object.keys(manifest)
+  return []
+})
+
+async function loadOnlineTraining() {
+  onlineAvailable.value = true
+  try {
+    await trainingStore.fetchTasks()
+    if (!selectedTask.value && tasks.value.length) await trainingStore.selectTask(tasks.value[0])
+  } catch (e) {
+    onlineAvailable.value = ![404, 503].includes(e?.response?.status)
+  }
+}
+
+async function submitTraining() {
+  try {
+    await trainingStore.createTask({ ...createForm })
+    onlineAvailable.value = true
+    ElMessage.success('在线训练任务已创建；训练产物不会自动部署')
+  } catch (e) {
+    if ([404, 503].includes(e?.response?.status)) onlineAvailable.value = false
+  }
+}
+
+async function confirmStopTraining() {
+  try {
+    await ElMessageBox.confirm('停止后任务可能无法恢复，确认停止当前训练任务？', '停止在线训练', {
+      type: 'warning', confirmButtonText: '确认停止', cancelButtonText: '取消',
+    })
+    await trainingStore.stopSelected()
+    ElMessage.success('停止请求已提交')
+  } catch (e) {
+    if (e !== 'cancel' && e !== 'close' && e?.response) return
+  }
+}
+
+async function downloadArtifact(name) {
+  try {
+    const blob = await downloadTrainingArtifact(selectedTask.value.id, name)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = name
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    // Auth and API errors follow the shared request interceptor.
+  }
+}
 
 async function loadDashboard() {
   loading.value = true
@@ -187,7 +275,12 @@ async function runPredict() {
   }
 }
 
-onMounted(loadDashboard)
+onMounted(() => {
+  loadDashboard()
+  trainingStore.initVisibilityHandling()
+  loadOnlineTraining()
+})
+onBeforeUnmount(() => trainingStore.dispose())
 </script>
 
 <template>
@@ -242,6 +335,22 @@ onMounted(loadDashboard)
       </el-space>
     </div>
 
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <div><span>DEPLOYED MODEL</span><h2>当前部署模型 / 既有 V2 独立评估</h2></div>
+        <p>实际推理身份始终来自 runtime / inference metadata；数据库默认版本仅用于一致性核验。</p>
+      </div>
+      <el-alert
+        v-if="modelIdentityConsistent === false"
+        title="模型登记信息未同步"
+        :description="`实际推理模型为 ${actualModel.modelName} / ${actualModel.modelVersion}，数据库默认记录为 ${dbDefaultModel?.model_name} / ${dbDefaultModel?.version}。登记信息未同步，不影响当前 V2 推理；实际部署身份仍以 runtime / inference metadata 为准。`"
+        type="warning" show-icon :closable="false" style="margin-bottom: 16px"
+      />
+      <el-alert
+        v-else-if="modelIdentityConsistent === true"
+        title="运行时部署 metadata 与数据库默认模型记录一致"
+        type="success" show-icon :closable="false" style="margin-bottom: 16px"
+      />
     <template v-if="report">
       <el-alert
         title="V2 数据口径说明"
@@ -395,6 +504,63 @@ onMounted(loadDashboard)
         </article>
       </div>
     </template>
+    </section>
+
+    <section class="dashboard-section online-section">
+      <div class="section-heading">
+        <div><span>ONLINE TRAINING</span><h2>LoveDA 在线训练任务</h2></div>
+        <el-button :loading="listLoading" @click="loadOnlineTraining">刷新任务</el-button>
+      </div>
+      <el-alert title="训练与部署相互独立" description="在线训练生成候选产物，不会自动替换或部署当前实际推理模型。" type="info" show-icon :closable="false" />
+      <el-alert v-if="!onlineAvailable" title="在线训练当前不可用" description="后端未提供该功能、功能未启用或训练 worker/场景尚未就绪。既有 V2 看板仍可正常使用。" type="warning" show-icon :closable="false" />
+      <el-alert v-else-if="error || pollError" :title="error || pollError" type="error" show-icon :closable="false" />
+
+      <div class="online-grid">
+        <article class="panel create-panel">
+          <div class="panel-title"><div><h2>创建任务</h2><p>字段及约束与后端 TrainingTaskCreate schema 一致</p></div></div>
+          <el-form :model="createForm" label-position="top" :disabled="!onlineAvailable || creating">
+            <el-row :gutter="12">
+              <el-col :span="12"><el-form-item label="数据集"><el-select v-model="createForm.dataset_key"><el-option label="完整集 full" value="full"/><el-option label="冒烟集 smoke" value="smoke"/></el-select></el-form-item></el-col>
+              <el-col :span="12"><el-form-item label="基础模型"><el-input v-model="createForm.model" maxlength="100" /></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="实验预设"><el-select v-model="createForm.experiment"><el-option v-for="v in ['S0','S1','S2','M0','custom']" :key="v" :label="v" :value="v"/></el-select></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="设备"><el-input v-model="createForm.device" maxlength="20" /></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="Epoch"><el-input-number v-model="createForm.epochs" :min="1" /></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="Batch Size"><el-input-number v-model="createForm.batch_size" :min="1" :max="4" /></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="Image Size"><el-input-number v-model="createForm.img_size" :min="128" :max="2048" :step="32" /></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="Patience"><el-input-number v-model="createForm.patience" :min="1" :max="100" /></el-form-item></el-col>
+              <el-col :span="8"><el-form-item label="Mosaic"><el-input-number v-model="createForm.mosaic" :min="0" :max="1" :step="0.1" /></el-form-item></el-col>
+            </el-row>
+            <el-button type="primary" :loading="creating" :disabled="!onlineAvailable" @click="submitTraining">创建并监控</el-button>
+          </el-form>
+        </article>
+
+        <article class="panel task-list-panel">
+          <div class="panel-title"><div><h2>我的任务</h2><p>最多显示后端返回的最近任务</p></div></div>
+          <el-table v-loading="listLoading" :data="tasks" height="360" highlight-current-row @current-change="(row) => row && trainingStore.selectTask(row)">
+            <el-table-column prop="id" label="ID" width="60"/><el-table-column prop="run_name" label="任务" min-width="155" show-overflow-tooltip/>
+            <el-table-column label="状态" width="90"><template #default="{ row }">{{ statusLabel(row.status) }}</template></el-table-column>
+            <el-table-column label="进度" width="75"><template #default="{ row }">{{ row.progress }}%</template></el-table-column>
+          </el-table>
+        </article>
+      </div>
+
+      <article v-if="selectedTask" v-loading="detailLoading" class="panel task-detail">
+        <div class="panel-title"><div><h2>任务 #{{ selectedTask.id }} · {{ statusLabel(selectedTask.status) }}</h2><p>{{ selectedTask.run_name }} · 候选训练产物（非当前部署模型）</p></div>
+          <el-button type="danger" :disabled="!trainingStore.selectedTaskActive" :loading="stopping" @click="confirmStopTraining">停止训练</el-button>
+        </div>
+        <el-progress :percentage="selectedTask.progress || 0" :status="selectedTask.status === 'failed' ? 'exception' : undefined" />
+        <div class="online-metrics">
+          <div><span>Epoch</span><strong>{{ selectedTask.current_epoch }} / {{ selectedTask.epochs }}</strong></div>
+          <div><span>最佳 mIoU</span><strong>{{ percent(selectedTask.best_miou) }}</strong><small>Epoch {{ selectedTask.best_epoch ?? '—' }}</small></div>
+          <div><span>最新 mIoU</span><strong>{{ percent(selectedTask.latest_miou) }}</strong></div>
+          <div><span>最新 Pixel Accuracy</span><strong>{{ percent(selectedTask.latest_pixel_accuracy) }}</strong></div>
+        </div>
+        <el-alert v-if="selectedTask.error_message" :title="selectedTask.error_message" type="error" show-icon :closable="false" />
+        <TrainingMetricsChart :metrics="metrics" />
+        <div v-if="artifactNames.length" class="artifacts"><strong>安全产物下载：</strong><el-button v-for="name in artifactNames" :key="name" size="small" @click="downloadArtifact(name)">{{ name }}</el-button></div>
+      </article>
+      <el-empty v-else description="暂无选中的在线训练任务" />
+    </section>
 
     <!-- Export dialog -->
     <el-dialog v-model="showExportDialog" title="导出模型" width="500px">
@@ -500,6 +666,21 @@ onMounted(loadDashboard)
     line-height: 1.7;
   }
 }
+.dashboard-section { margin-bottom: 28px; }
+.section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 18px 0 14px; }
+.section-heading span { color: #409eff; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+.section-heading h2 { margin: 4px 0 0; font-size: 21px; }
+.section-heading p { color: #8492a6; margin: 0; font-size: 13px; }
+.online-section > .el-alert { margin-bottom: 14px; }
+.online-grid { display: grid; grid-template-columns: minmax(480px, 1.2fr) minmax(380px, 1fr); gap: 18px; margin-bottom: 18px; }
+.create-panel :deep(.el-select), .create-panel :deep(.el-input-number) { width: 100%; }
+.online-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
+.online-metrics div { padding: 14px; background: #f7f9fc; border-radius: 8px; }
+.online-metrics span, .online-metrics strong, .online-metrics small { display: block; }
+.online-metrics span, .online-metrics small { color: #909399; font-size: 12px; }
+.online-metrics strong { margin: 7px 0; font-size: 18px; }
+.artifacts { padding-top: 14px; border-top: 1px solid #ebeef5; }
+.artifacts .el-button { margin: 4px; }
 .action-bar {
   background: #fff;
   border: 1px solid #e5eaf1;
@@ -833,7 +1014,7 @@ onMounted(loadDashboard)
   .status-items {
     width: 100%;
   }
-  .content-grid {
+  .content-grid, .online-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -78,6 +78,27 @@ class Settings(BaseSettings):
     SEMANTIC_OVERLAY_ALPHA: float = 0.45
     SEMANTIC_PT_DEVICE: str = "cuda:0"
 
+    # ── LoveDA 在线训练（可信固定入口，测试可通过环境覆盖）──
+    ONLINE_TRAINING_ENABLED: bool = False
+    ONLINE_TRAINING_TRUSTED_ROOT: str = "../training/loveda_semantic"
+    ONLINE_TRAINING_WORKER: str = "online_training_worker.py"
+    ONLINE_TRAINING_PYTHON: str = ""
+    ONLINE_TRAINING_OUTPUT_ROOT: str = "online_runs"
+    ONLINE_TRAINING_FULL_YAML: str = "loveda7.yaml"
+    ONLINE_TRAINING_SMOKE_YAML: str = "loveda7_smoke.yaml"
+    ONLINE_TRAINING_ALLOWED_MODELS: str = "yolo26n-sem.pt,yolo26s-sem.pt"
+    ONLINE_TRAINING_ALLOWED_DEVICES: str = "cpu,0,cuda:0"
+    ONLINE_TRAINING_DEFAULT_EPOCHS: int = 15
+    ONLINE_TRAINING_MAX_EPOCHS: int = 50
+    ONLINE_TRAINING_ALLOW_SMALL_EPOCHS: bool = False
+    ONLINE_TRAINING_GLOBAL_ACTIVE_LIMIT: int = 1
+    ONLINE_TRAINING_USER_ACTIVE_LIMIT: int = 1
+    ONLINE_TRAINING_POLL_SECONDS: float = 1.0
+    ONLINE_TRAINING_HEARTBEAT_SECONDS: float = 10.0
+    ONLINE_TRAINING_STOP_GRACE_SECONDS: float = 15.0
+    ONLINE_TRAINING_MAX_LOG_BYTES: int = 20 * 1024 * 1024
+    ONLINE_TRAINING_LOG_TAIL_BYTES: int = 64 * 1024
+
     # ── LLM 配置（Day 8 智能对话）─────────────────────
     OPENAI_API_KEY: str = "sk-your-openai-api-key"
     OPENAI_MODEL: str = "gpt-4o-mini"
@@ -104,6 +125,26 @@ class Settings(BaseSettings):
     @property
     def model_management_trusted_root_path(self) -> Path:
         return self._backend_relative_path(self.MODEL_MANAGEMENT_TRUSTED_ROOT)
+
+    @property
+    def online_training_trusted_root_path(self) -> Path:
+        return self._backend_relative_path(self.ONLINE_TRAINING_TRUSTED_ROOT)
+
+    @property
+    def online_training_worker_path(self) -> Path:
+        return (self.online_training_trusted_root_path / self.ONLINE_TRAINING_WORKER).resolve()
+
+    @property
+    def online_training_output_root_path(self) -> Path:
+        return (self.online_training_trusted_root_path / self.ONLINE_TRAINING_OUTPUT_ROOT).resolve()
+
+    @property
+    def online_training_allowed_models(self) -> set[str]:
+        return {item.strip() for item in self.ONLINE_TRAINING_ALLOWED_MODELS.split(",") if item.strip()}
+
+    @property
+    def online_training_allowed_devices(self) -> set[str]:
+        return {item.strip() for item in self.ONLINE_TRAINING_ALLOWED_DEVICES.split(",") if item.strip()}
 
     @property
     def DATABASE_URL(self) -> str:

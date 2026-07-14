@@ -52,7 +52,16 @@ class SemanticRuntime:
     def model_info(self) -> dict:
         if not self.ready or self.engine is None:
             return {"ready": False, "classes": [], "message": self.error or "模型不可用"}
-        return {"ready": True, "engine": self.engine.engine, "provider": self.engine.provider, "model_name": self.engine.metadata["model"], "model_version": self.engine.model_version, "input_size": list(self.engine.input_size), "classes": self.engine.metadata["classes"]}
+        return {
+            "ready": True,
+            "engine": self.engine.engine,
+            "provider": self.engine.provider,
+            "model_name": self.engine.metadata["model"],
+            "model_version": self.engine.model_version,
+            "model_sha256": self.engine.model_sha256,
+            "input_size": list(self.engine.input_size),
+            "classes": self.engine.metadata["classes"],
+        }
 
     def shutdown(self) -> None:
         if self.executor:

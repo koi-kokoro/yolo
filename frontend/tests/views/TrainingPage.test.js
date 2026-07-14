@@ -72,4 +72,24 @@ describe('TrainingPage V2 数据口径', () => {
       expect(pageSource).not.toContain(legacyValue)
     },
   )
+  it('集成在线训练创建、停止、禁用降级与部署版本警告，同时不声称自动部署', () => {
+    expect(pageSource).toContain('LoveDA 在线训练任务')
+    expect(pageSource).toContain('@click="submitTraining"')
+    expect(pageSource).toContain('@click="confirmStopTraining"')
+    expect(pageSource).toContain(':disabled="!onlineAvailable"')
+    expect(pageSource).toContain('在线训练当前不可用')
+    expect(pageSource).toContain('模型登记信息未同步')
+    expect(pageSource).toContain('登记信息未同步，不影响当前 V2 推理')
+    expect(pageSource).toContain('不会自动替换或部署当前实际推理模型')
+    expect(pageSource).toContain('<TrainingMetricsChart :metrics="metrics" />')
+  })
+
+  it('保留 V2 静态摘要、完整评估、混淆矩阵、逐类数据和运行时身份口径', () => {
+    expect(pageSource).toContain('当前部署模型 / 既有 V2 独立评估')
+    expect(pageSource).toContain('实际推理模型')
+    expect(pageSource).toContain('runtime / inference metadata')
+    expect(pageSource).toContain('V2 训练参数')
+    expect(pageSource).toContain('V2 独立完整评估')
+    expect(pageSource).toContain('evaluationMetrics?.overall?.per_class')
+  })
 })

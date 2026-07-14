@@ -1,4 +1,4 @@
-path: D:/homework/yolo/src/training/loveda_semantic/data/loveda_smoke_subset
+path: data/loveda_smoke_subset
 train: images/train
 val: images/val
 

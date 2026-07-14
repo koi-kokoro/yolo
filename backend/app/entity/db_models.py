@@ -166,9 +166,10 @@ class DetectionResult(Base):
 
 
 class TrainingTask(Base):
-    """Model training task."""
+    """User-owned LoveDA semantic online training task (legacy fields retained)."""
 
     __tablename__ = "training_tasks"
+    __table_args__ = (Index("ix_training_tasks_status_user", "status", "user_id"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True, comment="操作用户")
@@ -189,6 +190,27 @@ class TrainingTask(Base):
     dataset_size = Column(Integer, nullable=True, comment="数据集图像数量")
     data_yaml = Column(String(500), nullable=True, comment="data.yaml 路径")
     error_message = Column(Text, nullable=True, comment="错误信息")
+    task_kind = Column(String(32), nullable=False, default="semantic_segmentation")
+    runner = Column(String(64), nullable=False, default="loveda_online_worker")
+    experiment = Column(String(32), nullable=False, default="S0")
+    config_snapshot = Column(JSON, nullable=True)
+    requested_model = Column(String(100), nullable=True)
+    dataset_key = Column(String(32), nullable=True)
+    run_name = Column(String(160), nullable=True, unique=True)
+    output_dir = Column(String(500), nullable=True)
+    pid = Column(Integer, nullable=True)
+    process_group_id = Column(Integer, nullable=True)
+    exit_code = Column(Integer, nullable=True)
+    heartbeat_at = Column(DateTime, nullable=True)
+    stop_requested_at = Column(DateTime, nullable=True)
+    last_event_offset = Column(BigInteger, nullable=False, default=0)
+    best_epoch = Column(Integer, nullable=True)
+    best_miou = Column(Float, nullable=True)
+    latest_miou = Column(Float, nullable=True)
+    latest_pixel_accuracy = Column(Float, nullable=True)
+    artifact_manifest = Column(JSON, nullable=True)
+    error_code = Column(String(64), nullable=True)
+    cancel_reason = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.now, comment="创建时间")
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment="更新时间")
     started_at = Column(DateTime, nullable=True, comment="开始训练时间")
@@ -201,9 +223,10 @@ class TrainingTask(Base):
 
 
 class TrainingMetric(Base):
-    """Per-epoch training metric."""
+    """Per-epoch semantic training metric (legacy detection fields retained)."""
 
     __tablename__ = "training_metrics"
+    __table_args__ = (UniqueConstraint("task_id", "epoch", name="uq_training_metrics_task_epoch"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     task_id = Column(Integer, ForeignKey("training_tasks.id"), nullable=False, index=True, comment="所属训练任务")
@@ -215,7 +238,16 @@ class TrainingMetric(Base):
     recall = Column(Float, nullable=True, comment="召回率")
     map50 = Column(Float, nullable=True, comment="mAP@0.50")
     map50_95 = Column(Float, nullable=True, comment="mAP@0.50:0.95")
+    train_ce_loss = Column(Float, nullable=True)
+    train_dice_loss = Column(Float, nullable=True)
+    val_ce_loss = Column(Float, nullable=True)
+    val_dice_loss = Column(Float, nullable=True)
+    miou = Column(Float, nullable=True)
+    pixel_accuracy = Column(Float, nullable=True)
     lr = Column(Float, nullable=True, comment="当前学习率")
+    elapsed_seconds = Column(Float, nullable=True)
+    raw_metrics = Column(JSON, nullable=True)
+    recorded_at = Column(DateTime, nullable=False, default=datetime.now)
     created_at = Column(DateTime, default=datetime.now)
 
     task = relationship("TrainingTask", back_populates="metrics")

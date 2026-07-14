@@ -1,7 +1,6 @@
-# Ultralytics YOLO semantic segmentation dataset
-# Ultralytics 8.4.89 resolves relative `path` against its global datasets_dir,
-# not this YAML's directory, so use the workspace-local absolute derived-data path.
-path: D:/homework/yolo/src/training/loveda_semantic/data/loveda_yolo_semantic
+# Portable source contract. online_training_worker.py materializes an absolute
+# runtime YAML because Ultralytics resolves relative paths against datasets_dir.
+path: data/loveda_yolo_semantic
 train: images/train
 val: images/val
 

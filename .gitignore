@@ -58,6 +58,9 @@ training/loveda_semantic/data/**
 !training/loveda_semantic/data/**/*.yaml
 !training/loveda_semantic/data/**/*.yml
 training/loveda_semantic/runs/
+# Backend-created online training task workspaces (events, metrics, logs,
+# previews, and weights). This does not cover curated artifacts/current/deploy.
+training/loveda_semantic/online_runs/
 training/loveda_semantic/reports/
 training/loveda_semantic/*.console.log
 training/loveda_semantic/**/*.cache
@@ -76,6 +79,10 @@ training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluati
 training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/confusion_matrix_normalized.png
 training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/per_class_iou_by_domain.png
 training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/environment.json
+
+# Ephemeral semantic model export used only by tests. Keep this directory-level
+# rule narrow so real current/deploy model weights remain eligible for Git.
+models/semantic/loveda_semantic_v1.0.0-test/
 
 # Downloaded and trained model weights
 *.onnx

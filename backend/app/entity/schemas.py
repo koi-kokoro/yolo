@@ -212,37 +212,49 @@ class DetectionStatistics(BaseModel):
 
 
 class TrainingTaskCreate(BaseModel):
-    """Training task creation request."""
+    """LoveDA semantic online training request; clients select keys, never paths."""
 
-    scene_id: int = Field(..., description="关联场景 ID")
-    model_name: str = Field(default="yolov11n", description="基础模型")
-    epochs: int = Field(default=100, ge=10, le=500, description="训练轮数")
-    img_size: int = Field(default=640, description="图像尺寸")
-    batch_size: int = Field(default=16, ge=1, le=64, description="批次大小")
-    device: str = Field(default="0", description="训练设备")
-    optimizer: str = Field(default="SGD", description="优化器")
-    lr0: float = Field(default=0.01, description="初始学习率")
-    augment_config: Optional[dict] = Field(None, description="数据增强配置")
+    model: str = Field(default="yolo26n-sem.pt", max_length=100)
+    dataset_key: str = Field(default="full", pattern="^(full|smoke)$")
+    experiment: str = Field(default="S0", pattern="^(S0|S1|S2|M0|custom)$")
+    device: str = Field(default="0", max_length=20)
+    epochs: Optional[int] = Field(default=None, ge=1)
+    batch_size: int = Field(default=4, ge=1, le=4)
+    img_size: Optional[int] = Field(default=None, ge=128, le=2048)
+    patience: int = Field(default=15, ge=1, le=100)
+    mosaic: Optional[float] = Field(default=None, ge=0, le=1)
 
 
 class TrainingTaskResponse(BaseModel):
-    """Training task response."""
+    """Sanitized online training task response."""
 
     id: int
-    user_id: int
-    scene_id: int
-    scene_name: Optional[str] = None
     task_uuid: str
     status: str
-    model_name: str
+    task_kind: str
+    runner: str
+    experiment: str
+    requested_model: Optional[str] = None
+    dataset_key: Optional[str] = None
+    run_name: Optional[str] = None
     epochs: int
     current_epoch: int
     progress: int
-    img_size: int
     batch_size: int
+    img_size: int
     device: str
-    dataset_size: Optional[int] = None
+    pid: Optional[int] = None
+    exit_code: Optional[int] = None
+    heartbeat_at: Optional[datetime] = None
+    stop_requested_at: Optional[datetime] = None
+    best_epoch: Optional[int] = None
+    best_miou: Optional[float] = None
+    latest_miou: Optional[float] = None
+    latest_pixel_accuracy: Optional[float] = None
+    artifact_manifest: Optional[list | dict] = None
+    error_code: Optional[str] = None
     error_message: Optional[str] = None
+    cancel_reason: Optional[str] = None
     created_at: datetime
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
@@ -251,17 +263,19 @@ class TrainingTaskResponse(BaseModel):
 
 
 class TrainingMetricResponse(BaseModel):
-    """Per-epoch training metric response."""
+    """Per-epoch LoveDA segmentation metric response."""
 
     epoch: int
-    box_loss: Optional[float] = None
-    cls_loss: Optional[float] = None
-    dfl_loss: Optional[float] = None
-    precision: Optional[float] = None
-    recall: Optional[float] = None
-    map50: Optional[float] = None
-    map50_95: Optional[float] = None
+    train_ce_loss: Optional[float] = None
+    train_dice_loss: Optional[float] = None
+    val_ce_loss: Optional[float] = None
+    val_dice_loss: Optional[float] = None
+    miou: Optional[float] = None
+    pixel_accuracy: Optional[float] = None
     lr: Optional[float] = None
+    elapsed_seconds: Optional[float] = None
+    raw_metrics: Optional[dict] = None
+    recorded_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -580,6 +594,7 @@ class SemanticModelInfo(BaseModel):
     provider: Optional[str] = None
     model_name: Optional[str] = None
     model_version: Optional[str] = None
+    model_sha256: Optional[str] = None
     input_size: Optional[list[int]] = None
     classes: list[dict] = []
     message: Optional[str] = None
