@@ -7,6 +7,7 @@ import ClassStatistics from '@/components/semantic/ClassStatistics.vue'
 import SemanticResultViewer from '@/components/semantic/SemanticResultViewer.vue'
 import SemanticUploader from '@/components/semantic/SemanticUploader.vue'
 import { useSemanticStore } from '@/stores/semantic'
+import { formatInputSize, resolveRuntimeModelIdentity } from '@/utils/semanticModelIdentity'
 
 const store = useSemanticStore()
 const { modelInfo, currentTask, history, uploading, loadingHistory, error, canSubmit } = storeToRefs(store)
@@ -20,6 +21,10 @@ const statusMap = {
 }
 const taskStatus = computed(() => statusMap[currentTask.value?.status] || { label: '未创建', type: 'info' })
 const metadata = computed(() => currentTask.value?.result?.inference_metadata || {})
+const actualModel = computed(() => resolveRuntimeModelIdentity({
+  inferenceMetadata: metadata.value,
+  runtimeInfo: modelInfo.value,
+}))
 const legend = computed(() => modelInfo.value?.classes || currentTask.value?.result?.class_statistics || [])
 
 function formatDate(value) {
@@ -71,11 +76,11 @@ onBeforeUnmount(() => store.dispose())
         <template #header><div class="card-title"><span>创建任务</span><el-button v-if="currentTask" link type="primary" @click="resetTask">新建任务</el-button></div></template>
         <SemanticUploader ref="uploader" :disabled="!canSubmit" :loading="uploading" @submit="submit" />
         <el-descriptions v-if="modelInfo" :column="2" border class="model-info">
-          <el-descriptions-item label="模型">{{ modelInfo.model_name || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="版本">{{ modelInfo.model_version || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="引擎">{{ modelInfo.engine || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="Provider">{{ modelInfo.provider || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="输入尺寸">{{ modelInfo.input_size?.join(' × ') || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="实际推理模型">{{ actualModel.modelName }}</el-descriptions-item>
+          <el-descriptions-item label="实际推理版本">{{ actualModel.modelVersion }}</el-descriptions-item>
+          <el-descriptions-item label="引擎">{{ actualModel.engine }}</el-descriptions-item>
+          <el-descriptions-item label="Provider">{{ actualModel.provider }}</el-descriptions-item>
+          <el-descriptions-item label="输入尺寸">{{ formatInputSize(actualModel.inputSize) }}</el-descriptions-item>
         </el-descriptions>
         <div v-if="legend.length" class="legend"><span v-for="item in legend" :key="item.class_id ?? item.id"><i :style="{ background: `rgb(${item.rgb.join(',')})` }" />{{ item.display_name || item.name }}</span></div>
       </el-card>
@@ -86,7 +91,8 @@ onBeforeUnmount(() => store.dispose())
         <template v-else>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="文件名">{{ currentTask.original_filename }}</el-descriptions-item>
-            <el-descriptions-item label="模型版本">{{ currentTask.model_version?.version }}</el-descriptions-item>
+            <el-descriptions-item label="任务关联记录">{{ currentTask.model_version?.version || '—' }}</el-descriptions-item>
+            <el-descriptions-item label="实际推理版本">{{ actualModel.modelVersion }}</el-descriptions-item>
             <el-descriptions-item label="创建时间">{{ formatDate(currentTask.created_at) }}</el-descriptions-item>
             <el-descriptions-item label="完成时间">{{ formatDate(currentTask.completed_at) }}</el-descriptions-item>
           </el-descriptions>
@@ -110,10 +116,12 @@ onBeforeUnmount(() => store.dispose())
         <el-descriptions :column="1" border>
           <el-descriptions-item label="推理耗时">{{ currentTask.result?.inference_time_ms }} ms</el-descriptions-item>
           <el-descriptions-item label="总耗时">{{ currentTask.result?.total_time_ms }} ms</el-descriptions-item>
-          <el-descriptions-item label="实际引擎">{{ metadata.engine || modelInfo?.engine || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="Provider / Device">{{ metadata.provider || metadata.device || modelInfo?.provider || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="源尺寸">{{ metadata.source_size?.join(' × ') || '—' }}</el-descriptions-item>
-          <el-descriptions-item label="输入尺寸">{{ metadata.input_size?.join(' × ') || '—' }}</el-descriptions-item>
+          <el-descriptions-item label="实际推理模型">{{ actualModel.modelName }}</el-descriptions-item>
+          <el-descriptions-item label="实际推理版本">{{ actualModel.modelVersion }}</el-descriptions-item>
+          <el-descriptions-item label="实际引擎">{{ actualModel.engine }}</el-descriptions-item>
+          <el-descriptions-item label="Provider / Device">{{ actualModel.provider }}</el-descriptions-item>
+          <el-descriptions-item label="源尺寸">{{ formatInputSize(metadata.source_size) }}</el-descriptions-item>
+          <el-descriptions-item label="输入尺寸">{{ formatInputSize(actualModel.inputSize) }}</el-descriptions-item>
           <el-descriptions-item label="缩放模式">{{ metadata.resize_mode || '—' }}</el-descriptions-item>
           <el-descriptions-item label="运行时版本">{{ metadata.runtime_version || '—' }}</el-descriptions-item>
         </el-descriptions>

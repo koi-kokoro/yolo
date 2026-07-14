@@ -12,6 +12,7 @@ TOOL_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOL_DIR))
 
 from common import map_mask, source_pairs, source_region_dir  # noqa: E402
+from day07_evaluate_export import confusion_update, metrics, validate_report  # noqa: E402
 
 
 class MappingTests(unittest.TestCase):
@@ -41,6 +42,26 @@ class PairingTests(unittest.TestCase):
             self.assertEqual(set(images), {"样本 01"})
             self.assertEqual(set(masks), {"样本 01", "orphan"})
             self.assertEqual(images["样本 01"].parent.name, "images_png")
+
+
+class EvaluationTests(unittest.TestCase):
+    def test_confusion_metrics_and_integrity_validation(self) -> None:
+        matrix = np.zeros((7, 7), dtype=np.int64)
+        target = np.asarray([[0, 1, 255], [6, 2, 3]], dtype=np.uint8)
+        prediction = np.asarray([[0, 1, 4], [7, 2, 0]], dtype=np.uint8)
+        valid, ignored = confusion_update(matrix, target, prediction)
+        self.assertEqual((valid, ignored), (5, 1))
+        self.assertEqual(int(matrix.sum()), 5)
+        self.assertEqual(matrix[6, 0], 1)
+        domain_matrix = np.eye(7, dtype=np.int64)
+        overall_matrix = domain_matrix * 2
+        report = {
+            "overall": {**metrics(overall_matrix), "images": 2, "ignored_pixels": 2},
+            "Urban": {**metrics(domain_matrix), "images": 1, "ignored_pixels": 1},
+            "Rural": {**metrics(domain_matrix), "images": 1, "ignored_pixels": 1},
+        }
+        checks = validate_report(report, expected_images=2)
+        self.assertTrue(checks["passed"])
 
 
 if __name__ == "__main__":

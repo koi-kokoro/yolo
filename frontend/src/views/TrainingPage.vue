@@ -10,16 +10,12 @@ import {
   downloadSemanticModel,
   predictSemanticImage,
 } from '@/api/modelOps'
+import { formatInputSize, resolveRuntimeModelIdentity } from '@/utils/semanticModelIdentity'
 
 const loading = ref(true)
 const loadError = ref('')
-const metrics = ref(null)
 const report = ref(null)
 const runtime = ref(null)
-const matrixMode = ref('normalized')
-
-const evalReport = ref(null)
-const evalSource = ref('')
 const evalWarning = ref('')
 const validating = ref(false)
 const showExportDialog = ref(false)
@@ -38,31 +34,12 @@ const predicting = ref(false)
 const predictFile = ref(null)
 const predictResult = ref(null)
 
-const classNamesCn = {
-  background: '背景',
-  building: '建筑',
-  road: '道路',
-  water: '水体',
-  barren: '裸地',
-  forest: '森林',
-  agricultural: '农田',
-}
-
-const classColors = ['#606266', '#f56c6c', '#e6a23c', '#409eff', '#a06b3b', '#34a853', '#9acd32']
-
-// Prefer API evaluation report when available, otherwise fall back to static metrics.json.
-const activeMetrics = computed(() => evalReport.value || metrics.value?.overall || {})
-const overall = computed(() => activeMetrics.value)
-const parameters = computed(() => report.value?.parameters || {})
-const epochMetrics = computed(() => report.value?.epoch_metrics || [])
-const perClass = computed(() =>
-  (overall.value.per_class || []).map((item, index) => ({
-    ...item,
-    displayName: classNamesCn[item.class_name] || item.class_name,
-    color: classColors[index] || '#409eff',
-  })),
-)
-
+const parameters = computed(() => report.value || {})
+const actualModel = computed(() => resolveRuntimeModelIdentity({ runtimeInfo: runtime.value }))
+const runtimeInputTensor = computed(() => {
+  const size = formatInputSize(actualModel.value.inputSize)
+  return size === '—' ? '—' : `N × 3 × ${size}`
+})
 const trainingStatus = computed(() => {
   const status = report.value?.status
   if (status === 'early_stopped') return { label: '早停完成', type: 'success' }
@@ -76,33 +53,25 @@ const runtimeStatus = computed(() =>
     : { label: '推理服务未就绪', type: 'danger' },
 )
 
-const chart = computed(() => {
-  const points = epochMetrics.value
-  if (!points.length) return { miou: '', accuracy: '', bestX: 0, bestY: 0 }
-  const width = 900
-  const height = 260
-  const padX = 48
-  const padY = 24
-  const min = 0.3
-  const max = 0.75
-  const x = (index) => padX + index * ((width - padX * 2) / Math.max(points.length - 1, 1))
-  const y = (value) => height - padY - ((value - min) / (max - min)) * (height - padY * 2)
-  const polyline = (key) =>
-    points.map((item, index) => `${x(index)},${y(Number(item[key]))}`).join(' ')
-  const bestIndex = points.reduce(
-    (best, item, index) =>
-      Number(item['metrics/mIoU']) > Number(points[best]['metrics/mIoU']) ? index : best,
-    0,
-  )
-  return {
-    miou: polyline('metrics/mIoU'),
-    accuracy: polyline('metrics/pixel_acc'),
-    bestX: x(bestIndex),
-    bestY: y(Number(points[bestIndex]['metrics/mIoU'])),
-  }
-})
-
-const percent = (value) => `${(Number(value || 0) * 100).toFixed(2)}%`
+const percent = (value, digits = 3) =>
+  value == null ? '暂无数据' : `${(Number(value) * 100).toFixed(digits)}%`
+const evaluation = computed(() => report.value?.independent_evaluation || {})
+const evaluationMetrics = ref(null)
+const curveMetrics = computed(() => report.value?.curve?.metrics || [])
+const chartPoints = (key) => {
+  const metrics = curveMetrics.value
+  if (!metrics.length) return ''
+  const width = 720
+  const minY = 0.35
+  const maxY = 0.72
+  return metrics
+    .map((item, index) => {
+      const x = 40 + (index / Math.max(metrics.length - 1, 1)) * width
+      const y = 240 - ((Number(item[key]) - minY) / (maxY - minY)) * 210
+      return `${x.toFixed(1)},${Math.max(20, Math.min(240, y)).toFixed(1)}`
+    })
+    .join(' ')
+}
 const duration = computed(() => {
   const seconds = Number(report.value?.elapsed_seconds || 0)
   const hours = Math.floor(seconds / 3600)
@@ -114,15 +83,16 @@ async function loadDashboard() {
   loading.value = true
   loadError.value = ''
   try {
-    const [metricsResponse, reportResponse, runtimeResponse, versionsResponse] = await Promise.all([
-      fetch('/model-dashboard/metrics.json'),
-      fetch('/model-dashboard/baseline_report.json'),
+    const [reportResponse, evaluationResponse, runtimeResponse, versionsResponse] = await Promise.all([
+      fetch('/model-dashboard/v2_training_summary.json'),
+      fetch('/model-dashboard/v2_evaluation_metrics.json'),
       getSemanticModelInfo().catch(() => null),
       listSemanticModelVersions().catch(() => ({ items: [] })),
     ])
-    if (!metricsResponse.ok || !reportResponse.ok) throw new Error('训练指标文件读取失败')
-    metrics.value = await metricsResponse.json()
+    if (!reportResponse.ok) throw new Error('V2 训练摘要读取失败')
+    if (!evaluationResponse.ok) throw new Error('V2 独立评估结果读取失败')
     report.value = await reportResponse.json()
+    evaluationMetrics.value = await evaluationResponse.json()
     runtime.value = runtimeResponse
     modelVersions.value = versionsResponse.items || []
     if (modelVersions.value.length > 0) {
@@ -141,8 +111,6 @@ async function evaluateModel() {
   validating.value = true
   try {
     const res = await evaluateSemanticModel({ device: 'cpu', force: false })
-    evalReport.value = res.report
-    evalSource.value = res.source
     evalWarning.value = res.warning || ''
     const miou = res.report?.overall?.miou ?? res.report?.miou
     ElMessage.success(`评估完成${res.source === 'cached' ? '（缓存）' : ''}: mIoU=${percent(miou)}`)
@@ -229,7 +197,7 @@ onMounted(loadDashboard)
         <div class="eyebrow">MODEL MANAGEMENT</div>
         <h1>模型管理看板</h1>
         <p>
-          展示当前 YOLO26 Semantic 基线的训练配置、验证指标与部署状态。支持模型评估、导出、下载与单图测试验证。
+          展示当前 V2 语义模型的部署身份、真实训练期摘要与运行状态。支持模型评估、导出、下载与单图测试验证。
         </p>
       </div>
       <el-button :loading="loading" @click="loadDashboard">刷新状态</el-button>
@@ -274,13 +242,21 @@ onMounted(loadDashboard)
       </el-space>
     </div>
 
-    <template v-if="metrics && report">
+    <template v-if="report">
+      <el-alert
+        title="V2 数据口径说明"
+        description="独立指标来自 V2 部署 ONNX 在 LoveDA Val Urban + Rural 完整 1669 张上的像素级评估（imgsz 1024、ignore 255）；训练期最佳 51.476% 单独保留，二者不混用。"
+        type="info"
+        show-icon
+        :closable="false"
+        style="margin-bottom: 16px"
+      />
       <div class="status-strip">
         <div class="model-identity">
           <div class="model-icon">S</div>
           <div>
-            <strong>YOLO26n Semantic</strong>
-            <span>LoveDA 7 类土地覆盖语义分割 · Baseline V1</span>
+            <strong>{{ actualModel.modelName }}</strong>
+            <span>实际推理模型 · {{ actualModel.modelVersion }}</span>
           </div>
         </div>
         <div class="status-items">
@@ -293,25 +269,28 @@ onMounted(loadDashboard)
 
       <div class="metric-grid">
         <article class="metric-card primary">
-          <span>mIoU</span><strong>{{ percent(overall.miou) }}</strong
-          ><small>完整验证集 · {{ evalSource ? (evalSource === 'cached' ? '缓存指标' : '实时评估') : '1669 张' }}</small>
+          <span>独立完整评估 mIoU</span><strong>{{ percent(evaluation.overall_miou) }}</strong>
+          <small>完整验证集 · {{ evaluation.images }} 张 · imgsz {{ evaluation.imgsz }}</small>
         </article>
         <article class="metric-card">
-          <span>像素准确率</span><strong>{{ percent(overall.pixel_accuracy) }}</strong
-          ><small>有效像素整体准确率</small>
+          <span>独立 Pixel Accuracy</span><strong>{{ percent(evaluation.pixel_accuracy) }}</strong>
+          <small>{{ evaluation.provider }}</small>
         </article>
         <article class="metric-card">
-          <span>Mean Dice / F1</span><strong>{{ percent(overall.mean_dice_f1) }}</strong><small>7 类宏平均</small>
+          <span>独立 Mean Dice / F1</span><strong>{{ percent(evaluation.mean_dice_f1) }}</strong>
+          <small>{{ Number(evaluation.valid_pixels || 0).toLocaleString() }} 有效像素</small>
         </article>
         <article class="metric-card">
-          <span>最佳 Epoch</span><strong>20</strong><small>共运行 {{ report.epochs_recorded }} epoch</small>
+          <span>Urban mIoU</span><strong>{{ percent(evaluation.urban_miou) }}</strong>
+          <small>LoveDA Val Urban · 677 张</small>
         </article>
         <article class="metric-card">
-          <span>Urban mIoU</span><strong>{{ percent(metrics.Urban?.miou) }}</strong
-          ><small>城市域 · {{ metrics.Urban?.images }} 张</small>
+          <span>Rural mIoU</span><strong>{{ percent(evaluation.rural_miou) }}</strong>
+          <small>LoveDA Val Rural · 992 张</small>
         </article>
         <article class="metric-card warning">
-          <span>Rural mIoU</span><strong>{{ percent(metrics.Rural?.miou) }}</strong><small>农村域 · 后续重点优化</small>
+          <span>训练期最佳验证 mIoU</span><strong>{{ percent(report.best_miou) }}</strong>
+          <small>训练指标 · best epoch {{ report.best_epoch }}</small>
         </article>
       </div>
 
@@ -320,111 +299,75 @@ onMounted(loadDashboard)
           <div class="panel-title">
             <div>
               <h2>训练趋势</h2>
-              <p>验证集 mIoU 与像素准确率</p>
+              <p>完整 {{ report.curve?.epochs_recorded }} epoch · 严格来源于 V2 results.csv</p>
             </div>
             <div class="legend"><span class="miou">mIoU</span><span class="accuracy">Pixel Accuracy</span></div>
           </div>
-          <div class="line-chart">
-            <svg viewBox="0 0 900 260" role="img" aria-label="训练指标趋势图">
+          <div v-if="report.curve?.available" class="line-chart" aria-label="V2 完整训练曲线">
+            <svg viewBox="0 0 800 270" role="img">
               <g class="grid-lines">
-                <line v-for="value in [0.3, 0.4, 0.5, 0.6, 0.7]" :key="value" x1="48" x2="852" :y1="236 - ((value - 0.3) / 0.45) * 212" :y2="236 - ((value - 0.3) / 0.45) * 212" />
-                <text v-for="value in [0.3, 0.4, 0.5, 0.6, 0.7]" :key="`t-${value}`" x="8" :y="240 - ((value - 0.3) / 0.45) * 212">{{ value.toFixed(1) }}</text>
+                <line v-for="tick in [40, 90, 140, 190, 240]" :key="tick" x1="40" :y1="tick" x2="760" :y2="tick" />
+                <text x="4" y="244">35%</text><text x="4" y="194">44%</text>
+                <text x="4" y="144">54%</text><text x="4" y="94">63%</text><text x="4" y="44">72%</text>
               </g>
-              <polyline :points="chart.accuracy" fill="none" stroke="#67c23a" stroke-width="3" />
-              <polyline :points="chart.miou" fill="none" stroke="#409eff" stroke-width="3" />
-              <circle :cx="chart.bestX" :cy="chart.bestY" r="6" fill="#409eff" stroke="white" stroke-width="3" />
+              <polyline class="curve-line miou-line" :points="chartPoints('miou')" />
+              <polyline class="curve-line accuracy-line" :points="chartPoints('pixel_accuracy')" />
             </svg>
-            <div class="x-axis"><span>Epoch 1</span><span>Epoch 10</span><span>Epoch 20（最佳）</span><span>Epoch 30</span></div>
+            <div class="x-axis"><span>Epoch 1</span><span>Epoch {{ report.curve.epochs_recorded }}</span></div>
           </div>
+          <el-empty v-else description="V2 曲线暂无可信完整数据" />
         </article>
 
         <article class="panel parameters-panel">
           <div class="panel-title">
             <div>
-              <h2>训练参数</h2>
-              <p>正式基线实验配置</p>
+              <h2>V2 训练参数</h2>
+              <p>来源：V2 experiment_report.json</p>
             </div>
           </div>
           <dl class="parameter-list">
-            <div><dt>基础权重</dt><dd>{{ parameters.model }}</dd></div>
-            <div><dt>数据集</dt><dd>LoveDA Semantic</dd></div>
+            <div><dt>基础权重</dt><dd>{{ parameters.model_display_name }}</dd></div>
+            <div><dt>数据集</dt><dd>{{ parameters.dataset }}</dd></div>
             <div><dt>输入尺寸</dt><dd>{{ parameters.imgsz }} × {{ parameters.imgsz }}</dd></div>
             <div><dt>Batch Size</dt><dd>{{ parameters.batch }}</dd></div>
-            <div><dt>最大 Epoch</dt><dd>{{ parameters.epochs }}</dd></div>
+            <div><dt>计划 Epoch</dt><dd>{{ parameters.epochs_configured }}</dd></div>
             <div><dt>Early Stopping</dt><dd>Patience {{ parameters.patience }}</dd></div>
             <div><dt>混合精度</dt><dd>{{ parameters.amp ? 'AMP 开启' : '关闭' }}</dd></div>
             <div><dt>随机种子</dt><dd>{{ parameters.seed }}</dd></div>
-            <div><dt>训练设备</dt><dd>RTX 4060 Laptop GPU</dd></div>
+            <div><dt>训练设备</dt><dd>{{ parameters.gpu }}</dd></div>
             <div><dt>训练耗时</dt><dd>{{ duration }}</dd></div>
           </dl>
         </article>
       </div>
 
-      <article class="panel class-panel">
-        <div class="panel-title">
-          <div>
-            <h2>各类别验证指标</h2>
-            <p>IoU、Dice、Precision 与 Recall；裸地和森林是当前主要弱项</p>
-          </div>
-        </div>
-        <div class="class-table-wrap">
-          <table class="class-table">
-            <thead>
-              <tr>
-                <th>类别</th>
-                <th>IoU</th>
-                <th>Dice / F1</th>
-                <th>Precision</th>
-                <th>Recall</th>
-                <th>IoU 可视化</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in perClass" :key="item.class_id">
-                <td>
-                  <i :style="{ background: item.color }"></i><strong>{{ item.displayName }}</strong
-                  ><small>{{ item.class_name }}</small>
-                </td>
-                <td>{{ percent(item.iou) }}</td>
-                <td>{{ percent(item.dice_f1) }}</td>
-                <td>{{ percent(item.precision) }}</td>
-                <td>{{ percent(item.recall) }}</td>
-                <td>
-                  <div class="iou-bar"><span :style="{ width: percent(item.iou), background: item.color }"></span></div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </article>
-
       <div class="content-grid bottom-grid">
         <article class="panel matrix-panel">
           <div class="panel-title">
             <div>
-              <h2>混淆矩阵</h2>
-              <p>真实类别与预测类别的像素级混淆关系</p>
+              <h2>V2 独立完整评估</h2>
+              <p>LoveDA Val · Urban + Rural · 1669 张 · imgsz 1024 · ignore 255</p>
             </div>
-            <el-radio-group v-model="matrixMode" size="small">
-              <el-radio-button value="normalized">归一化</el-radio-button>
-              <el-radio-button value="raw">原始计数</el-radio-button>
-            </el-radio-group>
           </div>
-          <img
-            :src="
-              matrixMode === 'normalized'
-                ? '/model-dashboard/confusion_matrix_normalized.png'
-                : '/model-dashboard/confusion_matrix.png'
-            "
-            alt="语义分割混淆矩阵"
-          />
+          <img src="/model-dashboard/v2_confusion_matrix_normalized.png" alt="V2 完整验证集归一化混淆矩阵" />
+          <div class="class-table-wrap">
+            <table class="class-table">
+              <thead><tr><th>类别</th><th>IoU</th><th>Dice / F1</th><th>Precision</th><th>Recall</th></tr></thead>
+              <tbody>
+                <tr v-for="item in evaluationMetrics?.overall?.per_class || []" :key="item.class_id">
+                  <td><strong>{{ item.class_name }}</strong></td>
+                  <td>{{ percent(item.iou) }}</td><td>{{ percent(item.dice_f1) }}</td>
+                  <td>{{ percent(item.precision) }}</td><td>{{ percent(item.recall) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </article>
 
         <article class="panel deployment-panel">
           <div class="panel-title">
             <div>
-              <h2>部署信息</h2>
-              <p>当前系统实际使用的模型产物</p>
+              <h2>实际推理模型</h2>
+              <p>优先采用当前推理运行时返回的部署 metadata</p>
             </div>
           </div>
           <div class="deployment-state" :class="{ ready: runtime?.ready }">
@@ -435,10 +378,10 @@ onMounted(loadDashboard)
             </div>
           </div>
           <dl class="parameter-list compact">
-            <div><dt>模型版本</dt><dd>{{ runtime?.model_version || 'baseline-v1' }}</dd></div>
-            <div><dt>模型名称</dt><dd>{{ runtime?.model_name || 'YOLO26n Semantic' }}</dd></div>
+            <div><dt>模型版本</dt><dd>{{ actualModel.modelVersion }}</dd></div>
+            <div><dt>模型名称</dt><dd>{{ actualModel.modelName }}</dd></div>
             <div><dt>模型格式</dt><dd>Dynamic ONNX</dd></div>
-            <div><dt>输入张量</dt><dd>N × 3 × 512 × 512</dd></div>
+            <div><dt>输入张量</dt><dd>{{ runtimeInputTensor }}</dd></div>
             <div><dt>公开类别</dt><dd>7 类</dd></div>
             <div><dt>ONNX/PT 一致率</dt><dd>100%</dd></div>
           </dl>
@@ -719,6 +662,18 @@ onMounted(loadDashboard)
   }
 }
 .line-chart {
+  .curve-line {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .miou-line {
+    stroke: #409eff;
+  }
+  .accuracy-line {
+    stroke: #67c23a;
+  }
   svg {
     width: 100%;
     min-height: 260px;

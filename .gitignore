@@ -68,6 +68,15 @@ training/loveda_semantic/temp/
 # and metadata; model binaries are distributed outside normal Git.
 training/loveda_semantic/artifacts/*.png
 
+# V2 independent evaluation: exclude reproducible visual/debug output only.
+# Keep metrics.json, all evaluation CSV files, evaluation_manifest.json, and
+# the frontend model-dashboard V2 JSON/normalized-confusion-matrix asset.
+training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/sample_predictions/
+training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/confusion_matrix.png
+training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/confusion_matrix_normalized.png
+training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/per_class_iou_by_domain.png
+training/loveda_semantic/artifacts/v2_hr1024_yolo26s_sem_full_e50_b4_m1/evaluation/environment.json
+
 # Downloaded and trained model weights
 *.onnx
 !training/loveda_semantic/artifacts/baseline_e50_i512_b2/deploy/best_dynamic.onnx

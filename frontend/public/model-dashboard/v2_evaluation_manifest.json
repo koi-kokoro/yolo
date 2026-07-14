@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "completed",
+  "model_version": "v2-hr1024-yolo26s-sem-full-e50-b4-m1",
+  "model": {
+    "path": "D:\\homework\\yolo\\src\\training\\loveda_semantic\\artifacts\\current\\deploy\\best_dynamic.onnx",
+    "format": "onnx",
+    "sha256": "a27221923f7ee87a104c8a749e2629de58c522091bcdef273240d197ee78d634"
+  },
+  "dataset": {
+    "name": "LoveDA",
+    "split": "Val",
+    "domains": [
+      "Urban",
+      "Rural"
+    ],
+    "root": "D:\\homework\\yolo\\src\\training\\loveda_semantic\\data\\loveda_yolo_semantic",
+    "images": 1669,
+    "valid_pixels": 1704296271,
+    "ignore_label": 255,
+    "label_mapping": "source 0->255; source 1..7->public 0..6"
+  },
+  "inference": {
+    "imgsz": 1024,
+    "batch": 1,
+    "device": "cpu",
+    "runtime": "onnxruntime (direct InferenceSession)",
+    "provider": "CPUExecutionProvider"
+  },
+  "started_at": "2026-07-14T12:26:55.503768+00:00",
+  "finished_at": "2026-07-14T12:40:18.588144+00:00",
+  "code": "D:\\homework\\yolo\\src\\training\\loveda_semantic\\day07_evaluate_export.py",
+  "command": "D:\\programfile\\anaconda\\envs\\yolo\\python.exe src\\training\\loveda_semantic\\day07_evaluate_export.py --model src\\training\\loveda_semantic\\artifacts\\current\\deploy\\best_dynamic.onnx --data-root src\\training\\loveda_semantic\\data\\loveda_yolo_semantic --output-dir src\\training\\loveda_semantic\\artifacts\\v2_hr1024_yolo26s_sem_full_e50_b4_m1\\evaluation --imgsz 1024 --batch 1 --device cpu --version v2-hr1024-yolo26s-sem-full-e50-b4-m1 --expected-images 1669 --evaluate-only",
+  "integrity_checks": {
+    "expected_image_count": 1669,
+    "actual_image_count": 1669,
+    "image_count_matches": true,
+    "matrix_sum": 1704296271,
+    "reported_valid_pixels": 1704296271,
+    "matrix_sum_matches_valid_pixels": true,
+    "domain_images_sum_matches": true,
+    "domain_matrices_sum_matches": true,
+    "metrics_recompute_matches": true,
+    "metrics_finite_and_bounded": true,
+    "passed": true
+  },
+  "artifact_sha256": {
+    "confusion_matrix.csv": "002d83440178b9abb889587b5ebc7e2ebf9d5055833055b8afba8f1029d9a86f",
+    "confusion_matrix.png": "c7e1abf1f57308b4bf07c024606fa03ec8ddb0248cc66e9e41288a11f0abcfc9",
+    "confusion_matrix_normalized.csv": "dcbebfe8c7be8c110612c7d48011143194a866986348ca06794d7f13f3155794",
+    "confusion_matrix_normalized.png": "2071baa3ae432e91ff3c2f90b245a94df702378608d7fd64568f20074013bef0",
+    "environment.json": "332d2976778c1563a1be46152416113f7b6e2835346ea427f1370d2d787a4336",
+    "metrics.json": "07d79c5a586aa00a06af8695b0a77dea995b083a2d33e3c3b13c11795d1fa47f",
+    "metrics_summary.csv": "446c357be7afc542c769e46dabd5044759873b430db5e796f5892b7024adc847",
+    "per_class_iou_by_domain.png": "4a65f883de940669748095c2c1d2f9617cb3b948eb24d0507af8b1330df9c736",
+    "per_class_metrics.csv": "9084289e09519e5e60f6b6d6d7a041f7e6101b979e962d0d3673219287dc4d83",
+    "sample_predictions/Rural_2522_image_gt_pred.png": "a156e1876451d9d7d2331fa7ada0942edda794f0cd40e79d5ae70ad6577a21d0",
+    "sample_predictions/Rural_2852_image_gt_pred.png": "2830c1b37b26a5be984ee4727e27c375434fa243597debcb3d64c2231e7407a4",
+    "sample_predictions/Rural_3182_image_gt_pred.png": "78da376444c5732ce95c658af17b65f6cb8b2d705f5cdcb2721069db70421647",
+    "sample_predictions/Rural_3513_image_gt_pred.png": "ccb6cb79b09f172b849e6284e008232a1443691c20e4c9e6c2ef3db73a0332d1",
+    "sample_predictions/Urban_3514_image_gt_pred.png": "0ee674b9aec8aac531959f64c6c3edc080d8d4bed38150722d8c022cb56a5d68",
+    "sample_predictions/Urban_3739_image_gt_pred.png": "a4a684d00ad73b36eb69ea7788f396151aca4da86e9c070f398815fc6f16c78a",
+    "sample_predictions/Urban_3964_image_gt_pred.png": "fb6f896bf89df61b6465749d2c74c6e9f6f50a94f89c1b9b3bb0d706a680c386",
+    "sample_predictions/Urban_4190_image_gt_pred.png": "063bc827c632e01e4b974604fb7ed86604a6c79802daabe5961c1a0b50622018"
+  }
+}

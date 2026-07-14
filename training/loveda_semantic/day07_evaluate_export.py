@@ -5,6 +5,7 @@ D:\\programfile\\anaconda\\envs\\yolo\\python.exe src/training/loveda_semantic/d
 """
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
@@ -26,12 +27,17 @@ from ultralytics import YOLO
 from common import CLASS_NAMES, IGNORE_COLOR, PALETTE
 
 ROOT = Path(__file__).resolve().parent
+# Defaults preserve the original Day07 baseline workflow. CLI arguments override these
+# globals before any model or output is opened, allowing isolated V2 evaluation.
 WEIGHT = ROOT / "runs/baseline_e50_i512_b2/weights/best.pt"
 DATA_YAML = ROOT / "loveda7.yaml"
 DATA_ROOT = ROOT / "data/loveda_yolo_semantic"
 ARTIFACTS = ROOT / "artifacts/baseline_e50_i512_b2"
 DEPLOY = ARTIFACTS / "deploy"
 IMGSZ = 512
+BATCH = 2
+DEVICE: str | int = 0 if torch.cuda.is_available() else "cpu"
+VERSION = "baseline-e50-i512-b2"
 IGNORE = 255
 NC = 7
 SEED = 26
@@ -114,7 +120,21 @@ def save_confusion(matrix: np.ndarray, output: Path, normalized: bool = False) -
     plt.close(fig)
 
 
-def evaluate(model: YOLO) -> dict[str, Any]:
+def predict_onnx(session: Any, path: Path) -> np.ndarray:
+    image = cv2.imread(str(path), cv2.IMREAD_COLOR)
+    if image is None:
+        raise FileNotFoundError(path)
+    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    resized = cv2.resize(rgb, (IMGSZ, IMGSZ), interpolation=cv2.INTER_LINEAR)
+    tensor = np.ascontiguousarray(resized.transpose(2, 0, 1)[None]).astype(np.float32) / 255.0
+    output = session.run(None, {session.get_inputs()[0].name: tensor})[0]
+    prediction = np.squeeze(output).astype(np.uint8)
+    if prediction.ndim != 2:
+        raise ValueError(f"Unexpected ONNX semantic prediction shape for {path}: {output.shape}")
+    return prediction
+
+
+def evaluate(model: Any) -> dict[str, Any]:
     matrices = {"overall": np.zeros((NC, NC), dtype=np.int64), "Urban": np.zeros((NC, NC), dtype=np.int64), "Rural": np.zeros((NC, NC), dtype=np.int64)}
     counts = {key: {"images": 0, "ignored_pixels": 0} for key in matrices}
     sample_dir = ARTIFACTS / "sample_predictions"
@@ -124,8 +144,12 @@ def evaluate(model: YOLO) -> dict[str, Any]:
         if not images:
             raise FileNotFoundError(f"No validation images for {region}")
         sample_indices = set(np.linspace(0, len(images) - 1, min(4, len(images)), dtype=int).tolist())
-        stream = model.predict(source=[str(path) for path in images], imgsz=IMGSZ, batch=2, device=0 if torch.cuda.is_available() else "cpu", workers=0, verbose=False, stream=True)
-        for index, (path, result) in enumerate(zip(images, stream)):
+        stream = None if WEIGHT.suffix.lower() == ".onnx" else model.predict(
+            source=[str(path) for path in images], imgsz=IMGSZ, batch=BATCH,
+            device=DEVICE, workers=0, verbose=False, stream=True
+        )
+        iterator = ((path, None) for path in images) if stream is None else zip(images, stream)
+        for index, (path, result) in enumerate(iterator):
             mask_path = DATA_ROOT / "masks/val" / region / path.name
             target = cv2.imread(str(mask_path), cv2.IMREAD_UNCHANGED)
             if target is None:
@@ -141,7 +165,7 @@ def evaluate(model: YOLO) -> dict[str, Any]:
                     target = target[..., 0]
                 else:
                     raise ValueError(f"Unexpected mask shape: {mask_path}: {target.shape}")
-            prediction = np.squeeze(result.semantic_mask.data.detach().cpu().numpy()).astype(np.uint8)
+            prediction = predict_onnx(model, path) if result is None else np.squeeze(result.semantic_mask.data.detach().cpu().numpy()).astype(np.uint8)
             if prediction.ndim != 2:
                 raise ValueError(f"Unexpected semantic prediction shape for {path}: {prediction.shape}")
             if prediction.shape != target.shape:
@@ -179,6 +203,10 @@ def write_metrics(report: dict[str, Any]) -> None:
         writer = csv.writer(handle); writer.writerow(["ground_truth\\prediction", *CLASS_NAMES])
         for name, row in zip(CLASS_NAMES, report["overall"]["confusion_matrix"]): writer.writerow([name, *row])
     matrix = np.asarray(report["overall"]["confusion_matrix"])
+    normalized = np.divide(matrix, matrix.sum(1, keepdims=True), out=np.zeros_like(matrix, dtype=float), where=matrix.sum(1, keepdims=True) > 0)
+    with (ARTIFACTS / "confusion_matrix_normalized.csv").open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.writer(handle); writer.writerow(["ground_truth\\prediction", *CLASS_NAMES])
+        for name, row in zip(CLASS_NAMES, normalized): writer.writerow([name, *[f"{value:.12g}" for value in row]])
     save_confusion(matrix, ARTIFACTS / "confusion_matrix.png")
     save_confusion(matrix, ARTIFACTS / "confusion_matrix_normalized.png", True)
     x = np.arange(NC); width = 0.25
@@ -266,19 +294,106 @@ def package(report: dict[str, Any], export: dict[str, Any]) -> None:
     (DEPLOY / "SHA256SUMS.txt").write_text("".join(f"{sha256(path)}  {path.relative_to(DEPLOY).as_posix()}\n" for path in files), encoding="utf-8")
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Independent full-split LoveDA semantic evaluation")
+    parser.add_argument("--model", type=Path, default=WEIGHT, help="Ultralytics PT or ONNX model")
+    parser.add_argument("--data-root", type=Path, default=DATA_ROOT, help="Converted LoveDA semantic dataset root")
+    parser.add_argument("--output-dir", type=Path, default=ARTIFACTS, help="Isolated evaluation artifact directory")
+    parser.add_argument("--imgsz", type=int, default=IMGSZ)
+    parser.add_argument("--batch", type=int, default=BATCH)
+    parser.add_argument("--device", default=str(DEVICE), help="Ultralytics device, e.g. 0 or cpu")
+    parser.add_argument("--version", default=VERSION)
+    parser.add_argument("--expected-images", type=int, default=None)
+    parser.add_argument("--evaluate-only", action="store_true", help="Do not export/package or modify deploy artifacts")
+    return parser.parse_args()
+
+
+def validate_report(report: dict[str, Any], expected_images: int | None) -> dict[str, Any]:
+    matrix = np.asarray(report["overall"]["confusion_matrix"], dtype=np.int64)
+    checks = {
+        "expected_image_count": expected_images,
+        "actual_image_count": report["overall"]["images"],
+        "image_count_matches": expected_images is None or report["overall"]["images"] == expected_images,
+        "matrix_sum": int(matrix.sum()),
+        "reported_valid_pixels": report["overall"]["valid_pixels"],
+        "matrix_sum_matches_valid_pixels": int(matrix.sum()) == report["overall"]["valid_pixels"],
+        "domain_images_sum_matches": report["Urban"]["images"] + report["Rural"]["images"] == report["overall"]["images"],
+        "domain_matrices_sum_matches": np.array_equal(
+            np.asarray(report["Urban"]["confusion_matrix"]) + np.asarray(report["Rural"]["confusion_matrix"]), matrix
+        ),
+    }
+    recomputed = metrics(matrix)
+    checks["metrics_recompute_matches"] = all(
+        np.isclose(report["overall"][key], recomputed[key], rtol=0, atol=1e-12)
+        for key in ("miou", "pixel_accuracy", "mean_dice_f1")
+    )
+    scalar_values = [
+        report[domain][key]
+        for domain in ("overall", "Urban", "Rural")
+        for key in ("miou", "pixel_accuracy", "mean_dice_f1")
+    ]
+    scalar_values.extend(
+        row[key]
+        for domain in ("overall", "Urban", "Rural")
+        for row in report[domain]["per_class"]
+        for key in ("iou", "dice_f1", "precision", "recall")
+    )
+    checks["metrics_finite_and_bounded"] = all(np.isfinite(value) and 0 <= value <= 1 for value in scalar_values)
+    checks["passed"] = all(value for key, value in checks.items() if key.endswith("matches") or key == "metrics_finite_and_bounded")
+    if not checks["passed"]:
+        raise RuntimeError(f"Evaluation integrity check failed: {checks}")
+    return checks
+
+
 def main() -> None:
+    global WEIGHT, DATA_ROOT, ARTIFACTS, DEPLOY, IMGSZ, BATCH, DEVICE, VERSION
+    args = parse_args()
+    WEIGHT = args.model.resolve(); DATA_ROOT = args.data_root.resolve(); ARTIFACTS = args.output_dir.resolve()
+    DEPLOY = ARTIFACTS / "deploy"; IMGSZ = args.imgsz; BATCH = args.batch
+    DEVICE = int(args.device) if str(args.device).isdigit() else args.device; VERSION = args.version
     if not WEIGHT.is_file(): raise FileNotFoundError(WEIGHT)
-    ARTIFACTS.mkdir(parents=True, exist_ok=True); DEPLOY.mkdir(parents=True, exist_ok=True)
+    started = datetime.now(timezone.utc)
+    ARTIFACTS.mkdir(parents=True, exist_ok=True)
     np.random.seed(SEED); torch.manual_seed(SEED)
     if torch.cuda.is_available(): torch.cuda.manual_seed_all(SEED)
-    model = YOLO(str(WEIGHT))
+    model_hash = sha256(WEIGHT)
+    if WEIGHT.suffix.lower() == ".onnx":
+        import onnxruntime as ort
+        session_options = ort.SessionOptions()
+        session_options.intra_op_num_threads = 1
+        session_options.inter_op_num_threads = 1
+        model = ort.InferenceSession(str(WEIGHT), sess_options=session_options, providers=["CPUExecutionProvider"])
+    else:
+        model = YOLO(str(WEIGHT), task="semantic")
     report = evaluate(model); write_metrics(report)
-    sample = sorted((DATA_ROOT / "images/val/Urban").glob("*.png"))[0]
-    export = export_onnx(model, sample)
-    (ARTIFACTS / "export_status.json").write_text(json.dumps(export, ensure_ascii=False, indent=2), encoding="utf-8")
-    (ARTIFACTS / "environment.json").write_text(json.dumps(versions(), ensure_ascii=False, indent=2), encoding="utf-8")
-    package(report, export)
-    print(json.dumps({"metrics": {k: {x: report[k][x] for x in ("miou", "pixel_accuracy", "mean_dice_f1")} for k in report}, "export": export, "artifacts": str(ARTIFACTS)}, ensure_ascii=False, indent=2))
+    checks = validate_report(report, args.expected_images)
+    environment = versions()
+    (ARTIFACTS / "environment.json").write_text(json.dumps(environment, ensure_ascii=False, indent=2), encoding="utf-8")
+    export = None
+    if not args.evaluate_only:
+        DEPLOY.mkdir(parents=True, exist_ok=True)
+        sample = sorted((DATA_ROOT / "images/val/Urban").glob("*.png"))[0]
+        export = export_onnx(model, sample)
+        (ARTIFACTS / "export_status.json").write_text(json.dumps(export, ensure_ascii=False, indent=2), encoding="utf-8")
+        package(report, export)
+    command = " ".join([str(Path(sys.executable)), *sys.argv])
+    artifacts = sorted(path for path in ARTIFACTS.rglob("*") if path.is_file() and path.name != "evaluation_manifest.json")
+    manifest = {
+        "schema_version": 1, "status": "completed", "model_version": VERSION,
+        "model": {"path": str(WEIGHT), "format": WEIGHT.suffix.lower().lstrip("."), "sha256": model_hash},
+        "dataset": {"name": "LoveDA", "split": "Val", "domains": ["Urban", "Rural"],
+                    "root": str(DATA_ROOT), "images": report["overall"]["images"], "valid_pixels": report["overall"]["valid_pixels"],
+                    "ignore_label": IGNORE, "label_mapping": "source 0->255; source 1..7->public 0..6"},
+        "inference": {"imgsz": IMGSZ, "batch": BATCH, "device": str(DEVICE),
+                      "runtime": "onnxruntime (direct InferenceSession)" if WEIGHT.suffix.lower() == ".onnx" else "PyTorch via ultralytics",
+                      "provider": "CPUExecutionProvider" if WEIGHT.suffix.lower() == ".onnx" else (environment["gpu"] if str(DEVICE) != "cpu" else "CPU")},
+        "started_at": started.isoformat(), "finished_at": datetime.now(timezone.utc).isoformat(),
+        "code": str(Path(__file__).resolve()), "command": command, "integrity_checks": checks,
+        "artifact_sha256": {str(path.relative_to(ARTIFACTS)).replace("\\", "/"): sha256(path) for path in artifacts},
+    }
+    (ARTIFACTS / "evaluation_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(json.dumps({"metrics": {k: {x: report[k][x] for x in ("miou", "pixel_accuracy", "mean_dice_f1")} for k in report},
+                      "checks": checks, "model_sha256": model_hash, "export": export, "artifacts": str(ARTIFACTS)}, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
