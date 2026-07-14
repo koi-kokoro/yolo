@@ -374,6 +374,107 @@ class OperationLogResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SemanticEvaluateRequest(BaseModel):
+    """Semantic model evaluation request."""
+
+    device: str = Field(default="cpu", description="评估设备: cpu / 0")
+    force: bool = Field(default=False, description="是否强制重新运行评估")
+
+
+class SemanticEvaluateResponse(BaseModel):
+    """Semantic model evaluation response."""
+
+    source: str = Field(..., description="指标来源: cached / evaluated")
+    report: dict
+    elapsed_seconds: Optional[float] = None
+    warning: Optional[str] = None
+
+
+class SemanticExportRequest(BaseModel):
+    """Semantic model export request."""
+
+    version: Optional[str] = Field(None, description="版本号，不传则自动生成")
+    description: Optional[str] = Field(None, description="版本描述")
+    set_default: bool = Field(default=False, description="是否设为默认模型")
+    upload_minio: bool = Field(default=True, description="是否上传到 MinIO")
+
+
+class SemanticExportResponse(BaseModel):
+    """Semantic model export response."""
+
+    model_version_id: int
+    version: str
+    scene_id: int
+    model_name: str
+    model_path: str
+    export_dir: str
+    minio_url: Optional[str] = None
+    file_size: Optional[int] = None
+    is_default: bool
+    evaluation: dict
+    message: str
+
+
+class SemanticPredictResponse(BaseModel):
+    """Semantic ad-hoc prediction response."""
+
+    total_objects: Optional[int] = None
+    class_statistics: list[dict]
+    annotated_image: str
+    inference_time_ms: Optional[float] = None
+    model: Optional[str] = None
+
+
+class ChatStreamRequest(BaseModel):
+    """Chat stream request."""
+
+    message: str = Field(..., min_length=1, max_length=5000, description="用户消息")
+    image_path: Optional[str] = Field(None, description="已上传图片的服务端路径")
+    session_id: Optional[int] = Field(None, description="会话 ID")
+
+
+class ChatStreamEvent(BaseModel):
+    """A single SSE event payload from the chat stream."""
+
+    type: str = Field(..., description="事件类型: text_chunk / tool_call / tool_result / error")
+    content: Optional[str] = None
+    tool: Optional[str] = None
+    input: Optional[dict] = None
+    result: Optional[str] = None
+
+
+class SegmentationSingleResponse(BaseModel):
+    """Single-image segmentation shortcut response."""
+
+    mode: str
+    filename: str
+    image_width: int
+    image_height: int
+    annotated_image: Optional[str] = None
+    class_statistics: list[dict]
+    class_counts: dict[str, int]
+    inference_time_ms: Optional[float] = None
+    model: Optional[str] = None
+
+
+class SegmentationBatchResponse(BaseModel):
+    """Batch / ZIP segmentation shortcut response."""
+
+    mode: str
+    total_images: int
+    successful_images: int
+    total_inference_ms: float
+    class_counts: dict[str, int]
+    annotated_images: list[dict]
+    zip_filename: Optional[str] = None
+
+
+class ChatUploadResponse(BaseModel):
+    """Chat image upload response."""
+
+    image_path: str = Field(..., description="上传图片在服务器上的临时路径")
+
+
 class ApiResponse(BaseModel):
     """Unified API response wrapper."""
 

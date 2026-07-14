@@ -55,11 +55,9 @@ class Settings(BaseSettings):
     SEMANTIC_ENGINE: str = "onnx"
     SEMANTIC_FALLBACK_TO_ONNX: bool = True
     SEMANTIC_VERIFY_SHA256: bool = True
-    # Optional emergency override. Normally the selected package's SHA256SUMS.txt is authoritative.
-    SEMANTIC_ONNX_SHA256: str | None = None
-    # Deprecated compatibility fields accepted from existing .env files; runtime ignores them.
-    SEMANTIC_PT_SHA256: str | None = None
-    SEMANTIC_INPUT_SIZE: int | None = None
+    SEMANTIC_ONNX_SHA256: str = "3a074b683f89c0c7a153efc6e9cdf81ac840e0b324cfefc3abc9f8022805d24c"
+    SEMANTIC_PT_SHA256: str = "c147eff5a13d63183b4efb7d89417f7ace5354f708befd019908b5b8c2196ad9"
+    SEMANTIC_INPUT_SIZE: int = 512
     SEMANTIC_MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
     SEMANTIC_MAX_DIMENSION: int = 10000
     SEMANTIC_MAX_PIXELS: int = 40_000_000
@@ -69,6 +67,19 @@ class Settings(BaseSettings):
     SEMANTIC_URL_EXPIRE_SECONDS: int = 900
     SEMANTIC_OVERLAY_ALPHA: float = 0.45
     SEMANTIC_PT_DEVICE: str = "cuda:0"
+
+    # ── LLM 配置（Day 8 智能对话）─────────────────────
+    OPENAI_API_KEY: str = "sk-your-openai-api-key"
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_BASE_URL: str = "https://api.openai.com/v1"
+
+    QWEN_API_KEY: str = "sk-your-qwen-api-key"
+    QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    QWEN_MODEL: str = "qwen-plus"
+
+    USE_LOCAL_LLM: bool = False
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "qwen2.5:7b"
 
     def _backend_relative_path(self, value: str) -> Path:
         path = Path(value)

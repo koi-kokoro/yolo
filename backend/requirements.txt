@@ -9,6 +9,7 @@ bcrypt
 minio
 redis
 langchain
+langchain-openai
 langgraph
 ultralytics
 opencv-python
