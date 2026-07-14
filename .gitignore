@@ -71,6 +71,20 @@ training/loveda_semantic/artifacts/*.png
 # Downloaded and trained model weights
 *.onnx
 !training/loveda_semantic/artifacts/baseline_e50_i512_b2/deploy/best_dynamic.onnx
+
+# Keep only the complete current semantic deployment package.
+training/loveda_semantic/artifacts/current/**
+!training/loveda_semantic/artifacts/
+!training/loveda_semantic/artifacts/current/
+!training/loveda_semantic/artifacts/current/deploy/
+!training/loveda_semantic/artifacts/current/deploy/best.pt
+!training/loveda_semantic/artifacts/current/deploy/best_dynamic.onnx
+!training/loveda_semantic/artifacts/current/deploy/metadata.json
+!training/loveda_semantic/artifacts/current/deploy/environment.json
+!training/loveda_semantic/artifacts/current/deploy/manifest.json
+!training/loveda_semantic/artifacts/current/deploy/SHA256SUMS.txt
+!training/loveda_semantic/artifacts/current/deploy/training_args.yaml
+
 # IDE, OS, and editor state
 **/.idea/
 **/.DS_Store
