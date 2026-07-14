@@ -425,6 +425,56 @@ class SemanticPredictResponse(BaseModel):
     model: Optional[str] = None
 
 
+class ChatStreamRequest(BaseModel):
+    """Chat stream request."""
+
+    message: str = Field(..., min_length=1, max_length=5000, description="用户消息")
+    image_path: Optional[str] = Field(None, description="已上传图片的服务端路径")
+    session_id: Optional[int] = Field(None, description="会话 ID")
+
+
+class ChatStreamEvent(BaseModel):
+    """A single SSE event payload from the chat stream."""
+
+    type: str = Field(..., description="事件类型: text_chunk / tool_call / tool_result / error")
+    content: Optional[str] = None
+    tool: Optional[str] = None
+    input: Optional[dict] = None
+    result: Optional[str] = None
+
+
+class SegmentationSingleResponse(BaseModel):
+    """Single-image segmentation shortcut response."""
+
+    mode: str
+    filename: str
+    image_width: int
+    image_height: int
+    annotated_image: Optional[str] = None
+    class_statistics: list[dict]
+    class_counts: dict[str, int]
+    inference_time_ms: Optional[float] = None
+    model: Optional[str] = None
+
+
+class SegmentationBatchResponse(BaseModel):
+    """Batch / ZIP segmentation shortcut response."""
+
+    mode: str
+    total_images: int
+    successful_images: int
+    total_inference_ms: float
+    class_counts: dict[str, int]
+    annotated_images: list[dict]
+    zip_filename: Optional[str] = None
+
+
+class ChatUploadResponse(BaseModel):
+    """Chat image upload response."""
+
+    image_path: str = Field(..., description="上传图片在服务器上的临时路径")
+
+
 class ApiResponse(BaseModel):
     """Unified API response wrapper."""
 
