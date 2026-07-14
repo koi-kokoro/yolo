@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "task": "semantic-segmentation",
+  "model": "YOLO26s Semantic",
+  "version": "v2-hr1024-yolo26s-sem-full-e50-b4-m1",
+  "input": {
+    "name": "images",
+    "layout": "NCHW",
+    "size": [
+      1024,
+      1024
+    ],
+    "dynamic_batch": true,
+    "dynamic_spatial": true,
+    "color": "RGB",
+    "dtype": "float32",
+    "scale": "0..1"
+  },
+  "output": {
+    "name": "output0",
+    "layout": "NHW",
+    "dtype": "int64",
+    "semantics": "public-class-id-map",
+    "dynamic_batch": true,
+    "dynamic_spatial": true,
+    "class_id_range": [
+      0,
+      6
+    ]
+  },
+  "classes": [
+    {
+      "id": 0,
+      "name": "background",
+      "display_name": "背景",
+      "rgb": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": 1,
+      "name": "building",
+      "display_name": "建筑",
+      "rgb": [
+        255,
+        64,
+        64
+      ]
+    },
+    {
+      "id": 2,
+      "name": "road",
+      "display_name": "道路",
+      "rgb": [
+        255,
+        200,
+        64
+      ]
+    },
+    {
+      "id": 3,
+      "name": "water",
+      "display_name": "水体",
+      "rgb": [
+        64,
+        160,
+        255
+      ]
+    },
+    {
+      "id": 4,
+      "name": "barren",
+      "display_name": "裸地",
+      "rgb": [
+        180,
+        120,
+        64
+      ]
+    },
+    {
+      "id": 5,
+      "name": "forest",
+      "display_name": "森林",
+      "rgb": [
+        64,
+        180,
+        96
+      ]
+    },
+    {
+      "id": 6,
+      "name": "agricultural",
+      "display_name": "农田",
+      "rgb": [
+        180,
+        220,
+        64
+      ]
+    }
+  ],
+  "ignore_label": 255,
+  "internal_output_note": "Checkpoint class 7 is internal background/ignore and is folded to public class 0 inside ONNX.",
+  "training_input_size": [
+    1024,
+    1024
+  ],
+  "runtime": {
+    "name": "onnxruntime",
+    "provider": "CPUExecutionProvider",
+    "opset": 17
+  },
+  "artifacts": {
+    "best.pt": {
+      "sha256": "c6e7d1f8d5f63b94c9d59931fad1c7db41cc80f603c5d4fbf735efe72642adfe"
+    },
+    "best_dynamic.onnx": {
+      "sha256": "a27221923f7ee87a104c8a749e2629de58c522091bcdef273240d197ee78d634"
+    }
+  }
+}

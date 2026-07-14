@@ -1,0 +1,17 @@
+{
+  "generated_at": "2026-07-13T14:38:05.366667+00:00",
+  "python": "3.10.20 | packaged by Anaconda, Inc. | (main, Jun 11 2026, 15:13:20) [MSC v.1942 64 bit (AMD64)]",
+  "executable": "D:\\programfile\\anaconda\\envs\\yolo\\python.exe",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "cuda_available": true,
+  "cuda_version": "12.8",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "packages": {
+    "torch": "2.11.0+cu128",
+    "ultralytics": "8.4.89",
+    "onnx": "1.22.0",
+    "onnxruntime": "1.23.2",
+    "numpy": "2.2.6",
+    "PyYAML": "6.0.3"
+  }
+}

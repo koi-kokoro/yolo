@@ -1,0 +1,51 @@
+{
+  "status": "success",
+  "schema_version": 1,
+  "started_at": "2026-07-13T13:59:33.680147+00:00",
+  "completed_at": "2026-07-13T13:59:35.982547+00:00",
+  "source_pt": "D:\\homework\\yolo\\src\\training\\loveda_semantic\\runs\\v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z\\weights\\best.pt",
+  "output_dir": "D:\\homework\\yolo\\src\\training\\loveda_semantic\\artifacts\\v2_hr1024_yolo26s_sem_full_e50_b4_m1\\deploy",
+  "parameters": {
+    "imgsz": 1024,
+    "imgsz_source": "D:\\homework\\yolo\\src\\training\\loveda_semantic\\runs\\v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z\\args.yaml",
+    "version": "v2-hr1024-yolo26s-sem-full-e50-b4-m1",
+    "device": "cpu",
+    "opset": 17,
+    "force": true
+  },
+  "validation": {
+    "onnx_checker": "passed",
+    "provider": "CPUExecutionProvider",
+    "input_name": "images",
+    "input_dtype": "float32",
+    "output_name": "output0",
+    "output_dtype": "int64",
+    "nominal_input_shape": [
+      1,
+      3,
+      1024,
+      1024
+    ],
+    "nominal_output_shape": [
+      1,
+      1024,
+      1024
+    ],
+    "dynamic_probe_input_shape": [
+      1,
+      3,
+      992,
+      1024
+    ],
+    "dynamic_probe_output_shape": [
+      1,
+      992,
+      1024
+    ],
+    "public_class_id_range_observed": [
+      5,
+      5
+    ],
+    "pt_onnx_class_map_agreement": 1.0
+  }
+}
