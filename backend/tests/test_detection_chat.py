@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
+import cv2
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -49,6 +50,20 @@ def dummy_zip(tmp_path: Path, dummy_image: str) -> str:
     with zipfile.ZipFile(zip_path, "w") as zf:
         zf.write(dummy_image, arcname="dummy.png")
     return str(zip_path)
+
+
+@pytest.fixture()
+def dummy_video(tmp_path: Path) -> str:
+    """Create a tiny MP4 video file for video-detection tests."""
+    video_path = tmp_path / "dummy.mp4"
+    writer = cv2.VideoWriter(
+        str(video_path), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (16, 16)
+    )
+    for _ in range(4):
+        frame = np.zeros((16, 16, 3), dtype=np.uint8)
+        writer.write(frame)
+    writer.release()
+    return str(video_path)
 
 
 def _fake_predict_result():
@@ -116,11 +131,79 @@ class TestDetectionChatService:
         assert result["zip_filename"] == "images.zip"
         assert result["total_images"] == 1
 
+    def test_detect_video(self, dummy_video: str) -> None:
+        with patch(
+            "app.services.detection_chat_service.semantic_model_ops.predict",
+            return_value=_fake_predict_result(),
+        ):
+            result = detection_chat_service.detect_video(
+                dummy_video, frame_sample_rate=2, max_frames=3
+            )
+
+        assert result["mode"] == "video"
+        assert result["total_frames"] >= 1
+        assert result["processed_frames"] >= 1
+        assert result["class_counts"]["background"] >= 1000
+
+    def test_detect_video_samples_multiple_frames_for_short_video(
+        self, dummy_video: str
+    ) -> None:
+        with patch(
+            "app.services.detection_chat_service.semantic_model_ops.predict",
+            return_value=_fake_predict_result(),
+        ):
+            result = detection_chat_service.detect_video(
+                dummy_video, frame_sample_rate=10, max_frames=10
+            )
+
+        assert result["mode"] == "video"
+        assert result["processed_frames"] >= 2
+        assert len(result["key_frames"]) >= 2
+
+    def test_detect_video_returns_frame_level_analysis(self, dummy_video: str) -> None:
+        with patch(
+            "app.services.detection_chat_service.semantic_model_ops.predict",
+            return_value=_fake_predict_result(),
+        ):
+            result = detection_chat_service.detect_video(
+                dummy_video, frame_sample_rate=10, max_frames=10
+            )
+
+        assert result["mode"] == "video"
+        assert isinstance(result.get("frame_summaries"), list)
+        assert len(result["frame_summaries"]) >= 2
+        first_summary = result["frame_summaries"][0]
+        assert "analysis_text" in first_summary
+        assert "class_ratios" in first_summary
+        assert isinstance(result.get("ratio_trend"), list)
+
+    def test_detect_camera_snapshot_mode(self, dummy_video: str) -> None:
+        """Use a video file as a surrogate camera input and ensure camera sampling returns expected fields."""
+        with patch(
+            "app.services.detection_chat_service.semantic_model_ops.predict",
+            return_value=_fake_predict_result(),
+        ):
+            # pass the file path as the camera_index parameter (cv2 accepts paths)
+            result = detection_chat_service.detect_camera(
+                camera_index=dummy_video,
+                duration_seconds=1,
+                frame_sample_rate=1,
+                max_frames=3,
+            )
+
+        assert result["mode"] == "camera"
+        assert result["processed_frames"] >= 1
+        assert isinstance(result.get("frame_summaries"), list)
+        assert isinstance(result.get("key_frames"), list)
+        assert result["class_counts"]["background"] >= 1000
+
 
 class TestSegmentationRoutes:
     def test_segment_single_route(self, authenticated_client: TestClient) -> None:
         image_bytes = io.BytesIO()
-        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(image_bytes, format="PNG")
+        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(
+            image_bytes, format="PNG"
+        )
         image_bytes.seek(0)
 
         with patch(
@@ -148,7 +231,9 @@ class TestSegmentationRoutes:
 
     def test_segment_batch_route(self, authenticated_client: TestClient) -> None:
         image_bytes = io.BytesIO()
-        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(image_bytes, format="PNG")
+        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(
+            image_bytes, format="PNG"
+        )
         image_bytes.seek(0)
 
         with patch(
@@ -175,7 +260,9 @@ class TestSegmentationRoutes:
         zip_bytes = io.BytesIO()
         with zipfile.ZipFile(zip_bytes, "w") as zf:
             image_bytes = io.BytesIO()
-            Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(image_bytes, format="PNG")
+            Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(
+                image_bytes, format="PNG"
+            )
             zf.writestr("test.png", image_bytes.getvalue())
         zip_bytes.seek(0)
 
@@ -200,9 +287,33 @@ class TestSegmentationRoutes:
         data = resp.json()
         assert data["mode"] == "zip"
 
+    def test_video_route(self, authenticated_client: TestClient) -> None:
+        video_bytes = io.BytesIO(b"fake-video")
+
+        with patch(
+            "app.api.chat.detection_chat_service.detect_video",
+            return_value={
+                "mode": "video",
+                "processed_frames": 1,
+                "class_counts": {},
+                "key_frames": [],
+            },
+        ):
+            resp = authenticated_client.post(
+                "/api/segmentation/video",
+                files={"file": ("test.mp4", video_bytes, "video/mp4")},
+                data={"frame_sample_rate": 2, "max_frames": 3},
+            )
+
+        assert resp.status_code == 200, resp.text
+        data = resp.json()
+        assert data["mode"] == "video"
+
     def test_chat_upload(self, authenticated_client: TestClient) -> None:
         image_bytes = io.BytesIO()
-        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(image_bytes, format="PNG")
+        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(
+            image_bytes, format="PNG"
+        )
         image_bytes.seek(0)
 
         resp = authenticated_client.post(

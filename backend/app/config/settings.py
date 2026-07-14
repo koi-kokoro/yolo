@@ -36,19 +36,27 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173,http://localhost:8080"
+    ALLOWED_ORIGINS: str = (
+        "http://localhost:3000,http://localhost:5173,http://localhost:8080"
+    )
 
     @field_validator("DEBUG", mode="before")
     @classmethod
     def parse_debug(cls, value):
-        if isinstance(value, str) and value.lower() in {"release", "production", "prod"}:
+        if isinstance(value, str) and value.lower() in {
+            "release",
+            "production",
+            "prod",
+        }:
             return False
         return value
 
     SEMANTIC_DEPLOY_DIR: str = "../training/loveda_semantic/artifacts/current/deploy"
     MODEL_MANAGEMENT_TRUSTED_ROOT: str = "../training/loveda_semantic"
     MODEL_MANAGEMENT_DEPLOY_DIR: str = "artifacts/current/deploy"
-    MODEL_MANAGEMENT_TRAINING_RUN_DIR: str = "runs/v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z"
+    MODEL_MANAGEMENT_TRAINING_RUN_DIR: str = (
+        "runs/v2_hr1024_yolo26s_sem_full_e50_b4_m1_20260713T0336Z"
+    )
     MODEL_MANAGEMENT_STALE_SECONDS: int = 1800
     MODEL_MANAGEMENT_MAX_TEXT_BYTES: int = 2 * 1024 * 1024
     MODEL_MANAGEMENT_MAX_CSV_ROWS: int = 1000
@@ -56,7 +64,9 @@ class Settings(BaseSettings):
     SEMANTIC_FALLBACK_TO_ONNX: bool = True
     SEMANTIC_VERIFY_SHA256: bool = True
     SEMANTIC_ONNX_SHA256: str | None = None
-    SEMANTIC_PT_SHA256: str = "c147eff5a13d63183b4efb7d89417f7ace5354f708befd019908b5b8c2196ad9"
+    SEMANTIC_PT_SHA256: str = (
+        "c147eff5a13d63183b4efb7d89417f7ace5354f708befd019908b5b8c2196ad9"
+    )
     SEMANTIC_INPUT_SIZE: int = 512
     SEMANTIC_MAX_UPLOAD_BYTES: int = 20 * 1024 * 1024
     SEMANTIC_MAX_DIMENSION: int = 10000
@@ -73,7 +83,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
 
-    QWEN_API_KEY: str = "sk-your-qwen-api-key"
+    QWEN_API_KEY: str = "sk-ws-H.EDHEILX.RXpG.MEYCIQCot8MsPJgiCJDIlLCUE9pThzEiIFwdkDS3MT_DFzaAZAIhAITpXH_1K0BsJOcNaa2RXWBW8hRheNVfhzc1cOv0HWxi"
     QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     QWEN_MODEL: str = "qwen-plus"
 
@@ -108,7 +118,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> list[str]:
-        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
+        return [
+            origin.strip()
+            for origin in self.ALLOWED_ORIGINS.split(",")
+            if origin.strip()
+        ]
 
     class Config:
         env_file = ".env"

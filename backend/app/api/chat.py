@@ -94,7 +94,9 @@ async def chat_stream(
             yield "data: [DONE]\n\n"
         except Exception as exc:
             logger.error("SSE stream error: %s", exc, exc_info=True)
-            error_data = json.dumps({"type": "error", "content": str(exc)}, ensure_ascii=False)
+            error_data = json.dumps(
+                {"type": "error", "content": str(exc)}, ensure_ascii=False
+            )
             yield f"data: {error_data}\n\n"
 
     return StreamingResponse(
@@ -108,10 +110,14 @@ async def chat_stream(
     )
 
 
-@segmentation_router.post("/single", response_model=SegmentationSingleResponse, summary="单图语义分割")
+@segmentation_router.post(
+    "/single", response_model=SegmentationSingleResponse, summary="单图语义分割"
+)
 async def segment_single_api(
     file: UploadFile = File(..., description="待分割图片"),
-    conf: float = Form(0.25, description="置信度阈值（语义分割中保留参数，当前未使用）"),
+    conf: float = Form(
+        0.25, description="置信度阈值（语义分割中保留参数，当前未使用）"
+    ),
     scene_id: int = Form(None, description="场景 ID"),
     current_user: User = Depends(get_current_user),
 ):
@@ -132,10 +138,14 @@ async def segment_single_api(
         os.unlink(tmp_path)
 
 
-@segmentation_router.post("/batch", response_model=SegmentationBatchResponse, summary="批量语义分割")
+@segmentation_router.post(
+    "/batch", response_model=SegmentationBatchResponse, summary="批量语义分割"
+)
 async def segment_batch_api(
     files: list[UploadFile] = File(..., description="多张待分割图片"),
-    conf: float = Form(0.25, description="置信度阈值（语义分割中保留参数，当前未使用）"),
+    conf: float = Form(
+        0.25, description="置信度阈值（语义分割中保留参数，当前未使用）"
+    ),
     scene_id: int = Form(None, description="场景 ID"),
     current_user: User = Depends(get_current_user),
 ):
@@ -162,10 +172,14 @@ async def segment_batch_api(
                 pass
 
 
-@segmentation_router.post("/zip", response_model=SegmentationBatchResponse, summary="ZIP 语义分割")
+@segmentation_router.post(
+    "/zip", response_model=SegmentationBatchResponse, summary="ZIP 语义分割"
+)
 async def segment_zip_api(
     file: UploadFile = File(..., description="包含图片的 ZIP 压缩包"),
-    conf: float = Form(0.25, description="置信度阈值（语义分割中保留参数，当前未使用）"),
+    conf: float = Form(
+        0.25, description="置信度阈值（语义分割中保留参数，当前未使用）"
+    ),
     scene_id: int = Form(None, description="场景 ID"),
     current_user: User = Depends(get_current_user),
 ):
@@ -182,5 +196,31 @@ async def segment_zip_api(
             scene_id=scene_id,
         )
         return result
+    finally:
+        os.unlink(tmp_path)
+
+
+@segmentation_router.post("/video", summary="视频语义分割")
+async def segment_video_api(
+    file: UploadFile = File(..., description="待分割视频"),
+    frame_sample_rate: int = Form(5, description="采样间隔帧数"),
+    max_frames: int = Form(50, description="最多采样帧数"),
+    scene_id: int = Form(None, description="场景 ID"),
+    current_user: User = Depends(get_current_user),
+):
+    """Shortcut video semantic segmentation (sample key frames)."""
+    suffix = os.path.splitext(file.filename)[1] or ".mp4"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(file.file.read())
+        tmp_path = tmp.name
+
+    try:
+        return detection_chat_service.detect_video(
+            video_path=tmp_path,
+            frame_sample_rate=frame_sample_rate,
+            max_frames=max_frames,
+            user_id=current_user.id,
+            scene_id=scene_id,
+        )
     finally:
         os.unlink(tmp_path)

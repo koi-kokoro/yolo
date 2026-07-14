@@ -45,9 +45,71 @@
       <el-button @click="handleQuickSegment('batch')" :disabled="agentStore.isLoading">
         📁 批量/ZIP 分割
       </el-button>
-      <el-button disabled>🎬 视频</el-button>
-      <el-button disabled>📹 摄像头</el-button>
+      <el-button @click="handleQuickSegment('video')" :disabled="agentStore.isLoading">
+        🎬 视频
+      </el-button>
+      <el-button @click="handleQuickSegment('camera')" :disabled="agentStore.isLoading">
+        📹 摄像头
+      </el-button>
     </div>
+
+    <el-dialog
+      title="摄像头拍照"
+      :model-value="cameraDialogVisible"
+      custom-class="camera-dialog"
+      width="640px"
+      top="10vh"
+      :append-to-body="true"
+      @close="closeCameraDialog"
+    >
+      <div class="camera-dialog-body">
+        <div v-if="cameraStream" class="camera-preview-wrapper">
+          <video
+            ref="cameraVideoRef"
+            autoplay
+            playsinline
+            muted
+            class="camera-preview"
+          ></video>
+        </div>
+        <div v-else class="camera-error-wrapper">
+          <p>摄像头未启动。请允许浏览器访问摄像头权限，或点击下方重试。</p>
+          <div v-if="cameraError" class="camera-error-message">{{ cameraError }}</div>
+          <el-button type="primary" @click="startCamera">重新尝试</el-button>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="closeCameraDialog">取消</el-button>
+        <el-button
+          type="primary"
+          :disabled="!cameraStream || cameraCaptureInProgress || cameraRealtimeRunning"
+          @click="captureCameraImage"
+        >
+          {{ cameraCaptureInProgress ? '拍照中...' : '拍照并分析' }}
+        </el-button>
+        <el-button
+          type="success"
+          :disabled="!cameraStream || cameraCaptureInProgress || cameraRealtimeRunning"
+          @click="captureCameraVideo"
+        >
+          {{ cameraCaptureInProgress ? '视频采样中...' : '视频采样分析' }}
+        </el-button>
+        <el-button
+          type="warning"
+          :disabled="!cameraStream || cameraCaptureInProgress || cameraRealtimeRunning"
+          @click="startRealtimeRecognition"
+        >
+          {{ cameraRealtimeRunning ? '实时识别中...' : '开始实时识别' }}
+        </el-button>
+        <el-button
+          type="danger"
+          :disabled="!cameraRealtimeRunning"
+          @click="stopRealtimeRecognition"
+        >
+          停止实时识别
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- 输入区 -->
     <div class="input-area">
@@ -94,7 +156,7 @@
  *   - Quick-action toolbar for single / batch / ZIP segmentation
  *   - Stop generation
  */
-import { segmentBatch, segmentSingle, segmentZip } from '@/api/segmentation'
+import { segmentBatch, segmentSingle, segmentVideo, segmentZip } from '@/api/segmentation'
 import SegmentationResultCard from '@/components/SegmentationResultCard.vue'
 import { useAgentStore } from '@/stores/agent'
 import { createEventStream } from '@/utils/stream'
@@ -108,6 +170,14 @@ const inputText = ref('')
 const selectedFile = ref(null)
 const messageListRef = ref(null)
 const fileInputRef = ref(null)
+const cameraVideoRef = ref(null)
+const cameraDialogVisible = ref(false)
+const cameraStream = ref(null)
+const cameraError = ref('')
+const cameraCaptureInProgress = ref(false)
+const cameraRealtimeRunning = ref(false)
+const cameraRealtimeStopRequested = ref(false)
+let cameraMediaStream = null
 
 const canSend = computed(() => {
   return inputText.value.trim() || selectedFile.value
@@ -247,6 +317,269 @@ function handleFileSelect(event) {
   }
 }
 
+async function startCamera() {
+  cameraError.value = ''
+  cameraCaptureInProgress.value = false
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 1280, height: 720 },
+      audio: false,
+    })
+    cameraMediaStream = stream
+    cameraStream.value = stream
+    await nextTick()
+    if (cameraVideoRef.value) {
+      cameraVideoRef.value.srcObject = stream
+    }
+  } catch (err) {
+    cameraStream.value = null
+    cameraError.value = err instanceof Error ? err.message : '摄像头启动失败，请检查权限和设备'
+  }
+}
+
+function closeCameraDialog() {
+  stopRealtimeRecognition()
+  if (cameraMediaStream) {
+    cameraMediaStream.getTracks().forEach((track) => track.stop())
+    cameraMediaStream = null
+  }
+  cameraStream.value = null
+  cameraError.value = ''
+  cameraCaptureInProgress.value = false
+  cameraDialogVisible.value = false
+}
+
+function canvasToBlob(canvas, type = 'image/jpeg', quality = 0.95) {
+  return new Promise((resolve, reject) => {
+    if (typeof canvas.toBlob !== 'function') {
+      return reject(new Error('当前浏览器不支持 canvas.toBlob'))
+    }
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error('canvas 生成 Blob 失败'))
+      } else {
+        resolve(blob)
+      }
+    }, type, quality)
+  })
+}
+
+async function captureCameraImage() {
+  if (!cameraStream.value || !cameraVideoRef.value) return
+  cameraCaptureInProgress.value = true
+
+  try {
+    const video = cameraVideoRef.value
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth || 1280
+    canvas.height = video.videoHeight || 720
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      throw new Error('无法获取画布上下文')
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+    const blob = await canvasToBlob(canvas, 'image/jpeg', 0.95)
+    const file = new File([blob], `camera-${Date.now()}.jpg`, {
+      type: 'image/jpeg',
+    })
+
+    closeCameraDialog()
+
+    agentStore.addMessage({
+      role: 'user',
+      content: '[快捷分割] 摄像头拍照',
+      image: file.name,
+    })
+    agentStore.addMessage({
+      role: 'assistant',
+      content: '正在处理摄像头图像...',
+      loading: true,
+    })
+
+    const formData = new FormData()
+    formData.append('file', file)
+    const result = await segmentSingle(formData)
+
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    if (result.error) {
+      lastMsg.content = `摄像头图像处理失败：${result.error}`
+      lastMsg.loading = false
+      lastMsg.error = true
+    } else {
+      lastMsg.content = `摄像头图像处理完成！尺寸 ${result.image_width}×${result.image_height}。`
+      lastMsg.loading = false
+      lastMsg.segmentationResult = result
+    }
+    scrollToBottom()
+  } catch (err) {
+    closeCameraDialog()
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    if (lastMsg) {
+      lastMsg.content = `摄像头拍照失败：${err instanceof Error ? err.message : err}`
+      lastMsg.loading = false
+      lastMsg.error = true
+    }
+  } finally {
+    cameraCaptureInProgress.value = false
+  }
+}
+
+async function captureCameraVideo() {
+  if (!cameraStream.value || !cameraVideoRef.value) return
+  cameraCaptureInProgress.value = true
+
+  try {
+    const captureCount = 6
+    const frameIntervalMs = 500
+    const files = []
+    for (let idx = 0; idx < captureCount; idx += 1) {
+      await new Promise((resolve) => setTimeout(resolve, frameIntervalMs))
+      const video = cameraVideoRef.value
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth || 1280
+      canvas.height = video.videoHeight || 720
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('无法获取画布上下文')
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const blob = await canvasToBlob(canvas, 'image/jpeg', 0.95)
+      files.push(new File([blob], `camera-frame-${idx + 1}.jpg`, { type: 'image/jpeg' }))
+    }
+
+    closeCameraDialog()
+
+    agentStore.addMessage({
+      role: 'user',
+      content: '[快捷分割] 摄像头视频采样',
+    })
+    agentStore.addMessage({
+      role: 'assistant',
+      content: '正在处理摄像头视频帧...',
+      loading: true,
+    })
+
+    const formData = new FormData()
+    files.forEach((file) => formData.append('files', file))
+    const result = await segmentBatch(formData)
+
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    if (result.error) {
+      lastMsg.content = `摄像头视频分析失败：${result.error}`
+      lastMsg.loading = false
+      lastMsg.error = true
+    } else {
+      lastMsg.content = `摄像头视频分析完成！共 ${result.successful_images} 帧。`
+      lastMsg.loading = false
+      lastMsg.segmentationResult = result
+    }
+    scrollToBottom()
+  } catch (err) {
+    closeCameraDialog()
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    if (lastMsg) {
+      lastMsg.content = `摄像头视频分析失败：${err instanceof Error ? err.message : err}`
+      lastMsg.loading = false
+      lastMsg.error = true
+    }
+  } finally {
+    cameraCaptureInProgress.value = false
+  }
+}
+
+async function startRealtimeRecognition() {
+  if (!cameraStream.value || !cameraVideoRef.value || cameraRealtimeRunning.value) return
+  cameraRealtimeStopRequested.value = false
+  cameraRealtimeRunning.value = true
+  cameraCaptureInProgress.value = false
+
+  agentStore.addMessage({
+    role: 'user',
+    content: '[快捷分割] 摄像头实时识别',
+  })
+  agentStore.addMessage({
+    role: 'assistant',
+    content: '实时识别已启动，将显示每帧结果。',
+    loading: false,
+  })
+  scrollToBottom()
+
+  let frameIndex = 0
+  const frameIntervalMs = 800
+
+  while (!cameraRealtimeStopRequested.value && cameraStream.value && cameraVideoRef.value) {
+    frameIndex += 1
+    try {
+      const video = cameraVideoRef.value
+      const canvas = document.createElement('canvas')
+      canvas.width = video.videoWidth || 1280
+      canvas.height = video.videoHeight || 720
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('无法获取画布上下文')
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+      const blob = await canvasToBlob(canvas, 'image/jpeg', 0.8)
+      const file = new File([blob], `camera-realtime-${Date.now()}-${frameIndex}.jpg`, {
+        type: 'image/jpeg',
+      })
+      const formData = new FormData()
+      formData.append('file', file)
+      const result = await segmentSingle(formData)
+
+      if (result.error) {
+        agentStore.addMessage({
+          role: 'assistant',
+          content: `第 ${frameIndex} 帧识别失败：${result.error}`,
+          loading: false,
+          error: true,
+        })
+        scrollToBottom()
+        break
+      }
+
+      agentStore.addMessage({
+        role: 'assistant',
+        content: `实时识别第 ${frameIndex} 帧：检测到 ${result.class_statistics?.length || 0} 类。`,
+        loading: false,
+        segmentationResult: result,
+      })
+      scrollToBottom()
+    } catch (err) {
+      agentStore.addMessage({
+        role: 'assistant',
+        content: `实时识别第 ${frameIndex} 帧出错：${err instanceof Error ? err.message : err}`,
+        loading: false,
+        error: true,
+      })
+      scrollToBottom()
+      break
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, frameIntervalMs))
+  }
+
+  cameraRealtimeRunning.value = false
+}
+
+function stopRealtimeRecognition() {
+  cameraRealtimeStopRequested.value = true
+  cameraRealtimeRunning.value = false
+  agentStore.addMessage({
+    role: 'assistant',
+    content: '实时识别已停止。',
+    loading: false,
+  })
+}
+
+async function openCameraDialog() {
+  cameraDialogVisible.value = true
+  await nextTick()
+  await startCamera()
+}
+
 async function handleQuickSegment(type) {
   if (type === 'single') {
     const input = document.createElement('input')
@@ -287,6 +620,54 @@ async function handleQuickSegment(type) {
       scrollToBottom()
     }
     input.click()
+  } else if (type === 'video') {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'video/*'
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      agentStore.addMessage({
+        role: 'user',
+        content: `[快捷分割] 视频: ${file.name}`,
+        image: file.name,
+      })
+
+      agentStore.addMessage({
+        role: 'assistant',
+        content: '正在处理视频中...',
+        loading: true,
+      })
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('frame_sample_rate', '5')
+      formData.append('max_frames', '30')
+
+      try {
+        const result = await segmentVideo(formData)
+        const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+        if (result.error) {
+          lastMsg.content = `视频分割失败：${result.error}`
+          lastMsg.loading = false
+          lastMsg.error = true
+          return
+        }
+        lastMsg.content = `视频分割完成！处理 ${result.processed_frames} 帧。`
+        lastMsg.loading = false
+        lastMsg.segmentationResult = result
+      } catch (err) {
+        const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+        lastMsg.content = `视频分割失败：${err.message || err}`
+        lastMsg.loading = false
+        lastMsg.error = true
+      }
+      scrollToBottom()
+    }
+    input.click()
+  } else if (type === 'camera') {
+    openCameraDialog()
   } else if (type === 'batch') {
     const input = document.createElement('input')
     input.type = 'file'
@@ -478,6 +859,68 @@ onMounted(() => {
   border-radius: 4px;
   font-size: 12px;
   color: #666;
+}
+
+.camera-dialog {
+  max-height: 80vh;
+}
+
+.camera-dialog .el-dialog__body {
+  padding: 16px;
+  overflow: hidden;
+}
+
+.camera-dialog .el-dialog__footer {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 10;
+}
+
+.camera-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 65vh;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.camera-preview-wrapper,
+.camera-error-wrapper {
+  width: 100%;
+  max-height: 55vh;
+  overflow: hidden;
+}
+
+.camera-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #000;
+}
+
+.camera-error-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  gap: 12px;
+  text-align: center;
+}
+
+.camera-error-message {
+  color: #f56c6c;
+  font-size: 14px;
+}
+
+.el-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
 }
 
 @keyframes typing {

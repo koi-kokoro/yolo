@@ -1,3 +1,5 @@
+const TOKEN_KEY = 'rsod_token'
+
 export async function createEventStream(
   url,
   { method = 'POST', body, token, headers = {}, onMessage, onError, onDone } = {},
@@ -10,8 +12,9 @@ export async function createEventStream(
     ...headers,
   }
 
-  if (token) {
-    requestHeaders.Authorization = `Bearer ${token}`
+  const authToken = token || localStorage.getItem(TOKEN_KEY)
+  if (authToken) {
+    requestHeaders.Authorization = `Bearer ${authToken}`
   }
 
   let requestBody = body
@@ -36,7 +39,10 @@ export async function createEventStream(
   })
     .then(async (response) => {
       if (!response.ok || !response.body) {
-        throw new Error('流式请求失败')
+        if (response.status === 401) {
+          throw new Error('登录已过期，请重新登录')
+        }
+        throw new Error(`流式请求失败: ${response.status} ${response.statusText}`)
       }
 
       const reader = response.body.getReader()

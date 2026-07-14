@@ -38,3 +38,14 @@ export function segmentZip(formData) {
     timeout: 300000,
   })
 }
+
+/**
+ * Segment a video by sampling key frames.
+ * @param {FormData} formData - contains a single `file` field
+ * @returns {Promise<object>} video segmentation result payload
+ */
+export function segmentVideo(formData) {
+  return request.post('/segmentation/video', formData, {
+    timeout: 300000,
+  })
+}
