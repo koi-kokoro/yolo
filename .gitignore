@@ -66,6 +66,7 @@ training/loveda_semantic/temp/
 
 # Generated evaluation artifacts. Keep only small deployment documentation
 # and metadata; model binaries are distributed outside normal Git.
+training/loveda_semantic/artifacts/*.png
 
 # Downloaded and trained model weights
 *.onnx
