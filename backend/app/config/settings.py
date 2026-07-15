@@ -106,7 +106,7 @@ class Settings(BaseSettings):
 
     QWEN_API_KEY: str = "sk-ws-H.EDHEILX.RXpG.MEYCIQCot8MsPJgiCJDIlLCUE9pThzEiIFwdkDS3MT_DFzaAZAIhAITpXH_1K0BsJOcNaa2RXWBW8hRheNVfhzc1cOv0HWxi"
     QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    QWEN_MODEL: str = "qwen-plus"
+    QWEN_MODEL: str = "qwen-turbo"
 
     USE_LOCAL_LLM: bool = False
     OLLAMA_BASE_URL: str = "http://localhost:11434"
@@ -132,19 +132,31 @@ class Settings(BaseSettings):
 
     @property
     def online_training_worker_path(self) -> Path:
-        return (self.online_training_trusted_root_path / self.ONLINE_TRAINING_WORKER).resolve()
+        return (
+            self.online_training_trusted_root_path / self.ONLINE_TRAINING_WORKER
+        ).resolve()
 
     @property
     def online_training_output_root_path(self) -> Path:
-        return (self.online_training_trusted_root_path / self.ONLINE_TRAINING_OUTPUT_ROOT).resolve()
+        return (
+            self.online_training_trusted_root_path / self.ONLINE_TRAINING_OUTPUT_ROOT
+        ).resolve()
 
     @property
     def online_training_allowed_models(self) -> set[str]:
-        return {item.strip() for item in self.ONLINE_TRAINING_ALLOWED_MODELS.split(",") if item.strip()}
+        return {
+            item.strip()
+            for item in self.ONLINE_TRAINING_ALLOWED_MODELS.split(",")
+            if item.strip()
+        }
 
     @property
     def online_training_allowed_devices(self) -> set[str]:
-        return {item.strip() for item in self.ONLINE_TRAINING_ALLOWED_DEVICES.split(",") if item.strip()}
+        return {
+            item.strip()
+            for item in self.ONLINE_TRAINING_ALLOWED_DEVICES.split(",")
+            if item.strip()
+        }
 
     @property
     def DATABASE_URL(self) -> str:

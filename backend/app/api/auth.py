@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/auth", tags=["认证"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
+
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """Resolve the current authenticated user from a bearer token."""
 
@@ -33,7 +34,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception from None
 
     return user_service.get_user_by_id(db, user_id)
-
 
 def _user_response(user, roles: list[str]) -> dict:
     """Build a response dict compatible with UserResponse."""

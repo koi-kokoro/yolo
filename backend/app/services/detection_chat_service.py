@@ -34,6 +34,28 @@ logger = get_logger(__name__)
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
+DEFAULT_SCENE_NAME = "loveda_semantic"
+DEFAULT_SCENE_DISPLAY = "LoveDA 语义分割"
+DEFAULT_SCENE_CATEGORY = "semantic_segmentation"
+DEFAULT_SCENE_CLASSES = [
+    "background",
+    "building",
+    "road",
+    "water",
+    "barren",
+    "forest",
+    "agricultural",
+]
+DEFAULT_SCENE_CLASSES_CN = {
+    "background": "背景",
+    "building": "建筑",
+    "road": "道路",
+    "water": "水体",
+    "barren": "裸地",
+    "forest": "森林",
+    "agricultural": "农田",
+}
+
 
 def _pil_from_path(image_path: str) -> Image.Image:
     """Open an image file and normalize orientation."""
@@ -48,6 +70,59 @@ def _allowed_image(filename: str) -> bool:
     return ext in ALLOWED_IMAGE_EXTENSIONS
 
 
+def get_or_create_default_scene(db: Session, user_id: int | None = None) -> DetectionScene | None:
+    """Return the first active scene, or create a default LoveDA scene if none exists.
+
+    Chat-triggered and shortcut detections often do not provide a scene_id.  This
+    helper guarantees that every persisted DetectionTask has a valid scene,
+    mirroring the behaviour of the semantic segmentation pipeline.
+    """
+    scene = db.query(DetectionScene).filter(DetectionScene.is_active == True).first()
+    if scene is not None:
+        return scene
+
+    # Re-activate an existing default scene that may have been marked inactive.
+    scene = db.query(DetectionScene).filter(DetectionScene.name == DEFAULT_SCENE_NAME).first()
+    if scene is not None:
+        if not scene.is_active:
+            scene.is_active = True
+            db.commit()
+        return scene
+
+    # Create the default LoveDA semantic scene.
+    try:
+        scene = DetectionScene(
+            name=DEFAULT_SCENE_NAME,
+            display_name=DEFAULT_SCENE_DISPLAY,
+            description="LoveDA 七类土地覆盖语义分割",
+            category=DEFAULT_SCENE_CATEGORY,
+            class_names=DEFAULT_SCENE_CLASSES,
+            class_names_cn=DEFAULT_SCENE_CLASSES_CN,
+            is_active=True,
+            created_by=user_id,
+        )
+        db.add(scene)
+        db.commit()
+        db.refresh(scene)
+        logger.info("Created default scene '%s' (id=%s)", DEFAULT_SCENE_NAME, scene.id)
+        return scene
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to create default scene '%s'", DEFAULT_SCENE_NAME)
+        return None
+
+
+def _resolve_scene_for_task(
+    db: Session, user_id: int, scene_id: int | None
+) -> DetectionScene | None:
+    """Resolve the scene for a detection task, falling back to the default scene."""
+    if scene_id is not None:
+        scene = db.query(DetectionScene).filter(DetectionScene.id == scene_id).first()
+        if scene is not None:
+            return scene
+    return get_or_create_default_scene(db, user_id)
+
+
 def _summarize_statistics(class_statistics: list[dict]) -> dict[str, int]:
     """Return pixel-count summary keyed by class name."""
     summary: dict[str, int] = {}
@@ -55,6 +130,40 @@ def _summarize_statistics(class_statistics: list[dict]) -> dict[str, int]:
         summary[item["name"]] = summary.get(item["name"], 0) + item.get(
             "pixel_count", 0
         )
+    return summary
+
+
+def _per_image_summary(image_result: dict) -> str:
+    """Build a concise natural-language summary for one image result."""
+    filename = image_result.get("filename", "unknown")
+    width = image_result.get("image_width", 0)
+    height = image_result.get("image_height", 0)
+    class_statistics = image_result.get("class_statistics", [])
+
+    total_pixels = width * height
+    if total_pixels <= 0:
+        total_pixels = (
+            sum(item.get("pixel_count", 0) for item in class_statistics) or 1
+        )
+
+    sorted_items = sorted(
+        [item for item in class_statistics if item.get("pixel_count", 0) > 0],
+        key=lambda item: item.get("pixel_count", 0),
+        reverse=True,
+    )
+
+    parts = []
+    for item in sorted_items[:3]:
+        name = item.get("display_name") or item.get("name", "unknown")
+        count = item.get("pixel_count", 0)
+        ratio = count / total_pixels
+        parts.append(f"{name} {count} 像素 ({ratio:.1%})")
+
+    summary = f"{filename} ({width}×{height})"
+    if parts:
+        summary += "：" + "；".join(parts)
+    else:
+        summary += "：未检测到明显类别"
     return summary
 
 
@@ -88,6 +197,39 @@ class DetectionChatService:
         inference_result = self._infer_one(image_path)
         class_statistics = inference_result.get("class_statistics", [])
 
+        # Persist a lightweight DetectionTask so history/dashboard can surface this
+        # chat-triggered segmentation when a user is provided.
+        db = SessionLocal()
+        try:
+            if user_id is not None:
+                user_exists = db.query(User).filter(User.id == user_id).first()
+                if user_exists:
+                    scene = _resolve_scene_for_task(db, user_id, scene_id)
+                    if scene is not None:
+                        try:
+                            total_objects = sum(
+                                item.get("pixel_count", 0) for item in class_statistics
+                            )
+                            task = DetectionTask(
+                                user_id=user_id,
+                                scene_id=scene.id,
+                                task_type="single",
+                                status="completed",
+                                total_images=1,
+                                total_objects=total_objects,
+                                total_inference_time=float(
+                                    inference_result.get("inference_time_ms") or 0.0
+                                ),
+                                completed_at=datetime.now(),
+                            )
+                            db.add(task)
+                            db.commit()
+                        except Exception:
+                            db.rollback()
+                            logger.exception("Failed to persist single detection task")
+        finally:
+            db.close()
+
         return {
             "mode": "single",
             "filename": inference_result["filename"],
@@ -105,6 +247,7 @@ class DetectionChatService:
         image_paths: list[str],
         user_id: int | None = None,
         scene_id: int | None = None,
+        task_type: str = "batch",
     ) -> dict[str, Any]:
         """Segment a list of image paths and aggregate results."""
         if not image_paths:
@@ -126,6 +269,9 @@ class DetectionChatService:
                         "image_height": result["image_height"],
                         "annotated_image": result.get("annotated_image"),
                         "class_statistics": result.get("class_statistics", []),
+                        "class_counts": _summarize_statistics(
+                            result.get("class_statistics", [])
+                        ),
                         "inference_time_ms": result.get("inference_time_ms"),
                     }
                 )
@@ -141,13 +287,56 @@ class DetectionChatService:
                 )
 
         successful = [img for img in per_image if "error" not in img]
+
+        per_image_summaries = [
+            _per_image_summary(img) for img in successful
+        ]
+        overall_summary = (
+            f"共 {len(image_paths)} 张图片，成功处理 {len(successful)} 张，"
+            f"总推理耗时 {round(total_inference_ms, 2)}ms。"
+        )
+        agent_response = (
+            overall_summary + "\n" + "\n".join(per_image_summaries)
+        )
+
+        # Persist a lightweight DetectionTask for the batch if a user is provided.
+        db = SessionLocal()
+        try:
+            if user_id is not None:
+                user_exists = db.query(User).filter(User.id == user_id).first()
+                if user_exists:
+                    scene = _resolve_scene_for_task(db, user_id, scene_id)
+                    if scene is not None:
+                        try:
+                            total_objects = sum(aggregated_counts.values())
+                            task = DetectionTask(
+                                user_id=user_id,
+                                scene_id=scene.id,
+                                task_type=task_type,
+                                status="completed",
+                                total_images=len(image_paths),
+                                total_objects=total_objects,
+                                total_inference_time=round(total_inference_ms, 2),
+                                completed_at=datetime.now(),
+                            )
+                            db.add(task)
+                            db.commit()
+                        except Exception:
+                            db.rollback()
+                            logger.exception("Failed to persist batch detection task")
+        finally:
+            db.close()
+
         return {
             "mode": "batch",
+            "agent_response": agent_response,
+            "per_image_summaries": per_image_summaries,
+            "overall_summary": overall_summary,
+            "annotated_images": successful,
             "total_images": len(image_paths),
             "successful_images": len(successful),
             "total_inference_ms": round(total_inference_ms, 2),
             "class_counts": aggregated_counts,
-            "annotated_images": successful,
         }
 
     def segment_zip(
@@ -173,7 +362,7 @@ class DetectionChatService:
 
             logger.info("ZIP %s contains %d images", zip_path, len(image_files))
             batch_result = self.segment_batch(
-                image_files, user_id=user_id, scene_id=scene_id
+                image_files, user_id=user_id, scene_id=scene_id, task_type="zip"
             )
             batch_result["mode"] = "zip"
             batch_result["zip_filename"] = os.path.basename(zip_path)
@@ -215,31 +404,32 @@ class DetectionChatService:
                 task = (
                     db.query(DetectionTask).filter(DetectionTask.id == task_id).first()
                 )
-            elif user_id is not None and scene_id is not None:
+            elif user_id is not None:
                 user_exists = db.query(User).filter(User.id == user_id).first()
-                scene_exists = (
-                    db.query(DetectionScene)
-                    .filter(DetectionScene.id == scene_id)
-                    .first()
-                )
-                if user_exists and scene_exists:
-                    task = DetectionTask(
-                        user_id=user_id,
-                        scene_id=scene_id,
-                        task_type="video",
-                        status="processing",
-                        total_images=0,
-                        conf_threshold=conf,
-                        iou_threshold=iou,
-                    )
-                    db.add(task)
-                    db.flush()
-                    task_id = task.id
+                if user_exists:
+                    scene = _resolve_scene_for_task(db, user_id, scene_id)
+                    if scene is not None:
+                        task = DetectionTask(
+                            user_id=user_id,
+                            scene_id=scene.id,
+                            task_type="video",
+                            status="processing",
+                            total_images=0,
+                            conf_threshold=conf,
+                            iou_threshold=iou,
+                        )
+                        db.add(task)
+                        db.flush()
+                        task_id = task.id
+                    else:
+                        logger.warning(
+                            "Skip creating video task for user %s: no scene available",
+                            user_id,
+                        )
                 else:
                     logger.warning(
-                        "Skip creating video task for missing user %s or scene %s",
+                        "Skip creating video task for missing user %s",
                         user_id,
-                        scene_id,
                     )
 
             if total_frames <= 0:
@@ -469,31 +659,38 @@ class DetectionChatService:
             if not cap.isOpened():
                 return {"error": f"无法打开摄像头设备: index={camera_index}"}
 
-            # Prepare task record if user/scene provided
+            # Prepare task record if a user is provided.
             if task_id is not None:
                 task = (
                     db.query(DetectionTask).filter(DetectionTask.id == task_id).first()
                 )
-            elif user_id is not None and scene_id is not None:
+            elif user_id is not None:
                 user_exists = db.query(User).filter(User.id == user_id).first()
-                scene_exists = (
-                    db.query(DetectionScene)
-                    .filter(DetectionScene.id == scene_id)
-                    .first()
-                )
-                if user_exists and scene_exists:
-                    task = DetectionTask(
-                        user_id=user_id,
-                        scene_id=scene_id,
-                        task_type="camera",
-                        status="processing",
-                        total_images=0,
-                        conf_threshold=conf,
-                        iou_threshold=iou,
+                if user_exists:
+                    scene = _resolve_scene_for_task(db, user_id, scene_id)
+                    if scene is not None:
+                        task = DetectionTask(
+                            user_id=user_id,
+                            scene_id=scene.id,
+                            task_type="camera",
+                            status="processing",
+                            total_images=0,
+                            conf_threshold=conf,
+                            iou_threshold=iou,
+                        )
+                        db.add(task)
+                        db.flush()
+                        task_id = task.id
+                    else:
+                        logger.warning(
+                            "Skip creating camera task for user %s: no scene available",
+                            user_id,
+                        )
+                else:
+                    logger.warning(
+                        "Skip creating camera task for missing user %s",
+                        user_id,
                     )
-                    db.add(task)
-                    db.flush()
-                    task_id = task.id
 
             # Capture loop: sample frames evenly over duration
             start_ts = time.time()

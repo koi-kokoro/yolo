@@ -89,6 +89,8 @@ async def chat_stream(
             async for event in detection_agent.chat_stream(
                 message=payload.message,
                 image_path=payload.image_path,
+                user_id=_current_user.id,
+                scene_id=payload.scene_id,
             ):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"

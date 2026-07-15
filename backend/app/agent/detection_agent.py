@@ -21,7 +21,10 @@ from langchain_openai import ChatOpenAI
 
 from app.config.settings import settings
 from app.core.logger import get_logger
-from app.services.detection_chat_service import detection_chat_service
+from app.services.detection_chat_service import (
+    detection_chat_service,
+    get_or_create_default_scene,
+)
 
 logger = get_logger(__name__)
 
@@ -89,7 +92,11 @@ def _create_llm() -> ChatOpenAI:
     qwen_api_key = getattr(settings, "QWEN_API_KEY", "")
     if qwen_api_key and qwen_api_key != "sk-your-qwen-api-key":
         api_key = qwen_api_key
-        base_url = getattr(settings, "QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+        base_url = getattr(
+            settings,
+            "QWEN_BASE_URL",
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
         model_name = getattr(settings, "QWEN_MODEL", "qwen-plus")
     else:
         api_key = getattr(settings, "OPENAI_API_KEY", "")
@@ -124,9 +131,10 @@ _SYSTEM_PROMPT = """你是一个专业的遥感检测助手。你可以帮用户
 4. 用自然语言总结分析结果
 
 回复格式要求：
-- 先报告图片数量和总像素统计
-- 列出各土地覆盖类别的像素占比
-- 如果有标注图，告知用户可以在结果卡片中查看
+- 单张图片：报告图片尺寸、各类别像素数量与占比，并指出主要地物。
+- 多张图片或 ZIP：工具结果中已提供 `agent_response` 字段（含逐图摘要），请直接依据该字段组织回复，确保按图片文件名逐一分析，分别报告每张图片的尺寸、主要类别及像素占比。禁止只给出合并后的总统计。
+- 逐张分析后可给一句简要的总体对比或汇总（可选）。
+- 如果有标注图，告知用户可以在结果卡片中查看。
 - 简洁专业，不要过度解释"""
 
 
@@ -142,7 +150,9 @@ class DetectionAgent:
         )
         logger.info("DetectionAgent initialized with %d tools", len(DETECTION_TOOLS))
 
-    def _build_input(self, message: str, image_path: str | None = None) -> dict[str, Any]:
+    def _build_input(
+        self, message: str, image_path: str | None = None
+    ) -> dict[str, Any]:
         if image_path:
             message = f"{message}\n[附件图片路径: {image_path}]"
         return {"messages": [("human", message)]}
@@ -160,7 +170,13 @@ class DetectionAgent:
             logger.error("Agent execution error: %s", exc, exc_info=True)
             return {"output": f"抱歉，处理过程中出现错误：{exc}", "messages": []}
 
-    async def chat_stream(self, message: str, image_path: str | None = None) -> AsyncGenerator[dict[str, Any], None]:
+    async def chat_stream(
+        self,
+        message: str,
+        image_path: str | None = None,
+        user_id: int | None = None,
+        scene_id: int | None = None,
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Process a user message and yield SSE events."""
         try:
             async for event in self.executor.astream_events(
@@ -177,7 +193,9 @@ class DetectionAgent:
                 elif event_kind == "on_tool_start":
                     tool_name = event.get("name")
                     tool_input = event.get("data", {}).get("input", {})
-                    logger.info("Tool call: %s input=%s", tool_name, str(tool_input)[:200])
+                    logger.info(
+                        "Tool call: %s input=%s", tool_name, str(tool_input)[:200]
+                    )
                     yield {"type": "tool_call", "tool": tool_name, "input": tool_input}
 
                 elif event_kind == "on_tool_end":
@@ -190,6 +208,100 @@ class DetectionAgent:
                         type(tool_output).__name__,
                         len(str(tool_output)) if tool_output else 0,
                     )
+
+                    # Persist a lightweight DetectionTask from tool output
+                    # when user_id is provided. Tool outputs are JSON strings from
+                    # detection_chat_service.segment_* wrappers.
+                    if user_id is not None and tool_output:
+                        try:
+                            import json
+                            from datetime import datetime
+                            from app.database.session import SessionLocal
+                            from app.entity.db_models import (
+                                DetectionTask,
+                                DetectionScene,
+                                User,
+                            )
+
+                            parsed = (
+                                json.loads(tool_output)
+                                if isinstance(tool_output, str)
+                                else tool_output
+                            )
+                            mode = parsed.get("mode")
+                            db = SessionLocal()
+                            try:
+                                user_exists = (
+                                    db.query(User).filter(User.id == user_id).first()
+                                )
+                                if not user_exists:
+                                    logger.warning(
+                                        "Skip chat task persistence: user %s not found",
+                                        user_id,
+                                    )
+                                else:
+                                    scene = None
+                                    if scene_id is not None:
+                                        scene = (
+                                            db.query(DetectionScene)
+                                            .filter(DetectionScene.id == scene_id)
+                                            .first()
+                                        )
+                                    if scene is None:
+                                        scene = get_or_create_default_scene(db, user_id)
+
+                                    if scene is not None:
+                                        if mode == "single":
+                                            total_images = 1
+                                            total_objects = sum(
+                                                item.get("pixel_count", 0)
+                                                for item in parsed.get(
+                                                    "class_statistics", []
+                                                )
+                                            )
+                                            total_inference_time = float(
+                                                parsed.get("inference_time_ms") or 0.0
+                                            )
+                                        elif mode in {"batch", "zip"}:
+                                            total_images = int(
+                                                parsed.get("total_images") or 0
+                                            )
+                                            total_objects = (
+                                                sum(
+                                                    parsed.get(
+                                                        "class_counts", {}
+                                                    ).values()
+                                                )
+                                                if parsed.get("class_counts")
+                                                else 0
+                                            )
+                                            total_inference_time = float(
+                                                parsed.get("total_inference_ms") or 0.0
+                                            )
+                                        else:
+                                            total_images = 0
+                                            total_objects = 0
+                                            total_inference_time = 0.0
+
+                                        task = DetectionTask(
+                                            user_id=user_id,
+                                            scene_id=scene.id,
+                                            task_type=mode or "chat",
+                                            status="completed",
+                                            total_images=total_images,
+                                            total_objects=total_objects,
+                                            total_inference_time=total_inference_time,
+                                            completed_at=datetime.now(),
+                                        )
+                                        db.add(task)
+                                        db.commit()
+                            finally:
+                                db.close()
+                        except Exception:
+                            logger.exception(
+                                "Failed to persist chat-triggered DetectionTask"
+                            )
+
                     yield {
                         "type": "tool_result",
                         "tool": tool_name,

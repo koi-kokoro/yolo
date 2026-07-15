@@ -75,6 +75,26 @@
         </el-table>
       </div>
 
+      <!-- Batch / ZIP per-image analysis -->
+      <div v-if="isBatch && batchImageAnalysis.length > 0" class="per-image-analysis">
+        <div class="analysis-section-title">逐图分析</div>
+        <div v-for="(img, index) in batchImageAnalysis" :key="index" class="frame-summary">
+          <div class="frame-summary-header">
+            <span class="frame-summary-title">{{ img.filename }}</span>
+            <span class="frame-summary-time">{{ img.width }}×{{ img.height }}</span>
+          </div>
+          <div class="ratio-list">
+            <div v-for="(item, ratioIndex) in img.topClasses" :key="ratioIndex" class="ratio-row">
+              <span class="ratio-name">{{ item.name }}</span>
+              <div class="ratio-bar-track">
+                <div class="ratio-bar-fill" :style="{ width: `${Math.max(4, item.ratio * 100)}%` }"></div>
+              </div>
+              <span class="ratio-value">{{ (item.ratio * 100).toFixed(1) }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="isVideo && videoFrameSummaries.length > 0" class="video-analysis">
         <div class="analysis-section-title">逐帧分析</div>
         <div v-for="(summary, index) in videoFrameSummaries" :key="index" class="frame-summary">
@@ -235,6 +255,34 @@ function buildTrendPoints(values) {
     .join(' ')
 }
 
+const batchImageAnalysis = computed(() => {
+  const images = props.result.annotated_images || []
+  return images
+    .filter((img) => !img.error)
+    .map((img) => {
+      const statistics = img.class_statistics || []
+      const total =
+        (img.image_width || 0) * (img.image_height || 0) ||
+        statistics.reduce((sum, item) => sum + (item.pixel_count || 0), 0) ||
+        1
+      const topClasses = statistics
+        .filter((item) => (item.pixel_count || 0) > 0)
+        .sort((a, b) => (b.pixel_count || 0) - (a.pixel_count || 0))
+        .slice(0, 3)
+        .map((item) => ({
+          name: item.display_name || item.name,
+          count: item.pixel_count || 0,
+          ratio: item.ratio || (item.pixel_count || 0) / total,
+        }))
+      return {
+        filename: img.filename || 'image',
+        width: img.image_width || 0,
+        height: img.image_height || 0,
+        topClasses,
+      }
+    })
+})
+
 const classCountsArray = computed(() => {
   if (isVideo.value) {
     const counts = props.result.class_counts || {}
@@ -367,7 +415,8 @@ const classCountsArray = computed(() => {
   }
 }
 
-.video-analysis {
+.video-analysis,
+.per-image-analysis {
   flex: 1 1 100%;
   min-width: 0;
   display: flex;

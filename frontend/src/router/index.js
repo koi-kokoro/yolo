@@ -54,6 +54,12 @@ const routes = [
         component: () => import('@/views/HistoryPage.vue'),
         meta: { title: '历史记录', requiresAuth: true },
       },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('@/views/SettingsPage.vue'),
+        meta: { title: '系统设置', requiresAuth: true },
+      },
     ],
   },
   {

@@ -445,6 +445,7 @@ class ChatStreamRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=5000, description="用户消息")
     image_path: Optional[str] = Field(None, description="已上传图片的服务端路径")
     session_id: Optional[int] = Field(None, description="会话 ID")
+    scene_id: Optional[int] = Field(None, description="检测场景 ID（可选，未提供时使用默认场景）")
 
 
 class ChatStreamEvent(BaseModel):
