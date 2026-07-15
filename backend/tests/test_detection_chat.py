@@ -340,3 +340,56 @@ class TestDetectionAgentTools:
             result = segment_single_image.invoke({"image_path": dummy_image})
             parsed = json.loads(result)
             assert parsed["mode"] == "single"
+
+    def test_tools_strip_annotated_image_from_llm_context(
+        self, dummy_image: str
+    ) -> None:
+        """Base64 annotated images must be removed from the Agent observation."""
+        from app.agent.detection_agent import segment_single_image
+
+        with patch(
+            "app.agent.detection_agent.detection_chat_service.segment_single",
+            return_value={
+                "mode": "single",
+                "filename": "x.png",
+                "annotated_image": "a" * 1000,
+                "class_statistics": [{"pixel_count": 10}],
+            },
+        ):
+            result = segment_single_image.invoke({"image_path": dummy_image})
+            parsed = json.loads(result)
+            assert parsed["mode"] == "single"
+            assert (
+                parsed["annotated_image"]
+                == "[Image data omitted from LLM context]"
+            )
+            assert parsed["class_statistics"][0]["pixel_count"] == 10
+
+    def test_batch_tools_strip_nested_annotated_images(
+        self, dummy_image: str
+    ) -> None:
+        """Nested annotated_image fields in batch results must also be stripped."""
+        from app.agent.detection_agent import segment_batch_images
+
+        with patch(
+            "app.agent.detection_agent.detection_chat_service.segment_batch",
+            return_value={
+                "mode": "batch",
+                "total_images": 1,
+                "annotated_images": [
+                    {
+                        "filename": "x.png",
+                        "annotated_image": "b" * 1000,
+                        "class_statistics": [{"pixel_count": 5}],
+                    }
+                ],
+            },
+        ):
+            result = segment_batch_images.invoke({"image_paths": [dummy_image]})
+            parsed = json.loads(result)
+            assert parsed["mode"] == "batch"
+            assert (
+                parsed["annotated_images"][0]["annotated_image"]
+                == "[Image data omitted from LLM context]"
+            )
+            assert parsed["annotated_images"][0]["class_statistics"][0]["pixel_count"] == 5

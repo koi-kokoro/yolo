@@ -16,6 +16,7 @@ import json
 from typing import Any, AsyncGenerator
 
 from langchain.agents import create_agent
+from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
 
@@ -33,6 +34,47 @@ logger = get_logger(__name__)
 # 一、定义图像检测工具（Agent 可调用的 Tools）
 # ══════════════════════════════════════════════════════════════
 
+# Keys whose values are base64 image data that must not be fed back into the
+# LLM context window; otherwise model APIs reject the request for being too long.
+_IMAGE_DATA_KEYS = {
+    "base64",
+    "annotated_image",
+    "annotated_image_base64",
+    "annotated_image_bytes",
+}
+
+# Cache raw tool results so the full payload (including annotated images) can be
+# forwarded to the chat UI while the LLM only sees a compact summary.
+_TOOL_RESULT_CACHE: dict[str, Any] = {}
+
+
+def _strip_image_data(obj: Any) -> Any:
+    """Recursively replace image base64 fields with a placeholder."""
+    if isinstance(obj, dict):
+        return {
+            key: (
+                "[Image data omitted from LLM context]"
+                if key in _IMAGE_DATA_KEYS
+                else _strip_image_data(value)
+            )
+            for key, value in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_strip_image_data(item) for item in obj]
+    return obj
+
+
+def _tool_result_cache_key(tool_name: str, tool_input: dict[str, Any]) -> str:
+    """Build a deterministic cache key from a tool name and its input."""
+    if tool_name == "segment_single_image":
+        return f"single:{tool_input.get('image_path', '')}"
+    if tool_name == "segment_batch_images":
+        paths = tool_input.get("image_paths", [])
+        return f"batch:{','.join(str(path) for path in paths)}"
+    if tool_name == "segment_zip_file":
+        return f"zip:{tool_input.get('zip_path', '')}"
+    return f"{tool_name}:{json.dumps(tool_input, sort_keys=True, ensure_ascii=False)}"
+
 
 @tool
 def segment_single_image(image_path: str) -> str:
@@ -43,10 +85,23 @@ def segment_single_image(image_path: str) -> str:
         image_path: 图片文件路径或 URL
 
     Returns:
-        JSON 字符串，包含分割结果（类别像素统计、标注图 base64）
+        JSON 字符串，包含分割结果（已去除图像 base64 数据，防止 LLM 上下文过长）
     """
-    result = detection_chat_service.segment_single(image_path)
-    return json.dumps(result, ensure_ascii=False)
+    import os
+
+    print(f"--- [Debug] Checking file path: {image_path} ---")
+    print(f"--- [Debug] File exists: {os.path.exists(image_path)} ---")
+    if os.path.exists(image_path):
+        print(f"--- [Debug] File size: {os.path.getsize(image_path)} bytes ---")
+
+    raw_result = detection_chat_service.segment_single(image_path)
+    cache_key = _tool_result_cache_key(
+        "segment_single_image", {"image_path": image_path}
+    )
+    _TOOL_RESULT_CACHE[cache_key] = raw_result
+    cleaned_result = _strip_image_data(raw_result)
+
+    return json.dumps(cleaned_result, ensure_ascii=False)
 
 
 @tool
@@ -58,10 +113,16 @@ def segment_batch_images(image_paths: list[str]) -> str:
         image_paths: 图片文件路径列表
 
     Returns:
-        JSON 字符串，包含每张图片的分割结果汇总
+        JSON 字符串，包含每张图片的分割结果汇总（已去除图像 base64 数据）
     """
-    result = detection_chat_service.segment_batch(image_paths)
-    return json.dumps(result, ensure_ascii=False)
+    raw_result = detection_chat_service.segment_batch(image_paths)
+    cache_key = _tool_result_cache_key(
+        "segment_batch_images", {"image_paths": image_paths}
+    )
+    _TOOL_RESULT_CACHE[cache_key] = raw_result
+    cleaned_result = _strip_image_data(raw_result)
+
+    return json.dumps(cleaned_result, ensure_ascii=False)
 
 
 @tool
@@ -73,10 +134,14 @@ def segment_zip_file(zip_path: str) -> str:
         zip_path: ZIP 文件路径
 
     Returns:
-        JSON 字符串，包含 ZIP 内所有图片的分割结果汇总
+        JSON 字符串，包含 ZIP 内所有图片的分割结果汇总（已去除图像 base64 数据）
     """
-    result = detection_chat_service.segment_zip(zip_path)
-    return json.dumps(result, ensure_ascii=False)
+    raw_result = detection_chat_service.segment_zip(zip_path)
+    cache_key = _tool_result_cache_key("segment_zip_file", {"zip_path": zip_path})
+    _TOOL_RESULT_CACHE[cache_key] = raw_result
+    cleaned_result = _strip_image_data(raw_result)
+
+    return json.dumps(cleaned_result, ensure_ascii=False)
 
 
 DETECTION_TOOLS = [segment_single_image, segment_batch_images, segment_zip_file]
@@ -202,19 +267,37 @@ class DetectionAgent:
                     tool_data = event.get("data", {})
                     tool_output = tool_data.get("output", "")
                     tool_name = event.get("name", "")
+                    tool_input = tool_data.get("input", {})
+
+                    # LangChain may hand us a ToolMessage object instead of a raw string.
+                    if isinstance(tool_output, ToolMessage):
+                        output_text = tool_output.content
+                    else:
+                        output_text = tool_output
+
                     logger.info(
                         "Tool done: %s output_type=%s output_len=%d",
                         tool_name,
                         type(tool_output).__name__,
-                        len(str(tool_output)) if tool_output else 0,
+                        len(str(output_text)) if output_text else 0,
                     )
+
+                    # Send the original full result (with annotated images) to the
+                    # chat UI, while the LLM only received the compact version.
+                    cache_key = _tool_result_cache_key(tool_name, tool_input)
+                    full_result = _TOOL_RESULT_CACHE.pop(cache_key, None)
+                    if full_result is None:
+                        client_payload = output_text
+                    elif isinstance(full_result, str):
+                        client_payload = full_result
+                    else:
+                        client_payload = json.dumps(full_result, ensure_ascii=False)
 
                     # Persist a lightweight DetectionTask from tool output
                     # when user_id is provided. Tool outputs are JSON strings from
                     # detection_chat_service.segment_* wrappers.
-                    if user_id is not None and tool_output:
+                    if user_id is not None and output_text:
                         try:
-                            import json
                             from datetime import datetime
                             from app.database.session import SessionLocal
                             from app.entity.db_models import (
@@ -224,79 +307,80 @@ class DetectionAgent:
                             )
 
                             parsed = (
-                                json.loads(tool_output)
-                                if isinstance(tool_output, str)
-                                else tool_output
+                                json.loads(output_text)
+                                if isinstance(output_text, str)
+                                else output_text
                             )
-                            mode = parsed.get("mode")
-                            db = SessionLocal()
-                            try:
-                                user_exists = (
-                                    db.query(User).filter(User.id == user_id).first()
-                                )
-                                if not user_exists:
-                                    logger.warning(
-                                        "Skip chat task persistence: user %s not found",
-                                        user_id,
+                            if isinstance(parsed, dict):
+                                mode = parsed.get("mode")
+                                db = SessionLocal()
+                                try:
+                                    user_exists = (
+                                        db.query(User).filter(User.id == user_id).first()
                                     )
-                                else:
-                                    scene = None
-                                    if scene_id is not None:
-                                        scene = (
-                                            db.query(DetectionScene)
-                                            .filter(DetectionScene.id == scene_id)
-                                            .first()
+                                    if not user_exists:
+                                        logger.warning(
+                                            "Skip chat task persistence: user %s not found",
+                                            user_id,
                                         )
-                                    if scene is None:
-                                        scene = get_or_create_default_scene(db, user_id)
+                                    else:
+                                        scene = None
+                                        if scene_id is not None:
+                                            scene = (
+                                                db.query(DetectionScene)
+                                                .filter(DetectionScene.id == scene_id)
+                                                .first()
+                                            )
+                                        if scene is None:
+                                            scene = get_or_create_default_scene(db, user_id)
 
-                                    if scene is not None:
-                                        if mode == "single":
-                                            total_images = 1
-                                            total_objects = sum(
-                                                item.get("pixel_count", 0)
-                                                for item in parsed.get(
-                                                    "class_statistics", []
+                                        if scene is not None:
+                                            if mode == "single":
+                                                total_images = 1
+                                                total_objects = sum(
+                                                    item.get("pixel_count", 0)
+                                                    for item in parsed.get(
+                                                        "class_statistics", []
+                                                    )
                                                 )
-                                            )
-                                            total_inference_time = float(
-                                                parsed.get("inference_time_ms") or 0.0
-                                            )
-                                        elif mode in {"batch", "zip"}:
-                                            total_images = int(
-                                                parsed.get("total_images") or 0
-                                            )
-                                            total_objects = (
-                                                sum(
-                                                    parsed.get(
-                                                        "class_counts", {}
-                                                    ).values()
+                                                total_inference_time = float(
+                                                    parsed.get("inference_time_ms") or 0.0
                                                 )
-                                                if parsed.get("class_counts")
-                                                else 0
-                                            )
-                                            total_inference_time = float(
-                                                parsed.get("total_inference_ms") or 0.0
-                                            )
-                                        else:
-                                            total_images = 0
-                                            total_objects = 0
-                                            total_inference_time = 0.0
+                                            elif mode in {"batch", "zip"}:
+                                                total_images = int(
+                                                    parsed.get("total_images") or 0
+                                                )
+                                                total_objects = (
+                                                    sum(
+                                                        parsed.get(
+                                                            "class_counts", {}
+                                                        ).values()
+                                                    )
+                                                    if parsed.get("class_counts")
+                                                    else 0
+                                                )
+                                                total_inference_time = float(
+                                                    parsed.get("total_inference_ms") or 0.0
+                                                )
+                                            else:
+                                                total_images = 0
+                                                total_objects = 0
+                                                total_inference_time = 0.0
 
-                                        task = DetectionTask(
-                                            user_id=user_id,
-                                            scene_id=scene.id,
-                                            task_type=mode or "chat",
-                                            status="completed",
-                                            total_images=total_images,
-                                            total_objects=total_objects,
-                                            total_inference_time=total_inference_time,
-                                            completed_at=datetime.now(),
-                                        )
-                                        db.add(task)
-                                        db.commit()
-                            finally:
-                                db.close()
+                                            task = DetectionTask(
+                                                user_id=user_id,
+                                                scene_id=scene.id,
+                                                task_type=mode or "chat",
+                                                status="completed",
+                                                total_images=total_images,
+                                                total_objects=total_objects,
+                                                total_inference_time=total_inference_time,
+                                                completed_at=datetime.now(),
+                                            )
+                                            db.add(task)
+                                            db.commit()
+                                finally:
+                                    db.close()
                         except Exception:
                             logger.exception(
                                 "Failed to persist chat-triggered DetectionTask"
@@ -305,7 +389,7 @@ class DetectionAgent:
                     yield {
                         "type": "tool_result",
                         "tool": tool_name,
-                        "result": str(tool_output) if tool_output else "",
+                        "result": str(client_payload) if client_payload else "",
                     }
 
         except Exception as exc:
