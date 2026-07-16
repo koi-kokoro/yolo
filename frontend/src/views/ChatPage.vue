@@ -1,5 +1,26 @@
 <template>
   <div class="chat-page">
+    <aside class="session-sidebar">
+      <el-button type="primary" class="new-session" @click="agentStore.createSession()">＋ 新建会话</el-button>
+      <div v-if="agentStore.sessionsLoading" class="session-empty">加载中...</div>
+      <div
+        v-for="session in agentStore.sessions"
+        :key="session.id"
+        :class="['session-item', { active: session.id === agentStore.currentSessionId }]"
+        @click="agentStore.selectSession(session.id)"
+      >
+        <div class="session-title">{{ session.title || '新会话' }}</div>
+        <div class="session-time">{{ formatSessionTime(session.last_message_at || session.created_at) }}</div>
+        <div class="session-actions" @click.stop>
+          <el-button link size="small" @click="renameSession(session)">重命名</el-button>
+          <el-button link type="danger" size="small" @click="removeSession(session)">删除</el-button>
+        </div>
+      </div>
+    </aside>
+    <main class="chat-main">
+    <div v-if="agentStore.messagesHasMore" class="load-more">
+      <el-button link :loading="agentStore.messagesLoading" @click="agentStore.loadMoreMessages()">加载更早消息</el-button>
+    </div>
     <!-- 消息列表 -->
     <div class="message-list" ref="messageListRef">
       <div
@@ -141,6 +162,7 @@
       </el-button>
       <el-button v-else type="danger" @click="handleStop"> 停止 </el-button>
     </div>
+    </main>
   </div>
 </template>
 
@@ -159,12 +181,15 @@
 import { segmentBatch, segmentSingle, segmentVideo, segmentZip } from '@/api/segmentation'
 import SegmentationResultCard from '@/components/SegmentationResultCard.vue'
 import { useAgentStore } from '@/stores/agent'
+import { useUserStore } from '@/stores/user'
 import { createEventStream } from '@/utils/stream'
 import request from '@/utils/request'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { computed, nextTick, onMounted, ref } from 'vue'
 
 const agentStore = useAgentStore()
+
+const userStore = useUserStore()
 
 const inputText = ref('')
 const selectedFile = ref(null)
@@ -233,15 +258,17 @@ async function sendMessage() {
     }
   }
 
+  const requestSessionId = agentStore.currentSessionId
   const requestBody = {
     message,
+    session_id: requestSessionId,
     ...(serverImagePath ? { image_path: serverImagePath } : {}),
   }
 
   let fullContent = ''
   agentStore.setLoading(true)
 
-  const { stop } = createEventStream('/api/chat/stream', {
+  const { stop } = await createEventStream('/api/chat/stream', {
     body: requestBody,
     onMessage: (dataText) => {
       let data
@@ -251,9 +278,14 @@ async function sendMessage() {
         data = { type: 'text_chunk', content: dataText }
       }
 
+      if (requestSessionId !== agentStore.currentSessionId) return
       const lastMsg = agentStore.messages[agentStore.messages.length - 1]
 
-      if (data.type === 'text_chunk') {
+      if (data.type === 'session') {
+        agentStore.handleSessionEvent(data, requestSessionId)
+      } else if (data.type === 'agent_route') {
+        lastMsg.agentRoute = data.agent
+      } else if (data.type === 'text_chunk') {
         fullContent += data.content
         lastMsg.content = fullContent
         scrollToBottom()
@@ -277,6 +309,7 @@ async function sendMessage() {
       }
     },
     onDone: () => {
+      if (requestSessionId !== agentStore.currentSessionId) return
       const lastMsg = agentStore.messages[agentStore.messages.length - 1]
       if (lastMsg?.loading) {
         lastMsg.loading = false
@@ -284,6 +317,7 @@ async function sendMessage() {
       agentStore.setLoading(false)
     },
     onError: (err) => {
+      if (requestSessionId !== agentStore.currentSessionId) return
       const lastMsg = agentStore.messages[agentStore.messages.length - 1]
       lastMsg.content = `抱歉，处理出错了：${err.message}`
       lastMsg.loading = false
@@ -400,7 +434,11 @@ async function captureCameraImage() {
 
     const formData = new FormData()
     formData.append('file', file)
+    formData.append('session_id', String(agentStore.currentSessionId))
+    const requestSessionId = agentStore.currentSessionId
     const result = await segmentSingle(formData)
+    if (requestSessionId !== agentStore.currentSessionId) return
+    agentStore.handleSessionEvent({ session_id: result.session_id }, requestSessionId)
 
     const lastMsg = agentStore.messages[agentStore.messages.length - 1]
     if (result.error) {
@@ -463,7 +501,11 @@ async function captureCameraVideo() {
 
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
+    formData.append('session_id', String(agentStore.currentSessionId))
+    const requestSessionId = agentStore.currentSessionId
     const result = await segmentBatch(formData)
+    if (requestSessionId !== agentStore.currentSessionId) return
+    agentStore.handleSessionEvent({ session_id: result.session_id }, requestSessionId)
 
     const lastMsg = agentStore.messages[agentStore.messages.length - 1]
     if (result.error) {
@@ -527,6 +569,7 @@ async function startRealtimeRecognition() {
       })
       const formData = new FormData()
       formData.append('file', file)
+      // 实时识别不携带 session_id，避免逐帧写入会话；停止时仅保留前端聚合提示。
       const result = await segmentSingle(formData)
 
       if (result.error) {
@@ -604,9 +647,11 @@ async function handleQuickSegment(type) {
 
       const formData = new FormData()
       formData.append('file', file)
+      formData.append('session_id', String(agentStore.currentSessionId))
 
       try {
         const result = await segmentSingle(formData)
+        agentStore.handleSessionEvent({ session_id: result.session_id }, agentStore.currentSessionId)
         const lastMsg = agentStore.messages[agentStore.messages.length - 1]
         lastMsg.content = `分割完成！图片尺寸 ${result.image_width}×${result.image_height}。`
         lastMsg.loading = false
@@ -679,6 +724,7 @@ async function handleQuickSegment(type) {
 
       const isZip = files.some((f) => f.name.endsWith('.zip'))
       const formData = new FormData()
+      formData.append('session_id', String(agentStore.currentSessionId))
 
       if (isZip && files.length === 1) {
         formData.append('file', files[0])
@@ -705,6 +751,7 @@ async function handleQuickSegment(type) {
       try {
         const apiCall = isZip ? segmentZip(formData) : segmentBatch(formData)
         const result = await apiCall
+        agentStore.handleSessionEvent({ session_id: result.session_id }, agentStore.currentSessionId)
         const lastMsg = agentStore.messages[agentStore.messages.length - 1]
 
         if (result.error) {
@@ -729,13 +776,39 @@ async function handleQuickSegment(type) {
   }
 }
 
-onMounted(() => {
-  if (agentStore.messages.length === 0) {
-    agentStore.addMessage({
-      role: 'assistant',
-      content:
-        '你好！我是遥感检测智能体助手。\n\n你可以：\n- 上传一张图片，让我帮你进行 LoveDA 7 类分析\n- 使用下方的快捷按钮直接触发分析\n- 用自然语言描述你的需求\n\n试试发一张图片给我吧！',
+function formatSessionTime(value) {
+  return value ? new Date(value).toLocaleString() : ''
+}
+
+async function renameSession(session) {
+  try {
+    const { value } = await ElMessageBox.prompt('输入新会话名称', '重命名', {
+      inputValue: session.title || '',
+      inputPattern: /\S+/,
+      inputErrorMessage: '名称不能为空',
     })
+    await agentStore.renameSession(session.id, value.trim())
+  } catch {
+    // 用户取消。
+  }
+}
+
+async function removeSession(session) {
+  try {
+    await ElMessageBox.confirm(`确定删除“${session.title || '新会话'}”及其历史消息？`, '删除会话', {
+      type: 'warning',
+    })
+    await agentStore.deleteSession(session.id)
+  } catch {
+    // 用户取消。
+  }
+}
+
+onMounted(async () => {
+  try {
+    await agentStore.initialize(userStore.user?.id)
+  } catch (error) {
+    ElMessage.error(`会话初始化失败：${error.message || error}`)
   }
 })
 </script>
@@ -743,10 +816,34 @@ onMounted(() => {
 <style lang="scss" scoped>
 .chat-page {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
+  min-height: 0;
   background: #f5f5f5;
 }
+
+.chat-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.session-sidebar {
+  width: 240px;
+  padding: 12px;
+  overflow-y: auto;
+  border-right: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.new-session { width: 100%; margin-bottom: 12px; }
+.session-item { padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; }
+.session-item:hover, .session-item.active { background: #ecf5ff; }
+.session-title { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.session-time { margin-top: 4px; color: #909399; font-size: 11px; }
+.session-actions { display: flex; justify-content: flex-end; }
+.session-empty, .load-more { color: #909399; text-align: center; }
 
 .message-list {
   flex: 1;

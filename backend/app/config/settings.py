@@ -25,6 +25,9 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+    CHAT_MEMORY_TTL_SECONDS: int = 86400
+    CHAT_MEMORY_MAX_MESSAGES: int = 12
+    CHAT_MEMORY_MAX_CHARS: int = 2000
 
     MINIO_ENDPOINT: str = "localhost:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
@@ -99,14 +102,27 @@ class Settings(BaseSettings):
     ONLINE_TRAINING_MAX_LOG_BYTES: int = 20 * 1024 * 1024
     ONLINE_TRAINING_LOG_TAIL_BYTES: int = 64 * 1024
 
-    # ── LLM 配置（Day 8 智能对话）─────────────────────
-    OPENAI_API_KEY: str = "sk-your-openai-api-key"
+    # ── LLM 配置（Day 8/11 智能对话）─────────────────
+    # 密钥只能由环境变量注入，禁止在源码中提供可用默认值。
+    OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
 
-    QWEN_API_KEY: str = "sk-ws-H.EDHEILX.RXpG.MEYCIQCot8MsPJgiCJDIlLCUE9pThzEiIFwdkDS3MT_DFzaAZAIhAITpXH_1K0BsJOcNaa2RXWBW8hRheNVfhzc1cOv0HWxi"
+    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com/v1"
+    DEEPSEEK_MODEL: str = "deepseek-chat"
+
+    QWEN_API_KEY: str = ""
     QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     QWEN_MODEL: str = "qwen-turbo"
+
+    CHAT_UPLOAD_DIR: str = "uploads/chat"
+    RAG_DOCUMENT_DIR: str = "knowledge"
+    RAG_EMBEDDING_MODEL: str = "text-embedding-v3"
+    RAG_EMBEDDING_DIMENSION: int = 1024
+    RAG_TOP_K: int = 4
+    RAG_CHUNK_SIZE: int = 800
+    RAG_CHUNK_OVERLAP: int = 100
 
     USE_LOCAL_LLM: bool = False
     OLLAMA_BASE_URL: str = "http://localhost:11434"
@@ -117,6 +133,14 @@ class Settings(BaseSettings):
         if path.is_absolute():
             return path.resolve()
         return (Path(__file__).resolve().parents[2] / path).resolve()
+
+    @property
+    def chat_upload_path(self) -> Path:
+        return self._backend_relative_path(self.CHAT_UPLOAD_DIR)
+
+    @property
+    def rag_document_path(self) -> Path:
+        return self._backend_relative_path(self.RAG_DOCUMENT_DIR)
 
     @property
     def semantic_deploy_path(self) -> Path:

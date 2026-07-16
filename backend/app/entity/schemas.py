@@ -317,9 +317,13 @@ class ModelVersionCreate(BaseModel):
 
 
 class ChatSessionCreate(BaseModel):
-    """Chat session creation request."""
+    """客户端仅可设置标题，不可写入消息或 assistant 角色。"""
 
-    title: Optional[str] = None
+    title: Optional[str] = Field(None, max_length=200)
+
+
+class ChatSessionRename(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
 
 
 class ChatSessionResponse(BaseModel):
@@ -360,8 +364,22 @@ class ChatMessageResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ChatSessionPage(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    items: list[ChatSessionResponse]
+
+
+class ChatMessagePage(BaseModel):
+    items: list[ChatMessageResponse]
+    next_cursor: Optional[int] = None
+    has_more: bool = False
+
+
 class ChatHistoryResponse(BaseModel):
-    """Chat history response."""
+    """兼容旧调用的会话历史响应。"""
 
     session: ChatSessionResponse
     messages: list[ChatMessageResponse] = []
@@ -462,6 +480,7 @@ class SegmentationSingleResponse(BaseModel):
     """Single-image segmentation shortcut response."""
 
     mode: str
+    session_id: Optional[int] = None
     filename: str
     image_width: int
     image_height: int
@@ -476,6 +495,7 @@ class SegmentationBatchResponse(BaseModel):
     """Batch / ZIP segmentation shortcut response."""
 
     mode: str
+    session_id: Optional[int] = None
     total_images: int
     successful_images: int
     total_inference_ms: float
