@@ -106,7 +106,7 @@ class Settings(BaseSettings):
 
     QWEN_API_KEY: str = "sk-ws-H.EDHEILX.RXpG.MEYCIQCot8MsPJgiCJDIlLCUE9pThzEiIFwdkDS3MT_DFzaAZAIhAITpXH_1K0BsJOcNaa2RXWBW8hRheNVfhzc1cOv0HWxi"
     QWEN_BASE_URL: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    QWEN_MODEL: str = "qwen-turbo"
+    QWEN_MODEL: str = "qwen3.6-flash"
 
     USE_LOCAL_LLM: bool = False
     OLLAMA_BASE_URL: str = "http://localhost:11434"

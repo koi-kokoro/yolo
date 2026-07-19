@@ -27,7 +27,8 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        //  将 localhost 修改为 127.0.0.1 避开 Node.js 的 IPv6 域名解析策略
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },
