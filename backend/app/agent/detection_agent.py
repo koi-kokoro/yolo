@@ -18,10 +18,15 @@ from typing import Any, AsyncGenerator
 from langchain.agents import create_agent
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
-from langchain_openai import ChatOpenAI
 
-from app.config.settings import settings
+from app.agent.llm_streaming import (
+    LLMUnavailableError,
+    build_messages,
+    create_chat_llm,
+    stream_llm_text,
+)
 from app.core.logger import get_logger
+from app.services.chat_session_service import ChatMemoryService
 from app.services.detection_chat_service import (
     detection_chat_service,
     get_or_create_default_scene,
@@ -34,14 +39,25 @@ logger = get_logger(__name__)
 # 一、定义图像检测工具（Agent 可调用的 Tools）
 # ══════════════════════════════════════════════════════════════
 
-# Keys whose values are base64 image data that must not be fed back into the
-# LLM context window; otherwise model APIs reject the request for being too long.
+# 二进制、服务端路径及大字段均不得进入外部模型上下文。
 _IMAGE_DATA_KEYS = {
     "base64",
     "annotated_image",
     "annotated_image_base64",
     "annotated_image_bytes",
 }
+_PATH_KEYS = {"image_path", "image_paths", "zip_path", "path", "absolute_path"}
+_MAX_LLM_STRING_CHARS = 4000
+_DETECTION_INTENT_WORDS = (
+    "识别",
+    "检测",
+    "分割",
+    "分析",
+    "地物",
+    "类别",
+    "占比",
+    "土地覆盖",
+)
 
 # Cache raw tool results so the full payload (including annotated images) can be
 # forwarded to the chat UI while the LLM only sees a compact summary.
@@ -49,19 +65,54 @@ _TOOL_RESULT_CACHE: dict[str, Any] = {}
 
 
 def _strip_image_data(obj: Any) -> Any:
-    """Recursively replace image base64 fields with a placeholder."""
+    """递归清除二进制、绝对路径和超长字符串，结果才可发送给 LLM。"""
     if isinstance(obj, dict):
-        return {
-            key: (
-                "[Image data omitted from LLM context]"
-                if key in _IMAGE_DATA_KEYS
-                else _strip_image_data(value)
-            )
-            for key, value in obj.items()
-        }
+        cleaned: dict[str, Any] = {}
+        for key, value in obj.items():
+            if key in _IMAGE_DATA_KEYS or key in _PATH_KEYS:
+                continue
+            cleaned[key] = _strip_image_data(value)
+        return cleaned
     if isinstance(obj, list):
-        return [_strip_image_data(item) for item in obj]
+        return [_strip_image_data(item) for item in obj[:100]]
+    if isinstance(obj, str):
+        return ChatMemoryService.sanitize(obj)[:_MAX_LLM_STRING_CHARS]
     return obj
+
+
+def _safe_tool_input(tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+    """构造可发给前端和日志的工具输入，不暴露服务端路径。"""
+    if tool_name == "segment_single_image":
+        return {"image_path": "[当前上传图片]"}
+    if tool_name == "segment_batch_images":
+        return {"image_paths": ["[当前上传图片]"] * len(tool_input.get("image_paths", []))}
+    if tool_name == "segment_zip_file":
+        return {"zip_path": "[当前上传文件]"}
+    return _strip_image_data(tool_input)
+
+
+def _deterministic_summary(result: dict[str, Any]) -> str:
+    """从确定性单图结果生成不依赖 LLM 的安全中文摘要。"""
+    width = int(result.get("image_width") or 0)
+    height = int(result.get("image_height") or 0)
+    statistics = sorted(
+        result.get("class_statistics") or [],
+        key=lambda item: int(item.get("pixel_count") or 0),
+        reverse=True,
+    )
+    parts: list[str] = []
+    total_pixels = width * height or sum(int(item.get("pixel_count") or 0) for item in statistics) or 1
+    for item in statistics[:5]:
+        count = int(item.get("pixel_count") or 0)
+        if count <= 0:
+            continue
+        name = item.get("display_name") or item.get("name") or "未知类别"
+        ratio = item.get("ratio")
+        percent = float(ratio) * 100 if ratio is not None else count / total_pixels * 100
+        parts.append(f"{name} {count} 像素（{percent:.1f}%）")
+    dominant = parts[0].split(" ", 1)[0] if parts else "未发现明显类别"
+    detail = "；".join(parts) if parts else "未发现有像素的有效类别"
+    return f"本地分割完成，图片尺寸 {width}×{height}。主要地物：{dominant}。类别统计：{detail}。可在结果卡片中查看标注图。"
 
 
 def _tool_result_cache_key(tool_name: str, tool_input: dict[str, Any]) -> str:
@@ -148,36 +199,7 @@ DETECTION_TOOLS = [segment_single_image, segment_batch_images, segment_zip_file]
 
 
 # ══════════════════════════════════════════════════════════════
-# 二、创建 LLM 实例
-# ══════════════════════════════════════════════════════════════
-
-
-def _create_llm() -> ChatOpenAI:
-    """Create an LLM instance according to configuration."""
-    qwen_api_key = getattr(settings, "QWEN_API_KEY", "")
-    if qwen_api_key and qwen_api_key != "sk-your-qwen-api-key":
-        api_key = qwen_api_key
-        base_url = getattr(
-            settings,
-            "QWEN_BASE_URL",
-            "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        )
-        model_name = getattr(settings, "QWEN_MODEL", "qwen-plus")
-    else:
-        api_key = getattr(settings, "OPENAI_API_KEY", "")
-        base_url = getattr(settings, "OPENAI_BASE_URL", "https://api.openai.com/v1")
-        model_name = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")
-
-    return ChatOpenAI(
-        model=model_name,
-        api_key=api_key,
-        base_url=base_url,
-        temperature=0.1,
-    )
-
-
-# ══════════════════════════════════════════════════════════════
-# 三、创建 Agent
+# 二、创建 Agent（模型统一由 llm_streaming 工厂提供）
 # ══════════════════════════════════════════════════════════════
 
 
@@ -207,33 +229,38 @@ class DetectionAgent:
     """Detection agent — wraps agent creation and chat logic."""
 
     def __init__(self) -> None:
-        self.llm = _create_llm()
-        self.executor = create_agent(
-            model=self.llm,
-            tools=DETECTION_TOOLS,
-            system_prompt=_SYSTEM_PROMPT,
-        )
-        logger.info("DetectionAgent initialized with %d tools", len(DETECTION_TOOLS))
+        # 延迟创建外部 LLM 客户端：无密钥环境仍可启动并使用 Analysis/QA 降级。
+        self.llm = None
+        self.executor = None
+
+    def _ensure_executor(self):
+        if self.executor is None:
+            self.llm = create_chat_llm(temperature=0.1)
+            self.executor = create_agent(
+                model=self.llm,
+                tools=DETECTION_TOOLS,
+                system_prompt=_SYSTEM_PROMPT,
+            )
+            logger.info("DetectionAgent initialized with %d tools", len(DETECTION_TOOLS))
+        return self.executor
 
     def _build_input(
         self, message: str, image_path: str | None = None
     ) -> dict[str, Any]:
-        if image_path:
-            message = f"{message}\n[附件图片路径: {image_path}]"
-        return {"messages": [("human", message)]}
+        # image_path 仅供本地工具执行，绝不拼入模型消息。
+        safe_message = build_messages("", message)[-1][1]
+        return {"messages": [("human", safe_message)]}
 
     async def chat(self, message: str, image_path: str | None = None) -> dict[str, Any]:
         """Process a user message (non-streaming)."""
         try:
-            result = await self.executor.ainvoke(self._build_input(message, image_path))
+            result = await self._ensure_executor().ainvoke(self._build_input(message, image_path))
             messages = result.get("messages", [])
-            output = ""
-            if messages:
-                output = messages[-1].content
+            output = messages[-1].content if messages else ""
             return {"output": output, "messages": messages}
         except Exception as exc:
-            logger.error("Agent execution error: %s", exc, exc_info=True)
-            return {"output": f"抱歉，处理过程中出现错误：{exc}", "messages": []}
+            logger.error("Detection agent failed: exception_type=%s", type(exc).__name__, exc_info=True)
+            return {"output": "检测助手暂时不可用，请稍后重试。", "messages": []}
 
     async def chat_stream(
         self,
@@ -241,10 +268,77 @@ class DetectionAgent:
         image_path: str | None = None,
         user_id: int | None = None,
         scene_id: int | None = None,
+        memory: list[dict[str, str]] | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
-        """Process a user message and yield SSE events."""
+        """可信当前图片确定性优先执行；LLM 仅总结已清洗结构化结果。"""
+        if not image_path:
+            if any(word in message for word in ("刚才", "主要", "地物", "结果")):
+                for item in reversed(memory or []):
+                    if item.get("role") == "assistant" and (
+                        "主要地物" in item.get("content", "") or "分割完成" in item.get("content", "")
+                    ):
+                        yield {"type": "text_chunk", "content": f"根据刚才保存的检测摘要：{item['content']}"}
+                        return
+            yield {"type": "text_chunk", "content": "请在当前消息中上传图片后再进行检测；历史路径不会被重新读取。"}
+            return
+
+        if any(word in message for word in _DETECTION_INTENT_WORDS):
+            tool_name = "segment_single_image"
+            safe_input = _safe_tool_input(tool_name, {"image_path": image_path})
+            yield {"type": "tool_call", "tool": tool_name, "input": safe_input}
+            try:
+                result = detection_chat_service.segment_single(
+                    image_path, user_id=user_id, scene_id=scene_id
+                )
+            except Exception as exc:
+                logger.error(
+                    "Local single-image inference failed: exception_type=%s user_id=%s",
+                    type(exc).__name__,
+                    user_id,
+                    exc_info=True,
+                )
+                yield {"type": "error", "content": "本地图片分割失败，请确认图片有效后重试。"}
+                return
+
+            yield {
+                "type": "tool_result",
+                "tool": tool_name,
+                "result": json.dumps(result, ensure_ascii=False),
+            }
+            fallback = _deterministic_summary(result)
+            safe_result = json.dumps(_strip_image_data(result), ensure_ascii=False)
+            summary_messages = build_messages(
+                "你是遥感分割结果总结助手。只依据结构化结果生成简洁中文摘要，不推测未提供的信息。",
+                message,
+                memory,
+                context=f"当前本地分割结构化结果：{safe_result}",
+            )
+            try:
+                chunks = [
+                    chunk
+                    async for chunk in stream_llm_text(summary_messages, temperature=0.1)
+                ]
+                summary = "".join(chunks).strip()
+                yield {"type": "text_chunk", "content": summary or fallback}
+            except LLMUnavailableError as exc:
+                logger.warning(
+                    "Detection summary unavailable: exception_type=%s", type(exc).__name__
+                )
+                yield {"type": "text_chunk", "content": fallback}
+            except Exception as exc:
+                logger.error(
+                    "Detection summary failed: exception_type=%s",
+                    type(exc).__name__,
+                    exc_info=True,
+                )
+                yield {"type": "text_chunk", "content": fallback}
+            return
+
+        yield {"type": "text_chunk", "content": "图片已接收。请明确说明需要识别、检测或语义分割。"}
+        return
+
         try:
-            async for event in self.executor.astream_events(
+            async for event in self._ensure_executor().astream_events(
                 self._build_input(message, image_path),
                 version="v2",
             ):
@@ -258,10 +352,9 @@ class DetectionAgent:
                 elif event_kind == "on_tool_start":
                     tool_name = event.get("name")
                     tool_input = event.get("data", {}).get("input", {})
-                    logger.info(
-                        "Tool call: %s input=%s", tool_name, str(tool_input)[:200]
-                    )
-                    yield {"type": "tool_call", "tool": tool_name, "input": tool_input}
+                    safe_input = _safe_tool_input(tool_name, tool_input)
+                    logger.info("Tool call: %s input=%s", tool_name, safe_input)
+                    yield {"type": "tool_call", "tool": tool_name, "input": safe_input}
 
                 elif event_kind == "on_tool_end":
                     tool_data = event.get("data", {})
@@ -393,8 +486,12 @@ class DetectionAgent:
                     }
 
         except Exception as exc:
-            logger.error("Agent stream error: %s", exc, exc_info=True)
-            yield {"type": "error", "content": f"处理出错：{exc}"}
+            logger.error(
+                "Detection agent stream failed: exception_type=%s",
+                type(exc).__name__,
+                exc_info=True,
+            )
+            yield {"type": "error", "content": "检测助手暂时不可用，请稍后重试。"}
 
 
 detection_agent = DetectionAgent()

@@ -6,7 +6,7 @@ import io
 import json
 import zipfile
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import cv2
 import numpy as np
@@ -359,10 +359,7 @@ class TestDetectionAgentTools:
             result = segment_single_image.invoke({"image_path": dummy_image})
             parsed = json.loads(result)
             assert parsed["mode"] == "single"
-            assert (
-                parsed["annotated_image"]
-                == "[Image data omitted from LLM context]"
-            )
+            assert "annotated_image" not in parsed
             assert parsed["class_statistics"][0]["pixel_count"] == 10
 
     def test_batch_tools_strip_nested_annotated_images(
@@ -388,8 +385,117 @@ class TestDetectionAgentTools:
             result = segment_batch_images.invoke({"image_paths": [dummy_image]})
             parsed = json.loads(result)
             assert parsed["mode"] == "batch"
-            assert (
-                parsed["annotated_images"][0]["annotated_image"]
-                == "[Image data omitted from LLM context]"
-            )
+            assert "annotated_image" not in parsed["annotated_images"][0]
             assert parsed["annotated_images"][0]["class_statistics"][0]["pixel_count"] == 5
+
+
+class TestDetectionAgentReliability:
+    @pytest.mark.asyncio
+    async def test_detection_executor_reuses_unified_factory(self) -> None:
+        from app.agent.detection_agent import DetectionAgent
+
+        fake_llm = object()
+        fake_executor = object()
+        agent = DetectionAgent()
+        with patch(
+            "app.agent.detection_agent.create_chat_llm", return_value=fake_llm
+        ) as factory, patch(
+            "app.agent.detection_agent.create_agent", return_value=fake_executor
+        ) as create:
+            assert agent._ensure_executor() is fake_executor
+
+        factory.assert_called_once_with(temperature=0.1)
+        create.assert_called_once()
+        assert create.call_args.kwargs["model"] is fake_llm
+
+    @pytest.mark.asyncio
+    async def test_explicit_single_image_runs_locally_when_llm_unavailable(
+        self, dummy_image: str
+    ) -> None:
+        from app.agent.detection_agent import DetectionAgent
+        from app.agent.llm_streaming import LLMUnavailableError
+
+        async def unavailable(*args, **kwargs):
+            raise LLMUnavailableError("Missing credentials: sk-secret")
+            yield  # pragma: no cover
+
+        result = {
+            "mode": "single",
+            "filename": "dummy.png",
+            "image_width": 64,
+            "image_height": 64,
+            "annotated_image": "aGVsbG8=",
+            "class_statistics": [
+                {"name": "building", "display_name": "建筑", "pixel_count": 2048, "ratio": 0.5}
+            ],
+        }
+        with patch(
+            "app.agent.detection_agent.detection_chat_service.segment_single",
+            return_value=result,
+        ) as infer, patch("app.agent.detection_agent.stream_llm_text", unavailable):
+            events = [
+                event
+                async for event in DetectionAgent().chat_stream(
+                    "请识别并分割", dummy_image, user_id=1
+                )
+            ]
+
+        infer.assert_called_once_with(dummy_image, user_id=1, scene_id=None)
+        assert [event["type"] for event in events] == [
+            "tool_call",
+            "tool_result",
+            "text_chunk",
+        ]
+        assert events[0]["tool"] == "segment_single_image"
+        assert dummy_image not in json.dumps(events[0], ensure_ascii=False)
+        assert json.loads(events[1]["result"])["annotated_image"] == "aGVsbG8="
+        assert "本地分割完成" in events[2]["content"]
+        serialized = json.dumps(events, ensure_ascii=False)
+        assert "Missing credentials" not in serialized
+        assert "sk-secret" not in serialized
+
+    @pytest.mark.asyncio
+    async def test_summary_failure_preserves_result_and_sanitizes_llm_messages(
+        self, dummy_image: str
+    ) -> None:
+        from app.agent.detection_agent import DetectionAgent
+
+        captured = []
+
+        async def broken_summary(messages, **kwargs):
+            captured.extend(messages)
+            raise RuntimeError("SDK stack with Missing credentials")
+            yield  # pragma: no cover
+
+        result = {
+            "mode": "single",
+            "filename": "dummy.png",
+            "image_path": dummy_image,
+            "image_width": 10,
+            "image_height": 10,
+            "annotated_image": "A" * 1000,
+            "extra": "data:image/png;base64," + "B" * 500,
+            "class_statistics": [
+                {"name": "water", "display_name": "水体", "pixel_count": 100, "ratio": 1.0}
+            ],
+        }
+        with patch(
+            "app.agent.detection_agent.detection_chat_service.segment_single",
+            return_value=result,
+        ), patch("app.agent.detection_agent.stream_llm_text", broken_summary):
+            events = [
+                event
+                async for event in DetectionAgent().chat_stream(
+                    "分析 C:\\private\\secret.png 并分割", dummy_image
+                )
+            ]
+
+        assert events[1]["type"] == "tool_result"
+        assert events[-1]["type"] == "text_chunk"
+        assert "水体" in events[-1]["content"]
+        llm_payload = json.dumps(captured, ensure_ascii=False)
+        assert dummy_image not in llm_payload
+        assert "C:\\private\\secret.png" not in llm_payload
+        assert "A" * 100 not in llm_payload
+        assert "B" * 100 not in llm_payload
+        assert "Missing credentials" not in json.dumps(events, ensure_ascii=False)
