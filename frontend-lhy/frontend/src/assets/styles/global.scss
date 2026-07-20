@@ -1,0 +1,177 @@
+// ═══════════════════════════════════════════════════════
+// 全局样式 — 通用类名、布局辅助
+// ═══════════════════════════════════════════════════════
+
+@use './reset.scss';
+
+:root {
+  --el-table-header-bg-color: rgba(139, 115, 85, 0.1) !important;
+  --el-table-row-bg-color: rgba(0, 0, 0, 0.3) !important;
+  --el-table-row-hover-bg-color: rgba(139, 115, 85, 0.15) !important;
+  --el-table-border-color: rgba(139, 115, 85, 0.1) !important;
+  --el-table-text-color: rgba(255, 255, 255, 0.8) !important;
+  --el-table-header-text-color: rgba(255, 255, 255, 0.8) !important;
+  --el-table-bg-color: rgba(0, 0, 0, 0.3) !important;
+  --el-table-tr-bg-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+// ── 页面容器 ────────────────────────────────────────
+.page-container {
+  padding: $spacing-lg;
+  min-height: calc(100vh - $header-height);
+}
+
+// ── 卡片容器 ────────────────────────────────────────
+.card-container {
+  background: #fff;
+  border-radius: $border-radius-md;
+  box-shadow: $shadow-sm;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+// ── Flex 布局辅助 ───────────────────────────────────
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// ── 文本截断 ────────────────────────────────────────
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ── 滚动条美化 ──────────────────────────────────────
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 115, 85, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// ── Element Plus 表格深色主题 ──────────────────────────────
+:deep(.el-table),
+.el-table {
+  background: transparent !important;
+}
+
+:deep(.el-table__header-wrapper),
+.el-table__header-wrapper,
+:deep(.el-table__header-wrapper) thead,
+.el-table__header-wrapper thead {
+  background: rgba(139, 115, 85, 0.1) !important;
+}
+
+:deep(.el-table__header th.el-table__cell),
+.el-table__header th.el-table__cell {
+  background: rgba(139, 115, 85, 0.1) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 600 !important;
+  border-bottom: 1px solid rgba(139, 115, 85, 0.15) !important;
+}
+
+:deep(.el-table__body),
+.el-table__body {
+  background: transparent !important;
+}
+
+:deep(.el-table__body tr),
+.el-table__body tr {
+  background: rgba(0, 0, 0, 0.3) !important;
+
+  &:hover>td {
+    background: rgba(139, 115, 85, 0.15) !important;
+  }
+}
+
+:deep(.el-table__body td.el-table__cell),
+.el-table__body td.el-table__cell {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(139, 115, 85, 0.08);
+}
+
+:deep(.el-table__empty-text),
+.el-table__empty-text {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+:deep(.el-table__body-wrapper),
+.el-table__body-wrapper {
+  background: transparent !important;
+}
+
+:deep(.el-table__row),
+.el-table__row {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+:deep(.el-table__cell),
+.el-table__cell {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+// 强制覆盖内联样式
+.el-table__header th.el-table__cell[style*="background"] {
+  background: rgba(139, 115, 85, 0.1) !important;
+}
+
+// ── Element Plus 描述列表深色主题 ──────────────────────────────
+.el-descriptions {
+  background: transparent !important;
+}
+
+.el-descriptions__header {
+  background: rgba(139, 115, 85, 0.15) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-weight: 600 !important;
+}
+
+.el-descriptions__body {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+.el-descriptions__row {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+.el-descriptions__label {
+  background: rgba(139, 115, 85, 0.15) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-weight: 600 !important;
+  border-right: 1px solid rgba(139, 115, 85, 0.1) !important;
+}
+
+.el-descriptions__content {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.el-descriptions__border-left {
+  border-left: 1px solid rgba(139, 115, 85, 0.1) !important;
+}
+
+.el-descriptions__border-bottom {
+  border-bottom: 1px solid rgba(139, 115, 85, 0.08) !important;
+}
+
+.el-descriptions__cell {
+  background: transparent !important;
+}

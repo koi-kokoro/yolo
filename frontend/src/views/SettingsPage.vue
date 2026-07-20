@@ -1,11 +1,14 @@
 <template>
   <div class="settings-page">
-    <h2>系统设置</h2>
+    <div class="page-header">
+      <h2>系统设置</h2>
+      <p>调整账户信息和密码，保持当前登录状态下的个人配置一致。</p>
+    </div>
 
     <el-row :gutter="24">
       <!-- 个人信息 -->
       <el-col :span="12">
-        <el-card shadow="hover">
+        <el-card shadow="hover" class="settings-card profile-card">
           <template #header>
             <span>个人信息</span>
           </template>
@@ -37,7 +40,7 @@
 
       <!-- 修改密码 -->
       <el-col :span="12">
-        <el-card shadow="hover">
+        <el-card shadow="hover" class="settings-card password-card">
           <template #header>
             <span>修改密码</span>
           </template>
@@ -84,7 +87,7 @@
     </el-row>
 
     <!-- 关于系统 -->
-    <el-card shadow="hover" style="margin-top: 24px">
+    <el-card shadow="hover" class="settings-card about-card">
       <template #header>
         <span>关于系统</span>
       </template>
@@ -232,8 +235,83 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.72));
+  border: 1px solid rgba(78, 103, 138, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(20, 33, 56, 0.06);
+
   h2 {
-    margin: 0 0 20px;
+    margin: 0;
+    font-size: 24px;
+    color: $text-primary;
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+  }
+}
+
+:deep(.el-card) {
+  border-radius: 12px;
+}
+
+.settings-card {
+  height: 100%;
+
+  :deep(.el-card__header) {
+    position: relative;
+    padding-left: 20px;
+
+    &::before {
+      position: absolute;
+      top: 50%;
+      left: 10px;
+      width: 3px;
+      height: 18px;
+      content: '';
+      background: $primary-color;
+      border-radius: 999px;
+      transform: translateY(-50%);
+    }
+  }
+}
+
+.profile-card {
+  :deep(.el-card__header::before) {
+    background: $primary-color;
+  }
+}
+
+.password-card {
+  :deep(.el-card__header::before) {
+    background: $warning-color;
+  }
+}
+
+.about-card {
+  margin-top: 6px;
+
+  :deep(.el-card__header::before) {
+    background: $info-color;
+  }
+}
+
+@media (max-width: 960px) {
+  :deep(.el-col) {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
   }
 }
 </style>

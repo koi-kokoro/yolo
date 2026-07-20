@@ -26,7 +26,7 @@ const color = (rgb) => `rgb(${(rgb || [0, 0, 0]).join(',')})`
   </el-table>
 </template>
 
-<style scoped>
-.swatch { display: inline-block; width: 24px; height: 16px; border: 1px solid #dcdfe6; border-radius: 3px; }
-small { margin-left: 5px; color: #909399; }
+<style scoped lang="scss">
+.swatch { display: inline-block; width: 24px; height: 16px; border: 1px solid rgba(78, 103, 138, 0.24); border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55); }
+small { margin-left: 5px; color: $text-secondary; }
 </style>

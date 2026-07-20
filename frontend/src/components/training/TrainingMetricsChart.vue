@@ -59,7 +59,21 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped>
-.training-chart-shell { min-height: 360px; }
-.training-chart { width: 100%; height: 360px; }
+<style scoped lang="scss">
+.training-chart-shell {
+  min-height: 360px;
+  padding: 8px;
+  background:
+    linear-gradient(rgba(78, 103, 138, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(78, 103, 138, 0.035) 1px, transparent 1px),
+    rgba(248, 250, 253, 0.7);
+  background-size: 32px 32px, 32px 32px, auto;
+  border: 1px solid rgba(78, 103, 138, 0.1);
+  border-radius: 12px;
+}
+
+.training-chart {
+  width: 100%;
+  height: 360px;
+}
 </style>

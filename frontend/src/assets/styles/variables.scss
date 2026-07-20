@@ -1,10 +1,36 @@
-$primary-color: #2563eb;
-$success-color: #16a34a;
-$warning-color: #d97706;
-$danger-color: #dc2626;
-$text-color: #1f2937;
-$text-secondary: #6b7280;
-$border-color: #e5e7eb;
-$background-color: #f5f7fb;
-$sidebar-width: 232px;
-$header-height: 60px;
+$primary-color: #4f7cff;
+$primary-light: #7f9dff;
+$primary-dark: #365eea;
+$success-color: #2ea77f;
+$warning-color: #d79c3f;
+$danger-color: #d85b6b;
+$info-color: #4aa6c4;
+
+$text-color: #253043;
+$text-primary: #162235;
+$text-regular: rgba(22, 34, 53, 0.84);
+$text-secondary: rgba(58, 72, 98, 0.72);
+$text-muted: rgba(90, 104, 127, 0.58);
+
+$border-color: rgba(78, 103, 138, 0.18);
+$background-color: #f4f7fb;
+$panel-bg: rgba(255, 255, 255, 0.9);
+$panel-bg-strong: rgba(247, 249, 252, 0.98);
+$glass-bg: rgba(255, 255, 255, 0.72);
+$sidebar-bg: rgba(250, 252, 255, 0.92);
+$sidebar-width: 272px;
+$header-height: 64px;
+
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+
+$border-radius-sm: 6px;
+$border-radius-md: 10px;
+$border-radius-lg: 16px;
+
+$shadow-sm: 0 10px 28px rgba(20, 33, 56, 0.08);
+$shadow-md: 0 18px 44px rgba(20, 33, 56, 0.12);
+$shadow-lg: 0 30px 72px rgba(20, 33, 56, 0.16);

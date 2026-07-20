@@ -14,8 +14,8 @@
     <el-row :gutter="16" class="stat-cards">
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #ecf5ff">
-            <el-icon :size="28" color="#409eff"><Document /></el-icon>
+          <div class="stat-icon stat-icon--blue">
+            <el-icon :size="28" color="#4f7cff"><Document /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.total_tasks }}</div>
@@ -28,8 +28,8 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #f0f9eb">
-            <el-icon :size="28" color="#67c23a"><PictureFilled /></el-icon>
+          <div class="stat-icon stat-icon--green">
+            <el-icon :size="28" color="#2ea77f"><PictureFilled /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ formatNumber(stats.total_images) }}</div>
@@ -42,8 +42,8 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #fdf6ec">
-            <el-icon :size="28" color="#e6a23c"><Aim /></el-icon>
+          <div class="stat-icon stat-icon--amber">
+            <el-icon :size="28" color="#d79c3f"><Aim /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ formatNumber(stats.total_objects) }}</div>
@@ -56,8 +56,8 @@
       </el-col>
       <el-col :span="6">
         <el-card shadow="hover" class="stat-card">
-          <div class="stat-icon" style="background: #fef0f0">
-            <el-icon :size="28" color="#f56c6c"><Timer /></el-icon>
+          <div class="stat-icon stat-icon--rose">
+            <el-icon :size="28" color="#d85b6b"><Timer /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.avg_inference_time }}<span class="unit">ms</span></div>
@@ -266,11 +266,11 @@ function renderTrendChart(trend) {
         lineStyle: { width: 2 },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(64,158,255,0.3)" },
-            { offset: 1, color: "rgba(64,158,255,0.02)" },
+            { offset: 0, color: "rgba(79,124,255,0.22)" },
+            { offset: 1, color: "rgba(79,124,255,0.02)" },
           ]),
         },
-        itemStyle: { color: "#409eff" },
+        itemStyle: { color: "#4f7cff" },
       },
       {
         name: "检测目标",
@@ -281,11 +281,11 @@ function renderTrendChart(trend) {
         lineStyle: { width: 2 },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(103,194,58,0.3)" },
-            { offset: 1, color: "rgba(103,194,58,0.02)" },
+            { offset: 0, color: "rgba(46,167,127,0.2)" },
+            { offset: 1, color: "rgba(46,167,127,0.02)" },
           ]),
         },
-        itemStyle: { color: "#67c23a" },
+        itemStyle: { color: "#2ea77f" },
       },
     ],
   });
@@ -304,9 +304,9 @@ function renderClassChart(points = []) {
   }
 
   const reviewColors = {
-    low: "#67c23a",
-    medium: "#e6a23c",
-    high: "#f56c6c",
+    low: "#2ea77f",
+    medium: "#d79c3f",
+    high: "#d85b6b",
   };
   const data = points.map((point) => ({
     name: point.name,
@@ -315,7 +315,7 @@ function renderClassChart(points = []) {
     taskType: point.task_type,
     reviewLevel: point.review_level,
     domainStatus: point.domain_status,
-    itemStyle: { color: reviewColors[point.review_level] || "#909399" },
+    itemStyle: { color: reviewColors[point.review_level] || "#7a879b" },
   }));
 
   classChart.clear();
@@ -368,7 +368,7 @@ function renderClassChart(points = []) {
           silent: true,
           symbol: "none",
           lineStyle: { type: "dashed", color: "#c0c4cc" },
-          label: { color: "#909399", fontSize: 10 },
+          label: { color: "#7a879b", fontSize: 10 },
           data: [
             { xAxis: 25, name: "临界" },
             { xAxis: 45, name: "域外" },
@@ -393,7 +393,7 @@ function renderSceneChart(distribution = []) {
     return;
   }
 
-  const colors = ["#67c23a", "#e6a23c", "#f56c6c"];
+  const colors = ["#2ea77f", "#d79c3f", "#d85b6b"];
   sceneChart.clear();
   sceneChart.setOption({
     tooltip: {
@@ -423,7 +423,7 @@ function emptyChartOption(message) {
       style: {
         text: message,
         textAlign: "center",
-        fill: "#909399",
+        fill: "#7a879b",
         fontSize: 14,
         lineHeight: 22,
       },
@@ -437,7 +437,7 @@ function renderTypeChart(distribution) {
     typeChart = echarts.init(typeChartRef.value);
   }
 
-  const colors = ["#409eff", "#67c23a", "#e6a23c", "#f56c6c", "#909399"];
+  const colors = ["#4f7cff", "#2ea77f", "#d79c3f", "#d85b6b", "#7a879b"];
 
   typeChart.setOption({
     tooltip: {
@@ -501,12 +501,20 @@ onBeforeUnmount(() => {
 
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.72));
+  border: 1px solid rgba(78, 103, 138, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(20, 33, 56, 0.06);
 
   h2 {
     margin: 0;
+    font-size: 24px;
+    color: $text-primary;
   }
 }
 
@@ -516,22 +524,46 @@ onBeforeUnmount(() => {
 }
 
 .stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
   :deep(.el-card__body) {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 20px;
+    padding: 18px 20px;
+  }
+
+  &:hover {
+    box-shadow: 0 16px 34px rgba(20, 33, 56, 0.09);
+    transform: translateY(-2px);
   }
 }
 
 .stat-icon {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: rgba(78, 103, 138, 0.06);
+
+  &--blue {
+    background: rgba(79, 124, 255, 0.12);
+  }
+
+  &--green {
+    background: rgba(46, 167, 127, 0.12);
+  }
+
+  &--amber {
+    background: rgba(215, 156, 63, 0.13);
+  }
+
+  &--rose {
+    background: rgba(216, 91, 107, 0.12);
+  }
 }
 
 .stat-info {
@@ -542,20 +574,20 @@ onBeforeUnmount(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #303133;
+  color: $text-primary;
   line-height: 1.2;
 
   .unit {
     font-size: 14px;
     font-weight: 400;
-    color: #909399;
+    color: $text-secondary;
     margin-left: 2px;
   }
 }
 
 .stat-label {
   font-size: 13px;
-  color: #909399;
+  color: $text-secondary;
   margin-top: 2px;
 }
 
@@ -564,21 +596,21 @@ onBeforeUnmount(() => {
   margin-top: 4px;
 
   &.growth-up {
-    color: #67c23a;
+    color: $success-color;
     &::before {
       content: "↑ ";
     }
   }
 
   &.growth-down {
-    color: #f56c6c;
+    color: $danger-color;
     &::before {
       content: "↓ ";
     }
   }
 
   &.growth-flat {
-    color: #909399;
+    color: $text-muted;
   }
 }
 
@@ -599,7 +631,32 @@ onBeforeUnmount(() => {
 }
 
 .chart-help {
-  color: #909399;
+  color: $text-secondary;
   cursor: help;
+}
+
+:deep(.el-card) {
+  border-radius: 14px;
+}
+
+@media (max-width: 1024px) {
+  .stat-cards :deep(.el-col) {
+    width: 50%;
+    max-width: 50%;
+    flex: 0 0 50%;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .stat-cards :deep(.el-col),
+  .chart-row :deep(.el-col) {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
 }
 </style>

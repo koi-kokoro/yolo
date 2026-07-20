@@ -37,10 +37,64 @@ import { Loading } from '@element-plus/icons-vue'
 export default { components: { Loading } }
 </script>
 
-<style scoped>
-.result-viewer__state { padding: 100px 20px; text-align: center; color: #606266; }
-.result-viewer__canvas { display: grid; place-items: center; min-height: 420px; margin-top: 16px; border-radius: 8px; background: #f5f7fa; overflow: hidden; }
-.result-viewer__canvas :deep(.el-image) { width: 100%; height: 500px; }
-.result-viewer__links { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
-.result-viewer__links a { color: #409eff; text-decoration: none; }
+<style scoped lang="scss">
+.result-viewer__state {
+  padding: 100px 20px;
+  text-align: center;
+  color: $text-secondary;
+}
+
+.result-viewer__canvas {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  margin-top: 16px;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(78, 103, 138, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(78, 103, 138, 0.045) 1px, transparent 1px),
+    rgba(248, 250, 253, 0.92);
+  background-size: 28px 28px, 28px 28px, auto;
+  border: 1px solid rgba(122, 146, 181, 0.14);
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.result-viewer__canvas :deep(.el-image) {
+  width: 100%;
+  height: 500px;
+}
+
+.result-viewer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.result-viewer__links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  color: $primary-dark;
+  text-decoration: none;
+  background: rgba($primary-color, 0.07);
+  border: 1px solid rgba($primary-color, 0.14);
+  border-radius: 999px;
+}
+
+.result-viewer__links a:hover {
+  background: rgba($primary-color, 0.12);
+}
+
+@media (max-width: 640px) {
+  .result-viewer__canvas {
+    min-height: 280px;
+  }
+
+  .result-viewer__canvas :deep(.el-image) {
+    height: 320px;
+  }
+}
 </style>

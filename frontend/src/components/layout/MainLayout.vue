@@ -4,10 +4,10 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import AppHeader from './AppHeader.vue'
 import AppSidebar from './AppSidebar.vue'
 
-const MIN_SIDEBAR_WIDTH = 180
-const MAX_SIDEBAR_WIDTH = 360
-const COLLAPSE_THRESHOLD = 112
-const DEFAULT_SIDEBAR_WIDTH = 232
+const MIN_SIDEBAR_WIDTH = 224
+const MAX_SIDEBAR_WIDTH = 356
+const COLLAPSE_THRESHOLD = 120
+const DEFAULT_SIDEBAR_WIDTH = 272
 const SIDEBAR_WIDTH_KEY = 'rsod-sidebar-width'
 const SIDEBAR_COLLAPSED_KEY = 'rsod-sidebar-collapsed'
 
@@ -111,7 +111,7 @@ onBeforeUnmount(stopResizing)
         class="main-layout__resizer"
         role="separator"
         tabindex="0"
-        aria-label="调整任务栏宽度"
+        aria-label="调整侧边栏宽度"
         aria-orientation="vertical"
         :aria-valuenow="sidebarWidth"
         :aria-valuemin="MIN_SIDEBAR_WIDTH"
@@ -128,12 +128,27 @@ onBeforeUnmount(stopResizing)
 
 <style scoped lang="scss">
 .main-layout {
+  position: relative;
   min-height: 100vh;
-  background: $background-color;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba($primary-color, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba($primary-color, 0.035) 1px, transparent 1px),
+    linear-gradient(180deg, #f8fbff 0%, #eef3f9 52%, #f7fafc 100%);
+  background-size: 44px 44px, 44px 44px, auto;
+
+  &::before {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    content: '';
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0));
+  }
 }
 
 .main-layout__body {
   position: relative;
+  z-index: 1;
   display: flex;
   min-height: calc(100vh - $header-height);
 }
@@ -141,27 +156,29 @@ onBeforeUnmount(stopResizing)
 .main-layout__resizer {
   position: relative;
   z-index: 2;
-  flex: 0 0 5px;
-  width: 5px;
-  margin-left: -3px;
+  flex: 0 0 8px;
+  width: 8px;
+  margin-left: -4px;
   cursor: col-resize;
   touch-action: none;
 
   &::after {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 2px;
+    top: 18px;
+    bottom: 18px;
+    left: 3px;
     width: 2px;
     content: '';
-    background: transparent;
-    transition: background-color 0.15s ease;
+    background: rgba($primary-color, 0.16);
+    border-radius: 999px;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
   }
 
   &:hover::after,
   &:focus-visible::after,
   .main-layout__body--resizing &::after {
-    background: $primary-color;
+    background: $primary-light;
+    box-shadow: 0 0 20px rgba($primary-color, 0.58);
   }
 
   &:focus-visible {
@@ -172,7 +189,9 @@ onBeforeUnmount(stopResizing)
 .main-layout__content {
   flex: 1;
   min-width: 0;
-  padding: 24px;
+  max-height: calc(100vh - $header-height);
+  padding: 20px;
+  overflow: auto;
 }
 
 @media (max-width: 768px) {
@@ -181,6 +200,7 @@ onBeforeUnmount(stopResizing)
   }
 
   .main-layout__content {
+    max-height: none;
     padding: 16px;
   }
 

@@ -64,7 +64,10 @@ onBeforeUnmount(() => store.dispose())
 <template>
   <section class="semantic-page">
     <div class="semantic-page__heading">
-      <div><h1>土地覆盖语义分割</h1><p>上传单张遥感图，生成索引 Mask、彩色 Mask、叠加图及 LoveDA 7 类像素统计。</p></div>
+      <div>
+        <h1>土地覆盖语义分割</h1>
+        <p>上传单张遥感图，生成索引 Mask、彩色 Mask、叠加图及 LoveDA 7 类像素统计。</p>
+      </div>
       <el-tag v-if="modelInfo" :type="modelInfo.ready ? 'success' : 'danger'" size="large">模型{{ modelInfo.ready ? '已就绪' : '不可用' }}</el-tag>
     </div>
 
@@ -142,17 +145,101 @@ onBeforeUnmount(() => store.dispose())
 </template>
 
 <style scoped lang="scss">
-.semantic-page { display: flex; flex-direction: column; gap: 16px; }
-.semantic-page__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
-h1 { margin: 0 0 8px; font-size: 26px; color: #303133; } p { margin: 0; color: #606266; }
-.semantic-page__grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr); gap: 16px; }
-.semantic-page__section { margin-top: 0; }
-.semantic-page__alert { margin-top: -6px; }
-.card-title { display: flex; align-items: center; justify-content: space-between; }
-.model-info { margin-top: 18px; }
-.legend { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 16px; color: #606266; font-size: 13px; }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }.legend i { width: 14px; height: 14px; border: 1px solid #dcdfe6; border-radius: 3px; }
-.refresh-button { margin-top: 14px; }
-:deep(.el-table__row) { cursor: pointer; }
-@media (max-width: 1000px) { .semantic-page__grid { grid-template-columns: 1fr; } }
+.semantic-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.semantic-page__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.72));
+  border: 1px solid rgba(78, 103, 138, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(20, 33, 56, 0.06);
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  color: $text-primary;
+}
+
+p {
+  margin: 0;
+  color: $text-secondary;
+}
+
+.semantic-page__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(340px, .8fr);
+  gap: 16px;
+}
+
+.semantic-page__section {
+  margin-top: 0;
+}
+
+.semantic-page__alert {
+  margin-top: -6px;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.model-info {
+  margin-top: 18px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 16px;
+  color: $text-secondary;
+  font-size: 13px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  background: rgba(78, 103, 138, 0.05);
+  border: 1px solid rgba(78, 103, 138, 0.1);
+  border-radius: 999px;
+}
+
+.legend i {
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(122, 146, 181, 0.28);
+  border-radius: 3px;
+}
+
+.refresh-button {
+  margin-top: 14px;
+}
+
+:deep(.el-table__row) {
+  cursor: pointer;
+}
+
+@media (max-width: 1000px) {
+  .semantic-page__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .semantic-page__heading {
+    flex-direction: column;
+  }
+}
 </style>

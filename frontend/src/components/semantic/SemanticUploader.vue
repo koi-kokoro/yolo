@@ -89,8 +89,73 @@ onBeforeUnmount(revokePreview)
 </template>
 
 <style scoped lang="scss">
-.semantic-uploader__preview { display: block; width: 100%; height: 260px; object-fit: contain; }
-.semantic-uploader__tip { margin-top: 8px; color: #909399; font-size: 13px; }
-.semantic-uploader__actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; color: #606266; }
-@media (max-width: 700px) { .semantic-uploader__actions { align-items: flex-start; flex-direction: column; } }
+.semantic-uploader {
+  :deep(.el-upload) {
+    width: 100%;
+  }
+
+  :deep(.el-upload-dragger) {
+    width: 100%;
+    padding: 30px 18px;
+  }
+
+  :deep(.el-icon--upload) {
+    color: $primary-color;
+  }
+}
+
+.semantic-uploader__preview {
+  display: block;
+  width: 100%;
+  height: 280px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(78, 103, 138, 0.05);
+}
+
+.semantic-uploader__tip {
+  margin-top: 8px;
+  color: $text-secondary;
+  font-size: 13px;
+}
+
+.semantic-uploader__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 12px;
+  color: $text-regular;
+  background: rgba(78, 103, 138, 0.05);
+  border: 1px solid rgba(78, 103, 138, 0.1);
+  border-radius: 10px;
+}
+
+.semantic-uploader__actions > span {
+  min-width: 0;
+  overflow: hidden;
+  color: $text-secondary;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .semantic-uploader__actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .semantic-uploader__actions > div {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .semantic-uploader__actions :deep(.el-button) {
+    flex: 1;
+    margin-left: 0;
+  }
+}
 </style>

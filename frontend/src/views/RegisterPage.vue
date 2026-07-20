@@ -66,8 +66,14 @@ async function handleSubmit() {
 <template>
   <div class="auth-page">
     <section class="auth-card">
-      <h1 class="auth-title">创建账号</h1>
-      <p class="auth-subtitle">注册后可进入目标检测智能体平台</p>
+      <div class="auth-card__brand">
+        <span class="auth-card__mark">AI</span>
+        <div>
+          <p class="auth-kicker">RSOD AGENT PLATFORM</p>
+          <h1 class="auth-title">创建账号</h1>
+        </div>
+      </div>
+      <p class="auth-subtitle">注册后可进入遥感智能分析工作台。</p>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @keyup.enter="handleSubmit">
         <el-form-item label="用户名" prop="username">
           <el-input v-model.trim="form.username" autocomplete="username" />
@@ -97,7 +103,7 @@ async function handleSubmit() {
 <style scoped lang="scss">
 .auth-submit {
   width: 100%;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .auth-actions a {

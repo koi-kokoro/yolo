@@ -1,7 +1,10 @@
 <template>
   <div class="chat-page">
     <aside class="session-sidebar">
-      <el-button type="primary" class="new-session" @click="agentStore.createSession()">＋ 新建会话</el-button>
+      <el-button type="primary" class="new-session" @click="agentStore.createSession()">
+        <el-icon><Plus /></el-icon>
+        新建会话
+      </el-button>
       <div v-if="agentStore.sessionsLoading" class="session-empty">加载中...</div>
       <div
         v-for="session in agentStore.sessions"
@@ -82,7 +85,10 @@
         </div>
 
         <div v-if="msg.toolCall" class="tool-call-info">
-          <el-tag size="small" type="info"> 🔧 调用工具: {{ msg.toolCall.tool }} </el-tag>
+          <el-tag size="small" type="info" effect="light">
+            <el-icon><Tools /></el-icon>
+            调用工具: {{ msg.toolCall.tool }}
+          </el-tag>
         </div>
       </div>
     </div>
@@ -90,16 +96,20 @@
     <!-- 快捷操作栏 -->
     <div class="quick-actions">
       <el-button @click="handleQuickSegment('single')" :disabled="agentStore.isLoading">
-        📷 单图分割
+        <el-icon><Picture /></el-icon>
+        单图分割
       </el-button>
       <el-button @click="handleQuickSegment('batch')" :disabled="agentStore.isLoading">
-        📁 批量/ZIP 分割
+        <el-icon><FolderOpened /></el-icon>
+        批量/ZIP 分割
       </el-button>
       <el-button @click="handleQuickSegment('video')" :disabled="agentStore.isLoading">
-        🎬 视频
+        <el-icon><VideoCamera /></el-icon>
+        视频
       </el-button>
       <el-button @click="handleQuickSegment('camera')" :disabled="agentStore.isLoading">
-        📹 摄像头
+        <el-icon><Camera /></el-icon>
+        摄像头
       </el-button>
     </div>
 
@@ -193,7 +203,7 @@
 
     <div class="input-area">
       <el-button class="attach-btn" @click="triggerFileInput" :disabled="agentStore.isLoading" circle>
-        📎
+        <el-icon><Paperclip /></el-icon>
       </el-button>
       <input
         ref="fileInputRef"
@@ -217,6 +227,7 @@
         @click="sendMessage"
         :disabled="!canSend"
       >
+        <el-icon><Promotion /></el-icon>
         发送
       </el-button>
       <el-button v-else type="danger" @click="handleStop"> 停止 </el-button>
@@ -245,6 +256,7 @@ import { renderMarkdown } from '@/utils/markdown'
 import { createEventStream } from '@/utils/stream'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Camera, FolderOpened, Paperclip, Picture, Plus, Promotion, Tools, VideoCamera } from '@element-plus/icons-vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const agentStore = useAgentStore()
@@ -1057,7 +1069,7 @@ onBeforeUnmount(() => {
   flex-direction: row;
   height: 100%;
   min-height: 0;
-  background: #f5f5f5;
+  background: transparent;
 }
 
 .chat-main {
@@ -1069,24 +1081,49 @@ onBeforeUnmount(() => {
 
 .session-sidebar {
   width: 240px;
-  padding: 12px;
+  padding: 14px 12px;
   overflow-y: auto;
-  border-right: 1px solid #e0e0e0;
-  background: #fff;
+  border-right: 1px solid rgba(78, 103, 138, 0.14);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(246, 249, 253, 0.9));
 }
 
-.new-session { width: 100%; margin-bottom: 12px; }
-.session-item { padding: 10px; margin-bottom: 6px; border-radius: 8px; cursor: pointer; }
-.session-item:hover, .session-item.active { background: #ecf5ff; }
+.new-session {
+  width: 100%;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  box-shadow: 0 10px 22px rgba($primary-color, 0.18);
+}
+
+.session-item {
+  padding: 11px 10px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.session-item:hover {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba($primary-color, 0.18);
+  box-shadow: 0 8px 20px rgba(20, 33, 56, 0.06);
+  transform: translateY(-1px);
+}
+
+.session-item.active {
+  background: linear-gradient(135deg, rgba($primary-color, 0.12), rgba($info-color, 0.06));
+  border-color: rgba($primary-color, 0.24);
+  box-shadow: 0 10px 24px rgba($primary-color, 0.1);
+}
 .session-title { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.session-time { margin-top: 4px; color: #909399; font-size: 11px; }
+.session-time { margin-top: 4px; color: $text-secondary; font-size: 11px; }
 .session-actions { display: flex; justify-content: flex-end; }
-.session-empty, .load-more { color: #909399; text-align: center; }
+.session-empty, .load-more { color: $text-secondary; text-align: center; }
 
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  padding: 24px;
 }
 
 .message-item {
@@ -1104,31 +1141,33 @@ onBeforeUnmount(() => {
 
 .message-bubble {
   max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: 13px 16px;
+  border-radius: 14px;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .user-bubble {
-  background: #409eff;
-  color: white;
-  border-bottom-right-radius: 4px;
+  background: linear-gradient(135deg, $primary-color, $info-color);
+  color: #fff;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 12px 26px rgba($primary-color, 0.18);
 }
 
 .assistant-bubble {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-bottom-left-radius: 4px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.94));
+  border: 1px solid rgba(122, 146, 181, 0.16);
+  border-bottom-left-radius: 5px;
+  box-shadow: 0 8px 24px rgba(20, 33, 56, 0.06);
 }
 
 .workflow-progress {
   min-width: 320px;
   margin-bottom: 10px;
   padding: 10px;
-  border: 1px solid #d9ecff;
+  border: 1px solid rgba($primary-color, 0.2);
   border-radius: 8px;
-  background: #f5f9ff;
+  background: rgba($primary-color, 0.08);
 }
 
 .workflow-title {
@@ -1136,7 +1175,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: #303133;
+  color: $text-primary;
   font-size: 13px;
   font-weight: 600;
 }
@@ -1167,7 +1206,7 @@ onBeforeUnmount(() => {
   :deep(h5),
   :deep(h6) {
     margin: 1em 0 0.5em;
-    color: #303133;
+    color: $text-primary;
     line-height: 1.3;
   }
 
@@ -1199,34 +1238,35 @@ onBeforeUnmount(() => {
   :deep(th),
   :deep(td) {
     padding: 6px 10px;
-    border: 1px solid #dcdfe6;
+    border: 1px solid rgba(122, 146, 181, 0.16);
     text-align: left;
     white-space: nowrap;
   }
 
   :deep(th) {
-    background: #f5f7fa;
+    background: rgba($primary-color, 0.07);
     font-weight: 600;
   }
 
   :deep(blockquote) {
     padding-left: 12px;
-    border-left: 4px solid #dcdfe6;
-    color: #606266;
+    border-left: 4px solid rgba(122, 146, 181, 0.32);
+    color: $text-secondary;
   }
 
   :deep(pre) {
     overflow-x: auto;
     padding: 12px;
+    border: 1px solid rgba(122, 146, 181, 0.16);
     border-radius: 6px;
-    background: #282c34;
-    color: #f8f8f2;
+    background: rgba(78, 103, 138, 0.07);
+    color: $text-primary;
   }
 
   :deep(code) {
     padding: 0.15em 0.35em;
     border-radius: 4px;
-    background: #f2f3f5;
+    background: rgba(78, 103, 138, 0.1);
     font-family: Consolas, Monaco, monospace;
   }
 
@@ -1237,7 +1277,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(a) {
-    color: #409eff;
+    color: $primary-color;
     text-decoration: none;
   }
 
@@ -1253,7 +1293,7 @@ onBeforeUnmount(() => {
   span {
     width: 6px;
     height: 6px;
-    background: #999;
+    background: rgba($primary-color, 0.45);
     border-radius: 50%;
     animation: typing 1.2s infinite;
   }
@@ -1268,21 +1308,50 @@ onBeforeUnmount(() => {
 
 .quick-actions {
   display: flex;
-  gap: 8px;
-  padding: 12px 20px;
-  border-top: 1px solid #e0e0e0;
-  background: white;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 20px 10px;
+  border-top: 1px solid rgba(122, 146, 181, 0.16);
+  background: rgba(248, 250, 253, 0.88);
+
+  :deep(.el-button) {
+    margin-left: 0;
+    border-color: rgba(78, 103, 138, 0.14);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.86);
+    color: $text-regular;
+  }
+
+  :deep(.el-button:hover) {
+    color: $primary-dark;
+    border-color: rgba($primary-color, 0.32);
+    background: rgba($primary-color, 0.07);
+  }
 }
 
 .input-area {
   display: flex;
   gap: 8px;
-  padding: 12px 20px;
-  border-top: 1px solid #e0e0e0;
-  background: white;
+  padding: 12px 20px 16px;
+  border-top: 1px solid rgba(122, 146, 181, 0.16);
+  background: rgba(248, 250, 253, 0.94);
 
   .el-input {
     flex: 1;
+  }
+
+  :deep(.el-input__wrapper) {
+    min-height: 40px;
+    border-radius: 12px;
+    box-shadow: 0 0 0 1px rgba(78, 103, 138, 0.14) inset;
+  }
+
+  :deep(.el-input__wrapper.is-focus) {
+    box-shadow: 0 0 0 1px rgba($primary-color, 0.42) inset, 0 8px 22px rgba($primary-color, 0.08);
+  }
+
+  :deep(.el-button) {
+    border-radius: 10px;
   }
 }
 
@@ -1291,8 +1360,8 @@ onBeforeUnmount(() => {
   gap: 10px;
   overflow-x: auto;
   padding: 10px 20px;
-  border-top: 1px solid #e0e0e0;
-  background: #fff;
+  border-top: 1px solid rgba(122, 146, 181, 0.16);
+  background: rgba(248, 250, 253, 0.94);
 }
 
 .pending-attachment-card {
@@ -1308,8 +1377,9 @@ onBeforeUnmount(() => {
 .pending-attachment-file {
   width: 80px;
   height: 80px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid rgba(122, 146, 181, 0.16);
   border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(20, 33, 56, 0.08);
 }
 
 .pending-attachment-preview {
@@ -1320,8 +1390,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
-  color: #909399;
+  background: rgba(78, 103, 138, 0.06);
+  color: $text-secondary;
   font-size: 12px;
   font-weight: 600;
 }
@@ -1329,14 +1399,14 @@ onBeforeUnmount(() => {
 .pending-attachment-name {
   width: 80px;
   overflow: hidden;
-  color: #303133;
+  color: $text-primary;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .pending-attachment-size {
-  color: #909399;
+  color: $text-secondary;
   font-size: 12px;
 }
 
@@ -1350,9 +1420,9 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  border: 2px solid #fff;
+  border: 2px solid rgba(255, 255, 255, 0.98);
   border-radius: 50%;
-  background: #f56c6c;
+  background: $danger-color;
   color: #fff;
   cursor: pointer;
   font-size: 18px;
@@ -1361,7 +1431,7 @@ onBeforeUnmount(() => {
 }
 
 .pending-attachment-remove:hover {
-  background: #f89898;
+  background: $danger-color;
 }
 
 .message-attachment {
@@ -1370,7 +1440,7 @@ onBeforeUnmount(() => {
   img {
     max-width: 200px;
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(122, 146, 181, 0.16);
   }
 }
 
@@ -1385,17 +1455,24 @@ onBeforeUnmount(() => {
     height: 80px;
     object-fit: cover;
     border-radius: 6px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(122, 146, 181, 0.16);
   }
 }
 
 .tool-call-info {
   margin-top: 8px;
   padding: 4px 8px;
-  background: #f5f5f5;
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 6px;
   font-size: 12px;
-  color: #666;
+  color: $text-secondary;
+
+  :deep(.el-tag) {
+    gap: 5px;
+    border-color: rgba($info-color, 0.18);
+    background: rgba($info-color, 0.08);
+    color: $text-secondary;
+  }
 }
 
 .camera-dialog {
@@ -1410,7 +1487,8 @@ onBeforeUnmount(() => {
 .camera-dialog .el-dialog__footer {
   position: sticky;
   bottom: 0;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1px solid rgba(122, 146, 181, 0.14);
   z-index: 10;
 }
 
@@ -1435,7 +1513,8 @@ onBeforeUnmount(() => {
   height: 100%;
   object-fit: cover;
   border-radius: 8px;
-  background: #000;
+  background: rgba(22, 34, 53, 0.92);
+  box-shadow: 0 10px 28px rgba(20, 33, 56, 0.12);
 }
 
 .camera-error-wrapper {
@@ -1449,7 +1528,7 @@ onBeforeUnmount(() => {
 }
 
 .camera-error-message {
-  color: #f56c6c;
+  color: $danger-color;
   font-size: 14px;
 }
 
@@ -1458,6 +1537,54 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 12px;
   padding-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .chat-page {
+    flex-direction: column;
+  }
+
+  .session-sidebar {
+    width: 100%;
+    max-height: 220px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(78, 103, 138, 0.14);
+  }
+
+  .message-list {
+    padding: 16px;
+  }
+
+  .message-bubble {
+    max-width: 90%;
+  }
+
+  .quick-actions,
+  .input-area,
+  .pending-attachments {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+}
+
+@media (max-width: 560px) {
+  .input-area {
+    flex-wrap: wrap;
+
+    .el-input {
+      flex-basis: calc(100% - 48px);
+    }
+  }
+
+  .quick-actions :deep(.el-button) {
+    flex: 1 1 calc(50% - 8px);
+  }
+}
+
+@media (max-width: 420px) {
+  .quick-actions :deep(.el-button) {
+    flex-basis: 100%;
+  }
 }
 
 @keyframes typing {

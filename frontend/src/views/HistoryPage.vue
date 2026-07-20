@@ -1,18 +1,14 @@
 <template>
   <div class="history-page">
-    <!-- ── 页面标题 + 快速统计 ── -->
     <div class="page-header">
       <h2>检测历史</h2>
       <div class="header-stats">
         <el-tag type="info">总计 {{ summary.total_tasks }} 次</el-tag>
         <el-tag type="success">今日 {{ summary.today_tasks }} 次</el-tag>
-        <el-tag type="warning"
-          >处理中 {{ summary.status_counts?.processing || 0 }}</el-tag
-        >
+        <el-tag type="warning">处理中 {{ summary.status_counts?.processing || 0 }}</el-tag>
       </div>
     </div>
 
-    <!-- ── 筛选栏 ── -->
     <el-card shadow="never" class="filter-card">
       <el-form :inline="true" :model="filters" @submit.prevent="loadTasks">
         <el-form-item label="类型">
@@ -76,7 +72,6 @@
       </el-form>
     </el-card>
 
-    <!-- ── 任务列表表格 ── -->
     <el-card shadow="never" class="table-card">
       <el-table :data="tasks" v-loading="loading" stripe style="width: 100%">
         <el-table-column prop="id" label="ID" width="70" />
@@ -144,7 +139,6 @@
       </div>
     </el-card>
 
-    <!-- ── 任务详情抽屉 ── -->
     <el-drawer v-model="drawerVisible" title="任务详情" size="500px">
       <template v-if="detailLoading">
         <div style="text-align: center; padding: 40px">
@@ -193,9 +187,7 @@
             label="错误信息"
             :span="2"
           >
-            <span style="color: #f56c6c">{{
-              taskDetail.task.error_message
-            }}</span>
+            <span class="error-text">{{ taskDetail.task.error_message }}</span>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -437,35 +429,52 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .history-page {
-  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.72));
+  border: 1px solid rgba(78, 103, 138, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(20, 33, 56, 0.06);
 
   h2 {
     margin: 0;
+    font-size: 24px;
+    color: $text-primary;
   }
 }
 
 .header-stats {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .filter-card {
-  margin-bottom: 16px;
+  border-radius: 12px;
 
   :deep(.el-card__body) {
-    padding: 16px 16px 0;
+    padding: 16px 16px 4px;
+  }
+
+  :deep(.el-form) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
   }
 }
 
 .table-card {
-  margin-bottom: 16px;
+  overflow: hidden;
+  border-radius: 12px;
 }
 
 .pagination-wrapper {
@@ -477,11 +486,15 @@ onMounted(() => {
 /* 详情抽屉 */
 .detail-section {
   margin-top: 20px;
+  padding: 14px;
+  background: rgba(78, 103, 138, 0.05);
+  border: 1px solid rgba(78, 103, 138, 0.1);
+  border-radius: 10px;
 
   h4 {
     margin: 0 0 12px;
     font-size: 14px;
-    color: #303133;
+    color: $text-primary;
   }
 }
 
@@ -489,5 +502,25 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.error-text {
+  color: $danger-color;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+  }
+
+  .pagination-wrapper {
+    justify-content: flex-start;
+  }
+
+  .filter-card :deep(.el-form-item),
+  .filter-card :deep(.el-select),
+  .filter-card :deep(.el-date-editor) {
+    width: 100% !important;
+  }
 }
 </style>

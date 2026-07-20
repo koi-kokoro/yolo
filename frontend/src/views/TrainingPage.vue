@@ -578,7 +578,7 @@ onBeforeUnmount(() => trainingStore.dispose())
         </el-form-item>
         <el-form-item label="设为默认">
           <el-switch v-model="exportForm.set_default" />
-          <span style="margin-left: 8px; color: #909399; font-size: 12px">设为该场景的默认检测模型</span>
+          <span class="inline-hint">设为该场景的默认检测模型</span>
         </el-form-item>
         <el-form-item label="上传 MinIO">
           <el-switch v-model="exportForm.upload_minio" />
@@ -603,7 +603,7 @@ onBeforeUnmount(() => trainingStore.dispose())
             accept="image/*"
             :limit="1"
           >
-            <el-icon style="font-size: 40px; color: #909399"><UploadFilled /></el-icon>
+            <el-icon class="upload-icon"><UploadFilled /></el-icon>
             <div>拖拽图片到此处，或 <em>点击上传</em></div>
             <template #tip>
               <div class="el-upload__tip">支持 JPG/PNG 格式</div>
@@ -647,7 +647,7 @@ onBeforeUnmount(() => trainingStore.dispose())
 <style scoped lang="scss">
 .training-dashboard {
   min-height: 100%;
-  color: #1f2937;
+  color: $text-regular;
 }
 .dashboard-header {
   display: flex;
@@ -655,42 +655,47 @@ onBeforeUnmount(() => trainingStore.dispose())
   gap: 24px;
   align-items: flex-start;
   margin-bottom: 22px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 253, 0.72));
+  border: 1px solid rgba(78, 103, 138, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(20, 33, 56, 0.06);
   h1 {
     margin: 4px 0 8px;
     font-size: 28px;
-    color: #172033;
+    color: $text-primary;
   }
   p {
     margin: 0;
-    color: #6b7280;
+    color: $text-secondary;
     line-height: 1.7;
   }
 }
 .dashboard-section { margin-bottom: 28px; }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 18px 0 14px; }
-.section-heading span { color: #409eff; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+.section-heading span { color: $primary-color; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
 .section-heading h2 { margin: 4px 0 0; font-size: 21px; }
-.section-heading p { color: #8492a6; margin: 0; font-size: 13px; }
+.section-heading p { color: $text-secondary; margin: 0; font-size: 13px; }
 .online-section > .el-alert { margin-bottom: 14px; }
 .online-grid { display: grid; grid-template-columns: minmax(480px, 1.2fr) minmax(380px, 1fr); gap: 18px; margin-bottom: 18px; }
 .create-panel :deep(.el-select), .create-panel :deep(.el-input-number) { width: 100%; }
 .online-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
-.online-metrics div { padding: 14px; background: #f7f9fc; border-radius: 8px; }
+.online-metrics div { padding: 14px; background: rgba(78, 103, 138, 0.06); border: 1px solid rgba(78, 103, 138, 0.08); border-radius: 10px; }
 .online-metrics span, .online-metrics strong, .online-metrics small { display: block; }
-.online-metrics span, .online-metrics small { color: #909399; font-size: 12px; }
+.online-metrics span, .online-metrics small { color: $text-secondary; font-size: 12px; }
 .online-metrics strong { margin: 7px 0; font-size: 18px; }
-.artifacts { padding-top: 14px; border-top: 1px solid #ebeef5; }
+.artifacts { padding-top: 14px; border-top: 1px solid rgba(122, 146, 181, 0.14); }
 .artifacts .el-button { margin: 4px; }
 .action-bar {
-  background: #fff;
-  border: 1px solid #e5eaf1;
-  border-radius: 12px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.9));
+  border: 1px solid rgba(122, 146, 181, 0.16);
+  border-radius: 14px;
   padding: 18px 22px;
   margin-bottom: 18px;
   box-shadow: 0 4px 18px rgb(31 45 61 / 4%);
 }
 .eyebrow {
-  color: #409eff;
+  color: $primary-color;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1.8px;
@@ -698,9 +703,9 @@ onBeforeUnmount(() => trainingStore.dispose())
 .status-strip,
 .panel,
 .metric-card {
-  background: #fff;
-  border: 1px solid #e5eaf1;
-  border-radius: 12px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 253, 0.9));
+  border: 1px solid rgba(122, 146, 181, 0.16);
+  border-radius: 14px;
   box-shadow: 0 4px 18px rgb(31 45 61 / 4%);
 }
 .status-strip {
@@ -725,7 +730,7 @@ onBeforeUnmount(() => trainingStore.dispose())
     color: #fff;
     font-weight: 800;
     font-size: 22px;
-    background: linear-gradient(135deg, #409eff, #675df4);
+    background: linear-gradient(135deg, $primary-color, $info-color);
   }
   strong,
   span {
@@ -735,7 +740,7 @@ onBeforeUnmount(() => trainingStore.dispose())
     font-size: 17px;
   }
   span {
-    color: #8492a6;
+    color: $text-secondary;
     font-size: 13px;
     margin-top: 5px;
   }
@@ -746,7 +751,7 @@ onBeforeUnmount(() => trainingStore.dispose())
   grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 18px;
   div {
-    border-left: 1px solid #ebeef5;
+    border-left: 1px solid rgba(122, 146, 181, 0.12);
     padding-left: 18px;
   }
   span,
@@ -754,7 +759,7 @@ onBeforeUnmount(() => trainingStore.dispose())
     display: block;
   }
   span {
-    color: #909399;
+    color: $text-secondary;
     font-size: 12px;
     margin-bottom: 8px;
   }
@@ -771,29 +776,35 @@ onBeforeUnmount(() => trainingStore.dispose())
 }
 .metric-card {
   padding: 18px;
-  border-top: 3px solid #dcdfe6;
+  border-top: 3px solid rgba(122, 146, 181, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   span,
   strong,
   small {
     display: block;
   }
   span {
-    color: #6b7280;
+    color: $text-secondary;
     font-size: 13px;
   }
   strong {
     font-size: 28px;
     margin: 10px 0 8px;
-    color: #172033;
+    color: $text-primary;
   }
   small {
-    color: #a0a7b4;
+    color: $text-muted;
   }
   &.primary {
-    border-top-color: #409eff;
+    border-top-color: $primary-color;
   }
   &.warning {
-    border-top-color: #e6a23c;
+    border-top-color: $warning-color;
+  }
+
+  &:hover {
+    box-shadow: 0 16px 34px rgba(20, 33, 56, 0.09);
+    transform: translateY(-2px);
   }
 }
 .content-grid {
@@ -817,7 +828,7 @@ onBeforeUnmount(() => trainingStore.dispose())
     margin: 0 0 5px;
   }
   p {
-    color: #909399;
+    color: $text-secondary;
     font-size: 13px;
     margin: 0;
   }
@@ -836,10 +847,10 @@ onBeforeUnmount(() => trainingStore.dispose())
     border-radius: 3px;
   }
   .miou::before {
-    background: #409eff;
+    background: $primary-color;
   }
   .accuracy::before {
-    background: #67c23a;
+    background: $success-color;
   }
 }
 .line-chart {
@@ -850,27 +861,27 @@ onBeforeUnmount(() => trainingStore.dispose())
     stroke-linejoin: round;
   }
   .miou-line {
-    stroke: #409eff;
+    stroke: $primary-color;
   }
   .accuracy-line {
-    stroke: #67c23a;
+    stroke: $success-color;
   }
   svg {
     width: 100%;
     min-height: 260px;
     .grid-lines line {
-      stroke: #edf1f7;
+      stroke: rgba(122, 146, 181, 0.12);
       stroke-width: 1;
     }
     .grid-lines text {
-      fill: #9ca3af;
+      fill: $text-secondary;
       font-size: 11px;
     }
   }
   .x-axis {
     display: flex;
     justify-content: space-between;
-    color: #909399;
+    color: $text-secondary;
     font-size: 11px;
     padding: 0 5%;
   }
@@ -885,10 +896,10 @@ onBeforeUnmount(() => trainingStore.dispose())
     justify-content: space-between;
     gap: 12px;
     padding: 10px 0;
-    border-bottom: 1px dashed #ebeef5;
+    border-bottom: 1px dashed rgba(122, 146, 181, 0.16);
   }
   dt {
-    color: #909399;
+    color: $text-secondary;
   }
   dd {
     margin: 0;
@@ -911,14 +922,14 @@ onBeforeUnmount(() => trainingStore.dispose())
   border-collapse: collapse;
   font-size: 13px;
   th {
-    color: #8492a6;
-    background: #f7f9fc;
+    color: $text-secondary;
+    background: rgba($primary-color, 0.07);
     text-align: left;
     padding: 12px 14px;
   }
   td {
     padding: 13px 14px;
-    border-bottom: 1px solid #eef1f6;
+    border-bottom: 1px solid rgba(122, 146, 181, 0.12);
   }
   td:first-child {
     display: flex;
@@ -934,14 +945,14 @@ onBeforeUnmount(() => trainingStore.dispose())
       margin-right: 7px;
     }
     small {
-      color: #a0a7b4;
+      color: $text-muted;
     }
   }
 }
 .iou-bar {
   width: 180px;
   height: 8px;
-  background: #edf1f7;
+  background: rgba(122, 146, 181, 0.14);
   border-radius: 6px;
   overflow: hidden;
   span {
@@ -965,15 +976,15 @@ onBeforeUnmount(() => trainingStore.dispose())
   align-items: center;
   gap: 12px;
   border-radius: 8px;
-  background: #fef0f0;
+  background: rgba($danger-color, 0.12);
   padding: 14px;
   margin-bottom: 14px;
   > span {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #f56c6c;
-    box-shadow: 0 0 0 5px rgb(245 108 108 / 12%);
+    background: $danger-color;
+    box-shadow: 0 0 0 5px rgba($danger-color, 0.12);
   }
   strong,
   small {
@@ -981,13 +992,13 @@ onBeforeUnmount(() => trainingStore.dispose())
   }
   small {
     margin-top: 4px;
-    color: #909399;
+    color: $text-secondary;
   }
   &.ready {
-    background: #f0f9eb;
+    background: rgba($success-color, 0.12);
     > span {
-      background: #67c23a;
-      box-shadow: 0 0 0 5px rgb(103 194 58 / 12%);
+      background: $success-color;
+      box-shadow: 0 0 0 5px rgba($success-color, 0.12);
     }
   }
 }
@@ -997,6 +1008,15 @@ onBeforeUnmount(() => trainingStore.dispose())
 .predict-upload :deep(.el-upload-dragger) {
   width: 100%;
   padding: 20px;
+}
+.inline-hint {
+  margin-left: 8px;
+  color: $text-secondary;
+  font-size: 12px;
+}
+.upload-icon {
+  font-size: 40px;
+  color: $text-secondary;
 }
 @media (max-width: 1280px) {
   .metric-grid {

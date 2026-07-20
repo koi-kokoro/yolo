@@ -234,7 +234,7 @@ function previewImage(img) {
 }
 
 function getTrendColor(name) {
-  const palette = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C', '#909399']
+  const palette = ['#4f7cff', '#2ea77f', '#d79c3f', '#d85b6b', '#7a879b']
   const index = (name?.length || 0) % palette.length
   return palette[index]
 }
@@ -315,10 +315,11 @@ const classCountsArray = computed(() => {
 <style lang="scss" scoped>
 .segmentation-result-card {
   margin-top: 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border: 1px solid rgba(122, 146, 181, 0.16);
+  border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 253, 0.94));
+  box-shadow: 0 12px 30px rgba(20, 33, 56, 0.08);
 }
 
 .card-header {
@@ -326,10 +327,11 @@ const classCountsArray = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e0e0e0;
+  background: rgba($primary-color, 0.06);
+  border-bottom: 1px solid rgba(122, 146, 181, 0.14);
   font-weight: 600;
   font-size: 14px;
+  color: $text-primary;
 }
 
 .card-body {
@@ -343,13 +345,15 @@ const classCountsArray = computed(() => {
   flex: 1;
   min-width: 0;
 
-  img {
-    width: 100%;
-    max-height: 300px;
-    object-fit: contain;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: opacity 0.2s;
+    img {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: rgba(78, 103, 138, 0.05);
+      border: 1px solid rgba(122, 146, 181, 0.12);
+      cursor: pointer;
+      transition: opacity 0.2s;
 
     &:hover {
       opacity: 0.8;
@@ -370,23 +374,23 @@ const classCountsArray = computed(() => {
     text-align: center;
     cursor: pointer;
 
-    img {
-      width: 100%;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 4px;
-      border: 1px solid #e0e0e0;
-      transition: opacity 0.2s;
+      img {
+        width: 100%;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 1px solid rgba(122, 146, 181, 0.16);
+        transition: opacity 0.2s;
 
       &:hover {
         opacity: 0.8;
       }
     }
 
-    .image-name {
+      .image-name {
       display: block;
       font-size: 11px;
-      color: #909399;
+      color: $text-secondary;
       margin-top: 4px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -406,12 +410,12 @@ const classCountsArray = computed(() => {
   }
 
   .stat-label {
-    color: #909399;
+    color: $text-secondary;
   }
 
   .stat-value {
     font-weight: 600;
-    color: #303133;
+    color: $text-primary;
   }
 }
 
@@ -427,14 +431,14 @@ const classCountsArray = computed(() => {
 .analysis-section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .frame-summary {
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  border: 1px solid rgba(122, 146, 181, 0.16);
+  border-radius: 10px;
   padding: 10px;
-  background: #fafafa;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.82), rgba(78, 103, 138, 0.05));
 }
 
 .frame-summary-header {
@@ -442,17 +446,17 @@ const classCountsArray = computed(() => {
   justify-content: space-between;
   margin-bottom: 6px;
   font-size: 12px;
-  color: #606266;
+  color: $text-secondary;
 }
 
 .frame-summary-title {
   font-weight: 600;
-  color: #303133;
+  color: $text-primary;
 }
 
 .analysis-text {
   font-size: 12px;
-  color: #606266;
+  color: $text-secondary;
   margin-bottom: 8px;
 }
 
@@ -471,32 +475,36 @@ const classCountsArray = computed(() => {
 }
 
 .ratio-name {
-  color: #606266;
+  color: $text-secondary;
 }
 
 .ratio-bar-track {
   height: 8px;
   border-radius: 999px;
-  background: #e4e7ed;
+  background: rgba(122, 146, 181, 0.16);
   overflow: hidden;
 }
 
 .ratio-bar-fill {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #409eff, #67c23a);
+  background: linear-gradient(90deg, $primary-color, $info-color);
 }
 
 .ratio-value {
-  color: #303133;
+  color: $text-primary;
   text-align: right;
 }
 
 .trend-panel {
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  border: 1px solid rgba(122, 146, 181, 0.16);
+  border-radius: 10px;
   padding: 10px;
-  background: #fafafa;
+  background:
+    linear-gradient(rgba(78, 103, 138, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(78, 103, 138, 0.035) 1px, transparent 1px),
+    rgba(248, 250, 253, 0.82);
+  background-size: 28px 28px, 28px 28px, auto;
 }
 
 .trend-chart {
@@ -505,7 +513,7 @@ const classCountsArray = computed(() => {
 }
 
 .trend-axis {
-  stroke: #c0c4cc;
+  stroke: rgba(122, 146, 181, 0.4);
   stroke-width: 1;
 }
 
@@ -521,7 +529,7 @@ const classCountsArray = computed(() => {
   flex-wrap: wrap;
   gap: 8px;
   font-size: 12px;
-  color: #606266;
+  color: $text-secondary;
   margin-top: 4px;
 }
 
