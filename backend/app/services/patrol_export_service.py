@@ -136,6 +136,65 @@ class PatrolExportService:
             )
         ]
 
+        object_tasks = [
+            task
+            for task in current_tasks
+            if task.scene
+            and (
+                task.scene.name == "dior_facility_detection"
+                or task.scene.category == "object_detection"
+            )
+        ]
+        object_counts: dict[tuple[str, str], int] = {}
+        confidences: list[float] = []
+        object_detections: list[dict[str, Any]] = []
+        for task in object_tasks:
+            for result in task.results or []:
+                key = (result.class_name, result.class_name_cn or result.class_name)
+                object_counts[key] = object_counts.get(key, 0) + 1
+                confidences.append(float(result.confidence))
+                object_detections.append(
+                    {
+                        "task_id": task.id,
+                        "created_at": task.created_at.isoformat()
+                        if task.created_at
+                        else None,
+                        "class_name": result.class_name,
+                        "class_name_cn": result.class_name_cn,
+                        "class_id": result.class_id,
+                        "confidence": round(float(result.confidence), 6),
+                        "bbox": result.bbox,
+                        "image_width": result.image_width,
+                        "image_height": result.image_height,
+                    }
+                )
+        object_class_distribution = [
+            {
+                "class_name": name,
+                "display_name": display_name,
+                "count": count,
+                "ratio": round(count / len(object_detections), 6)
+                if object_detections
+                else None,
+            }
+            for (name, display_name), count in sorted(
+                object_counts.items(), key=lambda item: item[1], reverse=True
+            )
+        ]
+        object_detection = {
+            "tasks": len(object_tasks),
+            "images": sum(int(task.total_images or 0) for task in object_tasks),
+            "total_objects": len(object_detections),
+            "class_distribution": object_class_distribution,
+            "confidence": {
+                "average": round(sum(confidences) / len(confidences), 6)
+                if confidences
+                else None,
+                "minimum": round(min(confidences), 6) if confidences else None,
+                "maximum": round(max(confidences), 6) if confidences else None,
+            },
+        }
+
         daily = {
             (start_date + timedelta(days=index)).isoformat(): {
                 "date": (start_date + timedelta(days=index)).isoformat(),
@@ -190,7 +249,9 @@ class PatrolExportService:
             )
 
         warnings: list[str] = []
-        missing_semantic = current["tasks"] - current["semantic_tasks"]
+        missing_semantic = max(
+            0, current["tasks"] - current["semantic_tasks"] - len(object_tasks)
+        )
         missing_time = current["tasks"] - current["timed_tasks"]
         if missing_semantic:
             warnings.append(
@@ -223,9 +284,14 @@ class PatrolExportService:
                     f"有类别统计的数据中，除背景外以{dominant['display_name']}为主"
                     f"（占全部分割像素 {dominant['ratio'] * 100:.2f}%）。"
                 )
+            if object_detection["tasks"]:
+                conclusion += (
+                    f"DIOR 设施检测涉及 {object_detection['tasks']} 个任务，"
+                    f"保存了 {object_detection['total_objects']} 个目标框。"
+                )
 
         return {
-            "schema_version": 2,
+            "schema_version": 3,
             "export_type": "patrol_business_report",
             "generated_at": now.isoformat(),
             "period": {
@@ -251,6 +317,8 @@ class PatrolExportService:
             },
             "land_cover": land_cover,
             "dominant_land_cover": dominant,
+            "object_detection": object_detection,
+            "object_detections": object_detections,
             "daily_trend": daily_trend,
             "peak_activity": peak,
             "recent_tasks": recent_tasks,
@@ -266,6 +334,18 @@ class PatrolExportService:
                 if current["tasks"]
                 else None,
                 "class_pixels_estimated_from_stored_ratios": True,
+                "object_task_coverage": round(
+                    object_detection["tasks"] / current["tasks"], 4
+                )
+                if current["tasks"]
+                else None,
+                "object_detail_coverage": round(
+                    len(object_detections)
+                    / sum(int(task.total_objects or 0) for task in object_tasks),
+                    4,
+                )
+                if sum(int(task.total_objects or 0) for task in object_tasks)
+                else None,
                 "warnings": warnings,
             },
             "metric_definitions": {
@@ -274,11 +354,15 @@ class PatrolExportService:
                 "dominant_land_cover": "排除背景类别后，像素占比最高的地物类别",
                 "inference_time": "有有效耗时记录的任务总耗时除以对应图像数，单位毫秒",
                 "growth": "与紧邻的上一等长周期比较；上一周期为零时返回 null",
+                "object_count": "DIOR 目标检测保存的水平检测框数量，不是像素或面积",
+                "object_confidence": "模型对单个检测框类别判断的置信度",
             },
             "conclusion": conclusion,
         }
 
-    def build(self, user_id: int, days: int = 30) -> dict[str, Any]:
+    def build(
+        self, user_id: int, days: int = 30, domain: str = "all"
+    ) -> dict[str, Any]:
         safe_days = max(1, min(int(days), 365))
         now = datetime.now()
         current_start = datetime.combine(
@@ -287,16 +371,22 @@ class PatrolExportService:
         previous_start = current_start - timedelta(days=safe_days)
         db = SessionLocal()
         try:
-            tasks = (
+            query = (
                 db.query(DetectionTask)
-                .options(joinedload(DetectionTask.scene))
+                .options(
+                    joinedload(DetectionTask.scene),
+                    joinedload(DetectionTask.results),
+                )
                 .filter(
                     DetectionTask.user_id == user_id,
                     DetectionTask.created_at >= previous_start,
                 )
-                .order_by(DetectionTask.created_at.desc())
-                .all()
             )
+            if domain == "dior":
+                query = query.filter(
+                    DetectionTask.scene.has(name="dior_facility_detection")
+                )
+            tasks = query.order_by(DetectionTask.created_at.desc()).all()
             current = [task for task in tasks if task.created_at >= current_start]
             previous = [task for task in tasks if task.created_at < current_start]
             return self.compose(current, previous, safe_days, now)

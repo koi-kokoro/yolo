@@ -40,7 +40,13 @@ const routes = [
         path: 'detection',
         name: 'Detection',
         component: () => import('@/views/DetectionPage.vue'),
-        meta: { title: '语义分割', requiresAuth: true },
+        meta: { title: '土地覆盖', requiresAuth: true },
+      },
+      {
+        path: 'facility-detection',
+        name: 'FacilityDetection',
+        component: () => import('@/views/FacilityDetectionPage.vue'),
+        meta: { title: '设施检测', requiresAuth: true },
       },
       {
         path: 'training',

@@ -12,6 +12,7 @@ const menus = [
   { path: '/dashboard', title: '态势看板', icon: 'Grid' },
   { path: '/chat', title: '智能对话', icon: 'ChatDotRound' },
   { path: '/detection', title: '语义分割', icon: 'DataAnalysis' },
+  { path: '/facility-detection', title: '设施检测', icon: 'Aim' },
   { path: '/training', title: '模型中枢', icon: 'TrendCharts' },
   { path: '/history', title: '任务归档', icon: 'Files' },
   { path: '/settings', title: '系统设置', icon: 'Setting' },

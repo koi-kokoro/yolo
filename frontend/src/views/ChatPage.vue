@@ -73,6 +73,11 @@
             :result="msg.segmentationResult"
           />
 
+          <FacilityDetectionResultCard
+            v-if="msg.facilityDetectionResult"
+            :result="msg.facilityDetectionResult"
+          />
+
           <el-button
             v-if="msg.exportResult"
             class="export-download"
@@ -249,6 +254,7 @@
  *   - Stop generation
  */
 import { segmentBatch, segmentSingle, segmentVideo, segmentZip } from '@/api/segmentation'
+import FacilityDetectionResultCard from '@/components/FacilityDetectionResultCard.vue'
 import SegmentationResultCard from '@/components/SegmentationResultCard.vue'
 import { useAgentStore } from '@/stores/agent'
 import { useUserStore } from '@/stores/user'
@@ -416,7 +422,11 @@ async function sendMessage() {
         try {
           const result = JSON.parse(data.result)
           if (result.class_statistics || result.annotated_images || result.annotated_image) {
-            lastMsg.segmentationResult = result
+            if (result.kind === 'facility_detection') {
+              lastMsg.facilityDetectionResult = result
+            } else {
+              lastMsg.segmentationResult = result
+            }
           }
           if (result.download_url && result.filename) {
             lastMsg.exportResult = result
@@ -457,6 +467,7 @@ async function sendMessage() {
 
 const AGENT_LABELS = {
   detection: '图像分割',
+  facility_detection: '设施检测',
   analysis: '证据分析',
   review: '结果审核',
   report: '报告生成',

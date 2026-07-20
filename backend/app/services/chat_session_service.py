@@ -61,7 +61,7 @@ class ChatMemoryService:
             # route 仅来自服务端持久化的 agent_used，用于省略追问路由，不作为事实来源。
             route = item.get("route") or item.get("agent_used")
             if item.get("role") == "assistant" and route in {
-                "qa", "analysis", "detection", "evaluation", "export", "report", "chat"
+                "qa", "analysis", "detection", "facility_detection", "evaluation", "export", "report", "chat"
             }:
                 message["route"] = str(route)
             cleaned.append(message)
@@ -111,7 +111,7 @@ class ChatMemoryService:
             client = self._get_client()
             assistant = {"role": "assistant", "content": self.sanitize(assistant_content)}
             if route in {
-                "qa", "analysis", "detection", "evaluation", "export", "report", "chat"
+                "qa", "analysis", "detection", "facility_detection", "evaluation", "export", "report", "chat"
             }:
                 assistant["route"] = route
             payloads = [

@@ -7,6 +7,7 @@ from typing import Any, AsyncGenerator
 from app.agent.analysis_agent import AnalysisAgent
 from app.agent.chat_agent import chat_agent
 from app.agent.detection_agent import detection_agent
+from app.agent.facility_detection_agent import facility_detection_agent
 from app.agent.evaluation_agent import evaluation_agent
 from app.agent.export_agent import export_agent
 from app.agent.qa_agent import qa_agent
@@ -20,6 +21,7 @@ class Orchestrator:
     def __init__(self) -> None:
         self.agents = {
             "detection": detection_agent,
+            "facility_detection": facility_detection_agent,
             "evaluation": evaluation_agent,
             "export": export_agent,
             "analysis": AnalysisAgent(),
@@ -115,9 +117,6 @@ class Orchestrator:
 
             async for event in self._execute_step(step, state, kwargs):
                 yield event
-
-            if state.node_statuses[step.id] == "failed":
-                break
 
             if step.agent == "review" and not (state.review or {}).get("passed"):
                 analysis_step = next(

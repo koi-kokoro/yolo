@@ -29,11 +29,15 @@ function parseToolResult(value) {
 
 function mapMessage(message) {
   const toolResult = parseToolResult(message.tool_result)
-  const isSegmentationResult = toolResult && (
-    toolResult.class_statistics
-    || toolResult.annotated_images
-    || toolResult.annotated_image
-    || toolResult.annotated_image_ref
+  const semanticResult = toolResult?.kind === 'combined_detection' ? toolResult.semantic : toolResult
+  const facilityResult = toolResult?.kind === 'combined_detection'
+    ? toolResult.facility_detection
+    : toolResult?.kind === 'facility_detection' ? toolResult : null
+  const isSegmentationResult = semanticResult && semanticResult.kind !== 'facility_detection' && (
+    semanticResult.class_statistics
+    || semanticResult.annotated_images
+    || semanticResult.annotated_image
+    || semanticResult.annotated_image_ref
   )
   return {
     id: message.id,
@@ -43,7 +47,8 @@ function mapMessage(message) {
     toolCall: message.tool_calls?.[0] || null,
     exportResult: toolResult?.filename && toolResult?.download_url ? toolResult : null,
     attachmentRefs: message.role === 'user' ? toolResult?.attachments || [] : [],
-    segmentationResult: message.role === 'assistant' && isSegmentationResult ? toolResult : null,
+    segmentationResult: message.role === 'assistant' && isSegmentationResult ? semanticResult : null,
+    facilityDetectionResult: message.role === 'assistant' ? facilityResult : null,
     createdAt: message.created_at || new Date().toISOString(),
   }
 }
@@ -55,6 +60,9 @@ async function hydrateMessages(messages) {
     const result = message.segmentationResult
     if (result?.annotated_image_ref) refs.add(result.annotated_image_ref)
     result?.annotated_images?.forEach((item) => {
+      if (item.annotated_image_ref) refs.add(item.annotated_image_ref)
+    })
+    message.facilityDetectionResult?.images?.forEach((item) => {
       if (item.annotated_image_ref) refs.add(item.annotated_image_ref)
     })
   })
@@ -84,6 +92,11 @@ async function hydrateMessages(messages) {
       result.annotated_image_url = urlByRef.get(result.annotated_image_ref) || null
     }
     result?.annotated_images?.forEach((item) => {
+      if (item.annotated_image_ref) {
+        item.annotated_image_url = urlByRef.get(item.annotated_image_ref) || null
+      }
+    })
+    message.facilityDetectionResult?.images?.forEach((item) => {
       if (item.annotated_image_ref) {
         item.annotated_image_url = urlByRef.get(item.annotated_image_ref) || null
       }

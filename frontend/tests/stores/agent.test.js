@@ -6,6 +6,7 @@ vi.mock('@/api/chat', () => ({
   listChatMessages: vi.fn(),
   renameChatSession: vi.fn(),
   deleteChatSession: vi.fn(),
+  getChatImage: vi.fn(),
 }))
 
 import { createChatSession, deleteChatSession, listChatMessages, listChatSessions } from '@/api/chat'
@@ -84,5 +85,28 @@ describe('agent session store', () => {
     const store = useAgentStore()
     await store.selectSession(1)
     expect(store.messages[0].exportResult.filename).toBe('evaluation_test.json')
+  })
+
+  it('恢复联合检测消息中的语义和 DIOR 结果', async () => {
+    listChatMessages.mockResolvedValue({
+      items: [{
+        id: 11,
+        role: 'assistant',
+        content: '联合检测完成',
+        tool_result: JSON.stringify({
+          kind: 'combined_detection',
+          semantic: { mode: 'single', class_statistics: [{ name: 'water' }] },
+          facility_detection: {
+            kind: 'facility_detection',
+            total_objects: 1,
+            images: [{ filename: 'test.png', detections: [] }],
+          },
+        }),
+      }],
+    })
+    const store = useAgentStore()
+    await store.selectSession(1)
+    expect(store.messages[0].segmentationResult.mode).toBe('single')
+    expect(store.messages[0].facilityDetectionResult.total_objects).toBe(1)
   })
 })

@@ -35,6 +35,7 @@ class HistoryService:
         task_type: Optional[str] = None,
         status: Optional[str] = None,
         scene_id: Optional[int] = None,
+        scene_name: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> dict:
@@ -68,6 +69,8 @@ class HistoryService:
                 query = query.filter(DetectionTask.status == status)
             if scene_id:
                 query = query.filter(DetectionTask.scene_id == scene_id)
+            if scene_name:
+                query = query.filter(DetectionTask.scene.has(name=scene_name))
             if start_date:
                 try:
                     query = query.filter(
@@ -242,7 +245,7 @@ class HistoryService:
             db.close()
 
     @staticmethod
-    def get_summary(user_id: int) -> dict:
+    def get_summary(user_id: int, scene_name: Optional[str] = None) -> dict:
         """
         获取用户检测历史摘要统计
 
@@ -258,16 +261,20 @@ class HistoryService:
                 hour=0, minute=0, second=0, microsecond=0
             )
 
+            filters = [DetectionTask.user_id == user_id]
+            if scene_name:
+                filters.append(DetectionTask.scene.has(name=scene_name))
+
             total = (
                 db.query(func.count(DetectionTask.id))
-                .filter(DetectionTask.user_id == user_id)
+                .filter(*filters)
                 .scalar()
             )
 
             today_count = (
                 db.query(func.count(DetectionTask.id))
                 .filter(
-                    DetectionTask.user_id == user_id,
+                    *filters,
                     DetectionTask.created_at >= today_start,
                 )
                 .scalar()
@@ -277,7 +284,7 @@ class HistoryService:
             for s in ["completed", "processing", "failed", "pending"]:
                 count = (
                     db.query(func.count(DetectionTask.id))
-                    .filter(DetectionTask.user_id == user_id, DetectionTask.status == s)
+                    .filter(*filters, DetectionTask.status == s)
                     .scalar()
                 )
                 status_counts[s] = count

@@ -292,7 +292,7 @@ class DetectionAgent:
         planned_detection = any(
             item.get("agent") == "detection"
             for item in ((workflow_state or {}).get("plan") or {}).get("steps", [])
-        )
+        ) and len(((workflow_state or {}).get("plan") or {}).get("steps", [])) > 1
         if planned_detection or any(word in message for word in _DETECTION_INTENT_WORDS):
             tool_name = "segment_single_image"
             safe_input = _safe_tool_input(tool_name, {"image_path": image_path})

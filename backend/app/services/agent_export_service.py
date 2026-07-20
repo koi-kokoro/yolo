@@ -83,6 +83,11 @@ class AgentExportService:
             "reliability_score",
             "review_level",
             "note",
+            "class_id",
+            "confidence",
+            "bbox",
+            "image_width",
+            "image_height",
         ]
         with path.open("x", encoding="utf-8-sig", newline="") as handle:
             writer = csv.DictWriter(handle, fieldnames=fields)
@@ -164,6 +169,33 @@ class AgentExportService:
                         "review_level": item.get("review_level"),
                     }
                 )
+            for item in (data.get("object_detection") or {}).get(
+                "class_distribution", []
+            ):
+                writer.writerow(
+                    {
+                        "section": "object_summary",
+                        "name": item.get("class_name"),
+                        "display_name": item.get("display_name"),
+                        "value": item.get("count"),
+                        "unit": "个",
+                        "ratio": item.get("ratio"),
+                    }
+                )
+            for item in data.get("object_detections") or []:
+                writer.writerow(
+                    {
+                        "section": "object_detection",
+                        "date": item.get("created_at"),
+                        "name": item.get("class_name"),
+                        "display_name": item.get("class_name_cn"),
+                        "class_id": item.get("class_id"),
+                        "confidence": item.get("confidence"),
+                        "bbox": json.dumps(item.get("bbox"), ensure_ascii=False),
+                        "image_width": item.get("image_width"),
+                        "image_height": item.get("image_height"),
+                    }
+                )
             for warning in (data.get("data_quality") or {}).get("warnings", []):
                 writer.writerow({"section": "data_quality", "note": warning})
             writer.writerow(
@@ -177,7 +209,7 @@ class AgentExportService:
         file_format: str,
         data: dict[str, Any],
     ) -> dict[str, Any]:
-        if data_type not in {"evaluation", "patrol"}:
+        if data_type not in {"evaluation", "patrol", "dior"}:
             raise ValueError("不支持的导出数据类型")
         if file_format not in {"json", "csv"}:
             raise ValueError("不支持的导出格式")

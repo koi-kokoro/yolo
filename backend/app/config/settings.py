@@ -82,6 +82,20 @@ class Settings(BaseSettings):
     SEMANTIC_OVERLAY_ALPHA: float = 0.45
     SEMANTIC_PT_DEVICE: str = "cuda:0"
 
+    # DIOR YOLO11 horizontal-box facility detection.  This is intentionally
+    # isolated from the LoveDA semantic runtime because their output contracts
+    # (boxes vs. masks) are different.
+    DIOR_DEPLOY_DIR: str = "../training/dior/artifacts/current/deploy"
+    DIOR_DEVICE: str = "cpu"
+    DIOR_INPUT_SIZE: int = 640
+    DIOR_CONF_THRESHOLD: float = 0.25
+    DIOR_IOU_THRESHOLD: float = 0.45
+    DIOR_VERIFY_SHA256: bool = True
+    DIOR_MODEL_SHA256: str | None = None
+    DIOR_EXECUTOR_WORKERS: int = 1
+    DIOR_QUEUE_SIZE: int = 8
+    DIOR_MAX_BATCH_IMAGES: int = 20
+
     # ── LoveDA 在线训练（可信固定入口，测试可通过环境覆盖）──
     ONLINE_TRAINING_ENABLED: bool = False
     ONLINE_TRAINING_TRUSTED_ROOT: str = "../training/loveda_semantic"
@@ -150,6 +164,10 @@ class Settings(BaseSettings):
     @property
     def semantic_deploy_path(self) -> Path:
         return self._backend_relative_path(self.SEMANTIC_DEPLOY_DIR)
+
+    @property
+    def dior_deploy_path(self) -> Path:
+        return self._backend_relative_path(self.DIOR_DEPLOY_DIR)
 
     @property
     def model_management_trusted_root_path(self) -> Path:

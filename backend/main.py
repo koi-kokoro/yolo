@@ -17,6 +17,7 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logger import get_logger, setup_logging
 from app.middleware.request_logger import RequestLoggerMiddleware
 from app.api.dashboard import router as dashboard_router
+from app.api.detection import router as detection_router
 from app.api.history import router as history_router
 from app.api.user import router as user_router
 
@@ -42,6 +43,7 @@ async def lifespan(_app: FastAPI):
 
     from app.database.session import SessionLocal
     from app.services.semantic_runtime import semantic_runtime
+    from app.services.dior_detection_runtime import dior_detection_runtime
     from app.services.semantic_task_service import semantic_task_service
     from app.training.training_service import training_service
 
@@ -70,7 +72,9 @@ async def lifespan(_app: FastAPI):
     finally:
         db.close()
     semantic_runtime.start()
+    dior_detection_runtime.start()
     yield
+    dior_detection_runtime.shutdown()
     semantic_runtime.shutdown()
     logger.info("Service shutdown complete")
 
@@ -97,6 +101,7 @@ register_exception_handlers(app)
 app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(semantic_router)
+app.include_router(detection_router)
 app.include_router(semantic_models_router)
 app.include_router(model_management_router)
 app.include_router(chat_router)

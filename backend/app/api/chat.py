@@ -53,10 +53,10 @@ router = APIRouter(prefix="/api/chat", tags=["智能对话"])
 segmentation_router = APIRouter(prefix="/api/segmentation", tags=["快捷分割"])
 
 _IMAGE_FOLLOW_UP = re.compile(
-    r"(?:识别|检测|分析|分割|查看|看看|地物|类别|主要)"
-    r".*(?:图片|影像|刚才|刚刚|上传|这张|那张)|"
-    r"(?:图片|影像|刚才|刚刚|上传|这张|那张)"
-    r".*(?:识别|检测|分析|分割|查看|看看|地物|类别|主要)"
+    r"(?:识别|检测|分析|分割|查看|看看|地物|类别|目标|东西|主要|有什么|有哪些)"
+    r".*(?:图片|影像|图里|图例|图中|图上|刚才|刚刚|上传|这张|那张)|"
+    r"(?:图片|影像|图里|图例|图中|图上|刚才|刚刚|上传|这张|那张)"
+    r".*(?:识别|检测|分析|分割|查看|看看|地物|类别|目标|东西|主要|有什么|有哪些)"
 )
 _SHORT_IMAGE_COMMAND = re.compile(
     r"^(?:帮我)?(?:再)?(?:识别|检测|分析|查看|看看|分割|语义分割)"
@@ -88,6 +88,30 @@ def _persistent_segmentation_result(result: dict, user_id: int) -> dict:
             )
 
     return persisted
+
+
+def _merge_detection_tool_result(
+    current: str | None,
+    result_kind: str,
+    payload: dict,
+) -> str:
+    """Keep both model results in one ChatMessage without breaking old records."""
+    if not current:
+        return json.dumps(payload, ensure_ascii=False)
+    try:
+        previous = json.loads(current)
+    except (TypeError, json.JSONDecodeError):
+        previous = None
+    if not isinstance(previous, dict):
+        return json.dumps(payload, ensure_ascii=False)
+    if previous.get("kind") == "combined_detection":
+        combined = previous
+    elif previous.get("kind") == "facility_detection":
+        combined = {"kind": "combined_detection", "facility_detection": previous}
+    else:
+        combined = {"kind": "combined_detection", "semantic": previous}
+    combined[result_kind] = payload
+    return json.dumps(combined, ensure_ascii=False)
 
 
 def _requests_session_image(message: str) -> bool:
@@ -332,12 +356,23 @@ async def chat_stream(
                             parsed_result.get("class_statistics")
                             or parsed_result.get("annotated_images")
                             or parsed_result.get("annotated_image")
-                        ):
-                            persisted_tool_result = json.dumps(
+                        ) and parsed_result.get("kind") != "facility_detection":
+                            persisted_tool_result = _merge_detection_tool_result(
+                                persisted_tool_result,
+                                "semantic",
                                 _persistent_segmentation_result(
                                     parsed_result, _current_user.id
                                 ),
-                                ensure_ascii=False,
+                            )
+                        elif parsed_result.get("kind") == "facility_detection":
+                            persisted = copy.deepcopy(parsed_result)
+                            for image in persisted.get("images") or []:
+                                image.pop("source_url", None)
+                                image.pop("annotated_image_url", None)
+                            persisted_tool_result = _merge_detection_tool_result(
+                                persisted_tool_result,
+                                "facility_detection",
+                                persisted,
                             )
                         elif route == "export" and parsed_result.get("filename") and parsed_result.get("download_url"):
                             persisted_tool_result = json.dumps(

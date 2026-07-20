@@ -9,6 +9,7 @@ from app.orchestration.workflow import (
     TaskPlan,
     WorkflowState,
     build_land_cover_analysis,
+    build_object_detection_analysis,
     compact_evidence,
 )
 
@@ -24,11 +25,37 @@ def test_image_report_builds_evidence_review_pipeline():
     assert plan.primary_route == "report"
     assert [step.agent for step in plan.steps] == [
         "detection",
+        "facility_detection",
         "analysis",
         "review",
         "report",
     ]
     assert plan.steps[-1].depends_on == ("review",)
+
+
+def test_dior_image_report_builds_object_evidence_pipeline():
+    plan = Supervisor().plan(
+        "检测这张图里的飞机并生成 DIOR 报告", "trusted.png"
+    )
+    assert plan.primary_route == "report"
+    assert [step.agent for step in plan.steps] == [
+        "facility_detection",
+        "analysis",
+        "review",
+        "report",
+    ]
+
+
+def test_dior_export_is_not_swallowed_by_detection_route():
+    historical = Supervisor().plan("导出最近7天 DIOR 检测结果 CSV")
+    current = Supervisor().plan(
+        "检测这张图里的飞机并导出 CSV", "trusted.png"
+    )
+    assert [step.agent for step in historical.steps] == ["analysis", "export"]
+    assert [step.agent for step in current.steps] == [
+        "facility_detection",
+        "export",
+    ]
 
 
 def test_evaluation_export_is_a_two_step_plan():
@@ -148,6 +175,28 @@ def test_sorted_image_analysis_keeps_original_evidence_indexes():
     reviewed_state = {
         "evidence_pack": {
             "tool_results": {"detection": detection},
+            "analysis": analysis,
+        }
+    }
+    assert ReviewAgent.review(reviewed_state)["passed"] is True
+
+
+def test_dior_analysis_uses_object_counts_as_evidence():
+    detection = {
+        "total_objects": 3,
+        "class_statistics": [
+            {"class_name": "airplane", "class_name_cn": "飞机", "count": 2},
+            {"class_name": "vehicle", "class_name_cn": "车辆", "count": 1},
+        ],
+    }
+    analysis = build_object_detection_analysis(detection)
+    assert analysis["domain"] == "object_detection"
+    assert analysis["claims"][1]["evidence_ref"] == (
+        "tool_results.facility_detection.class_statistics[0].count"
+    )
+    reviewed_state = {
+        "evidence_pack": {
+            "tool_results": {"facility_detection": detection},
             "analysis": analysis,
         }
     }

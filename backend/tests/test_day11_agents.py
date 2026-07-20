@@ -243,6 +243,11 @@ def test_export_agent_parses_type_format_and_period():
         "file_format": "json",
         "days": 30,
     }
+    assert ExportAgent._arguments("导出最近14天 DIOR 检测框 CSV") == {
+        "data_type": "dior",
+        "file_format": "csv",
+        "days": 14,
+    }
 
 
 def test_export_download_uses_authenticated_user(client: TestClient, tmp_path):

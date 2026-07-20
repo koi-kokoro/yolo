@@ -28,7 +28,9 @@ class DashboardService:
     """数据看板服务"""
 
     @staticmethod
-    def get_statistics(user_id: int, days: int = 30) -> dict:
+    def get_statistics(
+        user_id: int, days: int = 30, scene_name: str | None = None
+    ) -> dict:
         """
         获取检测汇总统计数据
 
@@ -46,8 +48,7 @@ class DashboardService:
             prev_start = now - timedelta(days=days * 2)
 
             # ── 当前时段统计 ──
-            current_stats = (
-                db.query(
+            current_query = db.query(
                     func.count(DetectionTask.id).label("total_tasks"),
                     func.coalesce(func.sum(DetectionTask.total_images), 0).label(
                         "total_images"
@@ -59,7 +60,12 @@ class DashboardService:
                         func.avg(DetectionTask.total_inference_time), 0
                     ).label("avg_inference_time"),
                 )
-                .filter(
+            if scene_name:
+                current_query = current_query.join(
+                    DetectionScene, DetectionTask.scene_id == DetectionScene.id
+                ).filter(DetectionScene.name == scene_name)
+            current_stats = (
+                current_query.filter(
                     DetectionTask.user_id == user_id,
                     DetectionTask.created_at >= start_date,
                 )
@@ -67,8 +73,7 @@ class DashboardService:
             )
 
             # ── 上一时段统计（用于环比） ──
-            prev_stats = (
-                db.query(
+            previous_query = db.query(
                     func.count(DetectionTask.id).label("total_tasks"),
                     func.coalesce(func.sum(DetectionTask.total_images), 0).label(
                         "total_images"
@@ -80,7 +85,12 @@ class DashboardService:
                         func.avg(DetectionTask.total_inference_time), 0
                     ).label("avg_inference_time"),
                 )
-                .filter(
+            if scene_name:
+                previous_query = previous_query.join(
+                    DetectionScene, DetectionTask.scene_id == DetectionScene.id
+                ).filter(DetectionScene.name == scene_name)
+            prev_stats = (
+                previous_query.filter(
                     DetectionTask.user_id == user_id,
                     DetectionTask.created_at >= prev_start,
                     DetectionTask.created_at < start_date,
@@ -122,7 +132,9 @@ class DashboardService:
             db.close()
 
     @staticmethod
-    def get_trend(user_id: int, days: int = 30) -> dict:
+    def get_trend(
+        user_id: int, days: int = 30, scene_name: str | None = None
+    ) -> dict:
         """
         获取每日检测趋势数据（用于折线图）
 
@@ -138,8 +150,7 @@ class DashboardService:
             start_date = datetime.now() - timedelta(days=days)
 
             # 按日期聚合查询
-            daily_stats = (
-                db.query(
+            trend_query = db.query(
                     cast(DetectionTask.created_at, Date).label("date"),
                     func.count(DetectionTask.id).label("task_count"),
                     func.coalesce(func.sum(DetectionTask.total_objects), 0).label(
@@ -149,7 +160,12 @@ class DashboardService:
                         "image_count"
                     ),
                 )
-                .filter(
+            if scene_name:
+                trend_query = trend_query.join(
+                    DetectionScene, DetectionTask.scene_id == DetectionScene.id
+                ).filter(DetectionScene.name == scene_name)
+            daily_stats = (
+                trend_query.filter(
                     DetectionTask.user_id == user_id,
                     DetectionTask.created_at >= start_date,
                 )
@@ -190,7 +206,9 @@ class DashboardService:
             db.close()
 
     @staticmethod
-    def get_class_distribution(user_id: int, days: int = 30) -> dict:
+    def get_class_distribution(
+        user_id: int, days: int = 30, scene_name: str | None = None
+    ) -> dict:
         """
         获取各类别检测次数分布（用于饼图）
 
@@ -206,13 +224,20 @@ class DashboardService:
             start_date = datetime.now() - timedelta(days=days)
 
             # 关联查询：detection_results JOIN detection_tasks
-            class_stats = (
+            class_query = (
                 db.query(
                     DetectionResult.class_name,
+                    func.max(DetectionResult.class_name_cn).label("display_name"),
                     func.count(DetectionResult.id).label("count"),
                 )
                 .join(DetectionTask, DetectionResult.task_id == DetectionTask.id)
-                .filter(
+            )
+            if scene_name:
+                class_query = class_query.join(
+                    DetectionScene, DetectionTask.scene_id == DetectionScene.id
+                ).filter(DetectionScene.name == scene_name)
+            class_stats = (
+                class_query.filter(
                     DetectionTask.user_id == user_id,
                     DetectionTask.created_at >= start_date,
                 )
@@ -222,7 +247,12 @@ class DashboardService:
             )
 
             distribution = [
-                {"name": row.class_name, "value": row.count} for row in class_stats
+                {
+                    "name": row.class_name,
+                    "display_name": row.display_name or row.class_name,
+                    "value": row.count,
+                }
+                for row in class_stats
             ]
 
             return {"distribution": distribution, "period_days": days}

@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from app.entity.db_models import DetectionScene, DetectionTask
+from app.entity.db_models import DetectionResult, DetectionScene, DetectionTask
 from app.services.agent_export_service import AgentExportService
 from app.services.patrol_export_service import PatrolExportService
 
@@ -56,7 +56,7 @@ def test_patrol_export_uses_semantic_pixels_and_reports_missing_data():
 
     report = PatrolExportService.compose(tasks, [], 7, now)
 
-    assert report["schema_version"] == 2
+    assert report["schema_version"] == 3
     assert report["summary"]["tasks"] == 2
     assert report["summary"]["segmented_pixels"] == 100
     assert report["summary"]["segmented_pixels"] != sum(
@@ -106,3 +106,53 @@ def test_patrol_csv_contains_business_sections(tmp_path):
     assert "recent_tasks" in content
     assert "conclusion" in content
     assert "segmented_pixels" in content
+
+
+def test_dior_objects_are_exported_with_confidence_and_bbox(tmp_path):
+    now = datetime(2026, 7, 20, 15, 0, 0)
+    scene = DetectionScene(
+        id=9,
+        name="dior_facility_detection",
+        display_name="DIOR 遥感设施检测",
+        category="object_detection",
+    )
+    task = DetectionTask(
+        id=9,
+        user_id=1,
+        scene_id=9,
+        task_type="single",
+        status="completed",
+        total_images=1,
+        total_objects=1,
+        total_inference_time=12.5,
+        created_at=now,
+        completed_at=now,
+    )
+    task.scene = scene
+    task.results = [
+        DetectionResult(
+            task_id=9,
+            image_path="object-key",
+            class_name="airplane",
+            class_name_cn="飞机",
+            class_id=0,
+            confidence=0.91,
+            bbox={"x1": 1, "y1": 2, "x2": 20, "y2": 18},
+            image_width=32,
+            image_height=24,
+        )
+    ]
+
+    report = PatrolExportService.compose([task], [], 7, now)
+    assert report["object_detection"]["total_objects"] == 1
+    assert report["object_detection"]["class_distribution"][0]["display_name"] == "飞机"
+    assert report["object_detections"][0]["confidence"] == 0.91
+    assert "缺少类别统计" not in " ".join(report["data_quality"]["warnings"])
+
+    service = AgentExportService(tmp_path)
+    result = service.create(1, "dior", "csv", report)
+    content = service.resolve(1, result["filename"]).read_text(encoding="utf-8-sig")
+    assert "object_summary" in content
+    assert "object_detection" in content
+    assert "0.91" in content
+    assert '"x1": 1' in content

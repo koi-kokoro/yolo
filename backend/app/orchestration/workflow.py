@@ -47,7 +47,9 @@ def parse_tool_result(value: Any) -> Any:
     return compact_evidence(value)
 
 
-def build_land_cover_analysis(detection: dict[str, Any]) -> dict[str, Any]:
+def build_land_cover_analysis(
+    detection: dict[str, Any], evidence_key: str = "detection"
+) -> dict[str, Any]:
     """从原始类别数组生成可审核结论，并保留排序前的证据索引。"""
     indexed_statistics = list(enumerate(detection.get("class_statistics") or []))
     statistics = sorted(
@@ -68,13 +70,13 @@ def build_land_cover_analysis(detection: dict[str, Any]) -> dict[str, Any]:
         if source_ratio is None:
             text = f"{name}在当前分割结果中的像素数量为 {count}。"
             evidence_ref = (
-                f"tool_results.detection.class_statistics[{source_index}].pixel_count"
+                f"tool_results.{evidence_key}.class_statistics[{source_index}].pixel_count"
             )
             observed_value: Any = item.get("pixel_count")
         else:
             text = f"{name}在当前分割结果中的像素占比为 {ratio * 100:.2f}% 。"
             evidence_ref = (
-                f"tool_results.detection.class_statistics[{source_index}].ratio"
+                f"tool_results.{evidence_key}.class_statistics[{source_index}].ratio"
             )
             observed_value = source_ratio
         claims.append(
@@ -90,14 +92,67 @@ def build_land_cover_analysis(detection: dict[str, Any]) -> dict[str, Any]:
             {
                 "text": "当前分割结果没有记录到有效类别像素，建议人工检查输入影像。",
                 "claim_type": "recommendation",
-                "evidence_ref": "tool_results.detection.class_statistics",
+                "evidence_ref": f"tool_results.{evidence_key}.class_statistics",
                 "observed_value": 0,
             }
         )
     return {
+        "domain": "semantic_segmentation",
         "scope": "current_image",
         "claims": claims,
         "summary": "；".join(item["text"] for item in claims[:3]),
+    }
+
+
+def build_object_detection_analysis(
+    detection: dict[str, Any], evidence_key: str = "facility_detection"
+) -> dict[str, Any]:
+    """从 DIOR 目标计数生成可审核结论，不把目标数量解释为像素或面积。"""
+    indexed_statistics = list(enumerate(detection.get("class_statistics") or []))
+    statistics = sorted(
+        indexed_statistics,
+        key=lambda pair: int(pair[1].get("count") or 0),
+        reverse=True,
+    )
+    claims: list[dict[str, Any]] = []
+    total_objects = int(detection.get("total_objects") or 0)
+    claims.append(
+        {
+            "text": f"当前影像共检测到 {total_objects} 个 DIOR 设施目标。",
+            "claim_type": "observation",
+            "evidence_ref": f"tool_results.{evidence_key}.total_objects",
+            "observed_value": detection.get("total_objects") or 0,
+        }
+    )
+    for source_index, item in statistics[:5]:
+        count = int(item.get("count") or 0)
+        if count <= 0:
+            continue
+        name = item.get("class_name_cn") or item.get("class_name") or "未知目标"
+        claims.append(
+            {
+                "text": f"检测到{name} {count} 个。",
+                "claim_type": "observation",
+                "evidence_ref": (
+                    f"tool_results.{evidence_key}.class_statistics[{source_index}].count"
+                ),
+                "observed_value": item.get("count"),
+            }
+        )
+    if total_objects == 0:
+        claims.append(
+            {
+                "text": "当前阈值下未检测到 DIOR 设施目标，建议结合原始影像人工复核。",
+                "claim_type": "recommendation",
+                "evidence_ref": f"tool_results.{evidence_key}.total_objects",
+                "observed_value": 0,
+            }
+        )
+    return {
+        "domain": "object_detection",
+        "scope": "current_image",
+        "claims": claims,
+        "summary": "".join(item["text"] for item in claims[:4]),
     }
 
 

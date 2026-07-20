@@ -1,0 +1,29 @@
+{
+  "model": "dior-yolo11n",
+  "version": "20260713-102958",
+  "task": "detection",
+  "runtime": "ultralytics-pt",
+  "input_size": 640,
+  "classes": [
+    "airplane",
+    "airport",
+    "baseballfield",
+    "basketballcourt",
+    "bridge",
+    "chimney",
+    "dam",
+    "Expressway-Service-area",
+    "Expressway-toll-station",
+    "golffield",
+    "groundtrackfield",
+    "harbor",
+    "overpass",
+    "ship",
+    "stadium",
+    "storagetank",
+    "tenniscourt",
+    "trainstation",
+    "vehicle",
+    "windmill"
+  ]
+}

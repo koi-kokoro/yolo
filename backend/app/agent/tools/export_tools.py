@@ -19,12 +19,16 @@ def create_export_tools(user_id: int) -> list[Any]:
     def export_platform_data(
         data_type: str = "patrol", file_format: str = "json", days: int = 30
     ) -> str:
-        """将当前用户巡查数据或全局缓存评估指标导出为 JSON/CSV。"""
+        """将当前用户巡查/DIOR 数据或全局缓存评估指标导出为 JSON/CSV。"""
         safe_days = max(1, min(int(days), 365))
         if data_type == "evaluation":
             data = collect_evaluation_snapshot()
-        elif data_type == "patrol":
-            data = patrol_export_service.build(user_id=user_id, days=safe_days)
+        elif data_type in {"patrol", "dior"}:
+            data = patrol_export_service.build(
+                user_id=user_id,
+                days=safe_days,
+                domain="dior" if data_type == "dior" else "all",
+            )
         else:
             raise ValueError("不支持的导出数据类型")
         result = agent_export_service.create(
@@ -33,14 +37,17 @@ def create_export_tools(user_id: int) -> list[Any]:
             file_format=file_format,
             data=data,
         )
-        if data_type == "patrol":
+        if data_type in {"patrol", "dior"}:
             top = data.get("dominant_land_cover")
+            objects = data.get("object_detection") or {}
             result["preview"] = {
                 "tasks": data.get("summary", {}).get("tasks"),
                 "images": data.get("summary", {}).get("images"),
                 "top_class": top.get("display_name") if top else None,
                 "top_class_ratio": top.get("ratio") if top else None,
                 "warnings": data.get("data_quality", {}).get("warnings", []),
+                "objects": objects.get("total_objects"),
+                "object_classes": len(objects.get("class_distribution") or []),
             }
         return json.dumps(result, ensure_ascii=False)
 
