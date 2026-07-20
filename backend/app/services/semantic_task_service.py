@@ -21,6 +21,10 @@ from app.entity.db_models import (
     DetectionTask,
 )
 from app.services.semantic_inference import build_artifacts, preprocess
+from app.services.semantic_dashboard_metrics import (
+    build_semantic_metrics,
+    derive_semantic_sample,
+)
 from app.services.semantic_runtime import semantic_runtime
 from app.storage.minio_client import MinIOClient
 
@@ -210,6 +214,14 @@ class SemanticTaskService:
                     status="completed",
                     total_images=1,
                     total_objects=total_objects,
+                    semantic_metrics=build_semantic_metrics(
+                        [
+                            derive_semantic_sample(
+                                artifacts.class_statistics,
+                                task.original_filename,
+                            )
+                        ]
+                    ),
                     total_inference_time=total_ms,
                     conf_threshold=0.0,
                     iou_threshold=0.0,

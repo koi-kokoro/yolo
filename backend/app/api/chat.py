@@ -1,7 +1,7 @@
 """Chat and shortcut segmentation API routes.
 
 Routes:
-  - POST /api/chat/upload      Upload an image file and return server path.
+  - POST /api/chat/upload      Upload an image file and return a safe reference.
   - POST /api/chat/stream      SSE streaming chat with the detection agent.
   - POST /api/segmentation/single   Shortcut single-image segmentation.
   - POST /api/segmentation/batch    Shortcut batch segmentation.
@@ -10,18 +10,19 @@ Routes:
 
 from __future__ import annotations
 
+import base64
+import copy
 import json
 import os
+import re
 import tempfile
-import uuid
-from pathlib import Path
+from io import BytesIO
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
-from app.config.settings import settings
 from app.core.logger import get_logger
 from app.database.session import get_db
 from app.entity.db_models import User
@@ -42,6 +43,8 @@ from app.services.chat_session_service import (
     chat_memory_service,
     chat_session_service,
 )
+from app.services.agent_export_service import agent_export_service
+from app.services.chat_image_reference_service import chat_image_reference_service
 from app.services.detection_chat_service import detection_chat_service
 
 logger = get_logger(__name__)
@@ -49,45 +52,105 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["智能对话"])
 segmentation_router = APIRouter(prefix="/api/segmentation", tags=["快捷分割"])
 
-UPLOAD_DIR = settings.chat_upload_path
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-_ALLOWED_UPLOAD_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+_IMAGE_FOLLOW_UP = re.compile(
+    r"(?:识别|检测|分析|分割|查看|看看|地物|类别|主要)"
+    r".*(?:图片|影像|刚才|刚刚|上传|这张|那张)|"
+    r"(?:图片|影像|刚才|刚刚|上传|这张|那张)"
+    r".*(?:识别|检测|分析|分割|查看|看看|地物|类别|主要)"
+)
+_SHORT_IMAGE_COMMAND = re.compile(
+    r"^(?:帮我)?(?:再)?(?:识别|检测|分析|查看|看看|分割|语义分割)"
+    r"(?:一?下|一下吧|看看)?[。！!？?]*$"
+)
 
 
-def _save_upload(file: UploadFile) -> str:
-    """以服务端随机名保存，阻止目录穿越与同名覆盖。"""
-    suffix = Path(file.filename or "").suffix.lower()
-    if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
-        raise HTTPException(status_code=400, detail="不支持的图片扩展名")
-    file_path = (UPLOAD_DIR / f"{uuid.uuid4().hex}{suffix}").resolve()
-    with file_path.open("xb") as handle:
-        handle.write(file.file.read())
-    return str(file_path)
+def _save_chat_image(user_id: int, filename: str, content: bytes) -> str:
+    return chat_image_reference_service.save(user_id, filename, BytesIO(content))
 
 
-def _trusted_image_path(value: str | None) -> str | None:
-    if not value:
-        return None
-    resolved = Path(value).resolve(strict=False)
-    trusted = UPLOAD_DIR.resolve()
-    if trusted not in resolved.parents or not resolved.is_file():
-        raise HTTPException(status_code=400, detail="image_path 不在受信任上传目录")
-    return str(resolved)
+def _persistent_segmentation_result(result: dict, user_id: int) -> dict:
+    """将结果中的大体积 base64 图片落盘，数据库只保存安全引用。"""
+    persisted = copy.deepcopy(result)
+
+    annotated_image = persisted.pop("annotated_image", None)
+    if annotated_image:
+        persisted["annotated_image_ref"] = _save_chat_image(
+            user_id, "segmentation-result.jpg", base64.b64decode(annotated_image)
+        )
+
+    for image in persisted.get("annotated_images") or []:
+        encoded = image.pop("annotated_image", None)
+        if encoded:
+            image["annotated_image_ref"] = _save_chat_image(
+                user_id,
+                f"{os.path.splitext(image.get('filename') or 'result')[0]}-segmented.jpg",
+                base64.b64decode(encoded),
+            )
+
+    return persisted
+
+
+def _requests_session_image(message: str) -> bool:
+    """判断本轮是否明确要求处理会话中的最近图片。"""
+    stripped = message.strip()
+    if any(prefix in stripped for prefix in ("什么是", "解释一下", "介绍一下")):
+        return False
+    return (
+        bool(_IMAGE_FOLLOW_UP.search(stripped))
+        or bool(_SHORT_IMAGE_COMMAND.fullmatch(stripped))
+        or "进行语义分割" in stripped
+    )
 
 
 @router.post("/upload", response_model=ChatUploadResponse, summary="上传图片文件")
 async def upload_image(
     file: UploadFile = File(..., description="图片文件"),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    """Upload an image file to the server temp directory."""
-    file_path = _save_upload(file)
-    logger.info("Image uploaded: %s -> %s", file.filename, file_path)
-    return {"image_path": file_path}
+    """保存到用户隔离目录，只返回不含路径的随机引用。"""
+    try:
+        image_ref = chat_image_reference_service.save(
+            current_user.id, file.filename, file.file
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    logger.info(
+        "Chat image uploaded: user_id=%s filename=%s ref=%s",
+        current_user.id,
+        file.filename,
+        image_ref,
+    )
+    return {"image_ref": image_ref}
+
+
+@router.get("/images/{image_ref}", summary="读取会话持久化图片")
+def get_chat_image(
+    image_ref: str,
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        path = chat_image_reference_service.resolve(current_user.id, image_ref)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="会话图片不存在或已过期") from exc
+    return FileResponse(path=path)
 
 
 def _not_found(exc: SessionAccessError) -> HTTPException:
     return HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/exports/{filename}", summary="下载 Agent 生成的数据文件")
+def download_agent_export(
+    filename: str,
+    current_user: User = Depends(get_current_user),
+):
+    """仅允许当前用户下载自己目录中的 JSON/CSV 文件。"""
+    try:
+        path = agent_export_service.resolve(current_user.id, filename)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="导出文件不存在") from exc
+    media_type = "text/csv" if path.suffix == ".csv" else "application/json"
+    return FileResponse(path=path, media_type=media_type, filename=path.name)
 
 
 @router.post("/sessions", response_model=ChatSessionResponse, status_code=201)
@@ -179,7 +242,7 @@ async def chat_stream(
 ):
     """SSE streaming chat endpoint.
 
-    Accepts JSON body: { message, image_path?, session_id? }
+    Accepts JSON body: { message, image_ref?, session_id? }
     """
     try:
         body = await request.json()
@@ -189,7 +252,27 @@ async def chat_stream(
 
     if not payload.message:
         raise HTTPException(status_code=400, detail="消息内容不能为空")
-    image_path = _trusted_image_path(payload.image_path)
+    image_path: str | None = None
+    explicit_image_ref: str | None = None
+    try:
+        if payload.image_ref:
+            explicit_image_ref = payload.image_ref.strip().lower()
+            image_path = str(
+                chat_image_reference_service.resolve(
+                    _current_user.id, explicit_image_ref
+                )
+            )
+        elif payload.image_path:
+            explicit_image_ref = chat_image_reference_service.reference_for_path(
+                _current_user.id, payload.image_path
+            )
+            image_path = str(
+                chat_image_reference_service.resolve(
+                    _current_user.id, explicit_image_ref
+                )
+            )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail="图片引用无效或不属于当前用户") from exc
     try:
         session, _created = chat_session_service.get_or_create(
             db, _current_user.id, payload.session_id, payload.message
@@ -197,17 +280,33 @@ async def chat_stream(
     except SessionAccessError as exc:
         raise _not_found(exc) from exc
 
+    if explicit_image_ref:
+        session.last_image_ref = explicit_image_ref
+        db.commit()
+    elif _requests_session_image(payload.message) and session.last_image_ref:
+        try:
+            image_path = str(
+                chat_image_reference_service.resolve(
+                    _current_user.id, session.last_image_ref
+                )
+            )
+        except FileNotFoundError as exc:
+            raise HTTPException(
+                status_code=410, detail="会话中的图片已过期，请重新上传"
+            ) from exc
+
     logger.info(
         "User %s chat: message=%s has_image=%s",
         _current_user.username,
         payload.message[:50],
-        bool(payload.image_path),
+        bool(image_path),
     )
 
     async def event_generator():
         assistant_parts: list[str] = []
         route = "chat"
         tool_calls: list[dict] = []
+        persisted_tool_result: str | None = None
         stream_failed = False
         try:
             # 每次发送，便于前端确认请求实际绑定的会话。
@@ -226,13 +325,54 @@ async def chat_stream(
                     assistant_parts.append(str(event.get("content", "")))
                 elif event.get("type") == "tool_call":
                     tool_calls.append({"tool": event.get("tool"), "input": event.get("input")})
+                elif event.get("type") == "tool_result":
+                    try:
+                        parsed_result = json.loads(str(event.get("result", "")))
+                        if (
+                            parsed_result.get("class_statistics")
+                            or parsed_result.get("annotated_images")
+                            or parsed_result.get("annotated_image")
+                        ):
+                            persisted_tool_result = json.dumps(
+                                _persistent_segmentation_result(
+                                    parsed_result, _current_user.id
+                                ),
+                                ensure_ascii=False,
+                            )
+                        elif route == "export" and parsed_result.get("filename") and parsed_result.get("download_url"):
+                            persisted_tool_result = json.dumps(
+                                {
+                                    key: parsed_result.get(key)
+                                    for key in (
+                                        "filename",
+                                        "format",
+                                        "data_type",
+                                        "size_bytes",
+                                        "download_url",
+                                    )
+                                },
+                                ensure_ascii=False,
+                            )
+                    except (TypeError, json.JSONDecodeError):
+                        persisted_tool_result = None
                 elif event.get("type") == "error":
                     stream_failed = True
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
             assistant_text = "".join(assistant_parts).strip()
             if not stream_failed and assistant_text:
                 chat_session_service.save_turn(
-                    db, session, payload.message, assistant_text, route, tool_calls
+                    db,
+                    session,
+                    payload.message,
+                    assistant_text,
+                    route,
+                    tool_calls,
+                    persisted_tool_result,
+                    (
+                        [{"filename": "上传图片", "image_ref": explicit_image_ref}]
+                        if explicit_image_ref
+                        else None
+                    ),
                 )
                 chat_memory_service.append_turn(
                     _current_user.id,
@@ -277,8 +417,10 @@ async def segment_single_api(
 ):
     """Shortcut single-image semantic segmentation (bypasses LLM)."""
     suffix = os.path.splitext(file.filename)[1] or ".jpg"
+    content = file.file.read()
+    original_ref = _save_chat_image(current_user.id, file.filename or f"image{suffix}", content)
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(file.file.read())
+        tmp.write(content)
         tmp_path = tmp.name
 
     try:
@@ -293,7 +435,19 @@ async def segment_single_api(
             except SessionAccessError as exc:
                 raise _not_found(exc) from exc
             summary = _segmentation_summary(result, "单图分割")
-            chat_session_service.save_turn(db, session, "[快捷分割] 单图", summary, "detection", [{"tool": "segment_single"}])
+            chat_session_service.save_turn(
+                db,
+                session,
+                "[快捷分割] 单图",
+                summary,
+                "detection",
+                [{"tool": "segment_single"}],
+                json.dumps(
+                    _persistent_segmentation_result(result, current_user.id),
+                    ensure_ascii=False,
+                ),
+                [{"filename": file.filename or "image", "image_ref": original_ref}],
+            )
             chat_memory_service.append_turn(current_user.id, session.session_uuid, "[快捷分割] 单图", summary, "detection")
             result["session_id"] = session.id
         return result
@@ -311,16 +465,25 @@ async def segment_batch_api(
     ),
     scene_id: int = Form(None, description="场景 ID"),
     session_id: int = Form(None, description="当前会话 ID"),
+    message: str = Form(None, description="用户在对话框中输入的原始消息"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Shortcut batch semantic segmentation (bypasses LLM)."""
     temp_paths: list[str] = []
+    original_attachments: list[dict] = []
     try:
         for upload in files:
             suffix = os.path.splitext(upload.filename)[1] or ".jpg"
+            content = upload.file.read()
+            original_ref = _save_chat_image(
+                current_user.id, upload.filename or f"image{suffix}", content
+            )
+            original_attachments.append(
+                {"filename": upload.filename or "image", "image_ref": original_ref}
+            )
             with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                tmp.write(upload.file.read())
+                tmp.write(content)
                 temp_paths.append(tmp.name)
 
         result = detection_chat_service.segment_batch(
@@ -334,8 +497,29 @@ async def segment_batch_api(
             except SessionAccessError as exc:
                 raise _not_found(exc) from exc
             summary = _segmentation_summary(result, "批量分割")
-            chat_session_service.save_turn(db, session, f"[快捷分割] {len(files)} 张图片", summary, "detection", [{"tool": "segment_batch"}])
-            chat_memory_service.append_turn(current_user.id, session.session_uuid, "[快捷分割] 批量图片", summary, "detection")
+            display_summary = (
+                f"批量分割完成！共 {result.get('successful_images', 0)} 张图片。"
+            )
+            chat_session_service.save_turn(
+                db,
+                session,
+                message or f"[快捷分割] {len(files)} 张图片",
+                display_summary,
+                "detection",
+                [{"tool": "segment_batch"}],
+                json.dumps(
+                    _persistent_segmentation_result(result, current_user.id),
+                    ensure_ascii=False,
+                ),
+                original_attachments,
+            )
+            chat_memory_service.append_turn(
+                current_user.id,
+                session.session_uuid,
+                message or "[快捷分割] 批量图片",
+                summary,
+                "detection",
+            )
             result["session_id"] = session.id
         return result
     finally:
@@ -377,7 +561,18 @@ async def segment_zip_api(
             except SessionAccessError as exc:
                 raise _not_found(exc) from exc
             summary = _segmentation_summary(result, "ZIP 分割")
-            chat_session_service.save_turn(db, session, "[快捷分割] ZIP", summary, "detection", [{"tool": "segment_zip"}])
+            chat_session_service.save_turn(
+                db,
+                session,
+                "[快捷分割] ZIP",
+                summary,
+                "detection",
+                [{"tool": "segment_zip"}],
+                json.dumps(
+                    _persistent_segmentation_result(result, current_user.id),
+                    ensure_ascii=False,
+                ),
+            )
             chat_memory_service.append_turn(current_user.id, session.session_uuid, "[快捷分割] ZIP", summary, "detection")
             result["session_id"] = session.id
         return result

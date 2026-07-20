@@ -7,6 +7,7 @@ import re
 from typing import Any, AsyncGenerator
 
 from app.agent.tools.analysis_tools import create_analysis_tools
+from app.orchestration.workflow import build_land_cover_analysis
 
 
 class AnalysisAgent:
@@ -38,8 +39,17 @@ class AnalysisAgent:
         message: str,
         user_id: int,
         memory: list[dict[str, str]] | None = None,
+        workflow_state: dict[str, Any] | None = None,
         **_: Any,
     ) -> AsyncGenerator[dict[str, Any], None]:
+        evidence = (workflow_state or {}).get("evidence_pack") or {}
+        detection = (evidence.get("tool_results") or {}).get("detection")
+        if isinstance(detection, dict) and detection.get("class_statistics") is not None:
+            result = build_land_cover_analysis(detection)
+            yield {"type": "analysis_result", "result": result}
+            yield {"type": "text_chunk", "content": result["summary"]}
+            return
+
         tools = {item.name: item for item in create_analysis_tools(user_id)}
         days = self._days(message)
         if "趋势" in message:
@@ -72,4 +82,17 @@ class AnalysisAgent:
             text = f"当前用户共有 {parsed['total']} 条检测历史，本页返回 {len(parsed['items'])} 条。"
         else:
             text = f"检测历史共 {parsed['total_tasks']} 条，今日 {parsed['today_tasks']} 条。"
+        analysis_result = {
+            "scope": "patrol_statistics",
+            "claims": [
+                {
+                    "text": text,
+                    "claim_type": "observation",
+                    "evidence_ref": "tool_results.analysis",
+                    "observed_value": parsed,
+                }
+            ],
+            "summary": text,
+        }
+        yield {"type": "analysis_result", "result": analysis_result}
         yield {"type": "text_chunk", "content": text}

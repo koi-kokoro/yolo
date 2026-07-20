@@ -321,7 +321,8 @@ class TestSegmentationRoutes:
             files={"file": ("test.png", image_bytes, "image/png")},
         )
         assert resp.status_code == 200, resp.text
-        assert "image_path" in resp.json()
+        assert len(resp.json()["image_ref"]) == 32
+        assert "image_path" not in resp.json()
 
     def test_chat_stream_validation(self, authenticated_client: TestClient) -> None:
         resp = authenticated_client.post("/api/chat/stream", json={})

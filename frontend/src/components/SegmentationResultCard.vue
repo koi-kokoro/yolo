@@ -182,10 +182,10 @@ const annotatedImageSrc = computed(() => {
 const batchImages = computed(() => {
   const images = props.result.annotated_images || []
   return images
-    .filter((img) => img.annotated_image)
+    .filter((img) => img.annotated_image || img.annotated_image_url)
     .map((img) => ({
       name: img.filename || 'image',
-      src: `data:image/jpeg;base64,${img.annotated_image}`,
+      src: img.annotated_image_url || `data:image/jpeg;base64,${img.annotated_image}`,
     }))
 })
 

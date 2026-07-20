@@ -14,11 +14,13 @@
   所有数据库查询逻辑和会话管理集中在此层，API 层只负责参数校验和响应格式化。
 """
 
+from hmac import compare_digest
 from typing import Optional
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session, joinedload
 
+from app.config.settings import settings
 from app.core.logger import get_logger
 from app.core.security import create_access_token, hash_password, verify_password
 from app.database.session import SessionLocal
@@ -31,7 +33,13 @@ class UserService:
     """用户服务"""
 
     @staticmethod
-    def register(db: Session, username: str, email: str, password: str) -> User:
+    def register(
+        db: Session,
+        username: str,
+        email: str,
+        password: str,
+        admin_code: Optional[str] = None,
+    ) -> User:
         """
         用户注册
 
@@ -45,9 +53,16 @@ class UserService:
             新创建的用户对象
 
         Raises:
-            HTTPException: 用户名或邮箱已存在
+            HTTPException: 管理员代码错误、用户名或邮箱已存在
         """
-        # 移除了 db = SessionLocal()，直接使用外部传入的 db
+        requested_admin = bool(admin_code and admin_code.strip())
+        if requested_admin and (
+            not settings.ADMIN_REGISTRATION_CODE
+            or not compare_digest(admin_code.strip(), settings.ADMIN_REGISTRATION_CODE)
+        ):
+            raise HTTPException(status_code=400, detail="管理员代码错误")
+
+        # Validate the code before any user row is added.
         existing_user = db.query(User).filter(User.username == username).first()
         if existing_user:
             raise HTTPException(status_code=400, detail="用户名已存在")
@@ -60,8 +75,19 @@ class UserService:
             username=username,
             email=email,
             hashed_password=hash_password(password),
+            is_superuser=requested_admin,
         )
         db.add(new_user)
+        if requested_admin:
+            admin_role = (
+                db.query(Role)
+                .filter(Role.name.in_(["admin", "administrator", "superuser"]))
+                .order_by(Role.id)
+                .first()
+            )
+            if admin_role:
+                db.flush()
+                db.add(UserRole(user=new_user, role=admin_role))
         db.commit()
         db.refresh(new_user)
 

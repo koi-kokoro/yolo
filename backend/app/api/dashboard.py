@@ -69,6 +69,26 @@ async def get_scene_distribution(
     return dashboard_service.get_scene_distribution(user_id=current_user.id, days=days)
 
 
+@router.get("/semantic-risk-matrix", summary="语义异常度与参考可信度")
+async def get_semantic_risk_matrix(
+    days: int = Query(30, ge=1, le=365),
+    current_user=Depends(get_current_user),
+):
+    """获取现有语义 Mask 派生的逐图片异常度和参考可信度。"""
+    return dashboard_service.get_semantic_risk_matrix(
+        user_id=current_user.id, days=days
+    )
+
+
+@router.get("/domain-health", summary="输入域健康度")
+async def get_domain_health(
+    days: int = Query(30, ge=1, le=365),
+    current_user=Depends(get_current_user),
+):
+    """获取域内、临界和域外语义样本数量。"""
+    return dashboard_service.get_domain_health(user_id=current_user.id, days=days)
+
+
 @router.get("/type-dist", summary="任务类型分布统计")
 async def get_type_distribution(
     days: int = Query(30, ge=1, le=365),

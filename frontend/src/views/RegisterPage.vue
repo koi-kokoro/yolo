@@ -14,6 +14,7 @@ const form = reactive({
   email: '',
   password: '',
   confirmPassword: '',
+  admin_code: '',
 })
 
 function validateConfirmPassword(_rule, value, callback) {
@@ -44,6 +45,7 @@ const rules = {
     { min: 6, max: 100, message: '密码长度为 6-100 个字符', trigger: 'blur' },
   ],
   confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }],
+  admin_code: [{ max: 100, message: '管理员代码长度不能超过 100 个字符', trigger: 'blur' }],
 }
 
 async function handleSubmit() {
@@ -78,6 +80,9 @@ async function handleSubmit() {
         </el-form-item>
         <el-form-item label="确认密码" prop="confirmPassword">
           <el-input v-model="form.confirmPassword" type="password" autocomplete="new-password" show-password />
+        </el-form-item>
+        <el-form-item label="管理员代码（可选）" prop="admin_code">
+          <el-input v-model.trim="form.admin_code" type="password" autocomplete="off" show-password />
         </el-form-item>
         <el-button type="primary" :loading="loading" class="auth-submit" @click="handleSubmit">注册</el-button>
       </el-form>

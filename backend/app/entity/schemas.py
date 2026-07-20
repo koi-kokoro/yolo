@@ -12,6 +12,7 @@ class UserRegister(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, description="用户名")
     email: str = Field(..., description="邮箱")
     password: str = Field(..., min_length=6, max_length=100, description="密码")
+    admin_code: Optional[str] = Field(default=None, max_length=100, description="管理员代码")
 
 
 class UserLogin(BaseModel):
@@ -461,7 +462,8 @@ class ChatStreamRequest(BaseModel):
     """Chat stream request."""
 
     message: str = Field(..., min_length=1, max_length=5000, description="用户消息")
-    image_path: Optional[str] = Field(None, description="已上传图片的服务端路径")
+    image_ref: Optional[str] = Field(None, max_length=64, description="已上传图片的安全引用")
+    image_path: Optional[str] = Field(None, description="兼容旧客户端的受信任图片路径")
     session_id: Optional[int] = Field(None, description="会话 ID")
     scene_id: Optional[int] = Field(None, description="检测场景 ID（可选，未提供时使用默认场景）")
 
@@ -469,11 +471,24 @@ class ChatStreamRequest(BaseModel):
 class ChatStreamEvent(BaseModel):
     """A single SSE event payload from the chat stream."""
 
-    type: str = Field(..., description="事件类型: text_chunk / tool_call / tool_result / error")
+    type: str = Field(
+        ...,
+        description=(
+            "事件类型: workflow_plan / workflow_node / workflow_retry / "
+            "workflow_complete / agent_route / text_chunk / tool_call / "
+            "tool_result / analysis_result / review_result / error"
+        ),
+    )
     content: Optional[str] = None
     tool: Optional[str] = None
     input: Optional[dict] = None
-    result: Optional[str] = None
+    result: Optional[str | dict] = None
+    workflow_id: Optional[str] = None
+    plan: Optional[dict] = None
+    node: Optional[str] = None
+    agent: Optional[str] = None
+    status: Optional[str] = None
+    review: Optional[dict] = None
 
 
 class SegmentationSingleResponse(BaseModel):
@@ -507,7 +522,7 @@ class SegmentationBatchResponse(BaseModel):
 class ChatUploadResponse(BaseModel):
     """Chat image upload response."""
 
-    image_path: str = Field(..., description="上传图片在服务器上的临时路径")
+    image_ref: str = Field(..., description="上传图片的安全引用")
 
 
 class ApiResponse(BaseModel):

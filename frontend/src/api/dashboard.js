@@ -40,6 +40,16 @@ export function getSceneDistribution(days = 30) {
   return request.get("/dashboard/scene-dist", { params: { days } });
 }
 
+/** 获取现有语义 Mask 派生的异常度—参考可信度矩阵。 */
+export function getSemanticRiskMatrix(days = 30) {
+  return request.get("/dashboard/semantic-risk-matrix", { params: { days } });
+}
+
+/** 获取输入域健康度（域内/临界/域外）。 */
+export function getDomainHealth(days = 30) {
+  return request.get("/dashboard/domain-health", { params: { days } });
+}
+
 /**
  * 获取任务类型分布
  * @param {number} days - 统计最近 N 天

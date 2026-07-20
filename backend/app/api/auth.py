@@ -61,6 +61,7 @@ async def register(request: UserRegister, db: Session = Depends(get_db)):
         username=request.username,
         email=request.email,
         password=request.password,
+        admin_code=request.admin_code,
     )
     return _user_response(user, user_service.get_user_roles(db, user))
 

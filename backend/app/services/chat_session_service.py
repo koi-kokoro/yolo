@@ -60,7 +60,9 @@ class ChatMemoryService:
             }
             # route 仅来自服务端持久化的 agent_used，用于省略追问路由，不作为事实来源。
             route = item.get("route") or item.get("agent_used")
-            if item.get("role") == "assistant" and route in {"qa", "analysis", "detection", "chat"}:
+            if item.get("role") == "assistant" and route in {
+                "qa", "analysis", "detection", "evaluation", "export", "report", "chat"
+            }:
                 message["route"] = str(route)
             cleaned.append(message)
         # 从偶数边界开始，尽量只保留完整 user/assistant turns。
@@ -108,7 +110,9 @@ class ChatMemoryService:
             key = self._key(user_id, session_uuid)
             client = self._get_client()
             assistant = {"role": "assistant", "content": self.sanitize(assistant_content)}
-            if route in {"qa", "analysis", "detection", "chat"}:
+            if route in {
+                "qa", "analysis", "detection", "evaluation", "export", "report", "chat"
+            }:
                 assistant["route"] = route
             payloads = [
                 json.dumps({"role": "user", "content": self.sanitize(user_content)}, ensure_ascii=False),
@@ -130,10 +134,22 @@ class ChatMemoryService:
 class ChatSessionService:
     """所有读写统一使用 session_id 与 user_id 双条件。"""
 
+    DEFAULT_TITLE = "新会话"
+
     @staticmethod
     def automatic_title(value: str | None) -> str:
         title = re.sub(r"\s+", " ", ChatMemoryService.sanitize(value or "")).strip()
-        return (title[:40] or "新会话")
+        title = re.sub(r"^\[快捷分割\]\s*", "分割 ", title)
+        title = re.sub(r"^\[批量分割\]\s*", "批量分割 ", title)
+        title = re.sub(r"^请(?:帮我)?(?:分析|处理)(?:一下)?(?:这张|这些)?图片[：:]?\s*", "分析图片 ", title)
+        return (title[:40].strip() or ChatSessionService.DEFAULT_TITLE)
+
+    @classmethod
+    def _should_generate_title(cls, session: ChatSession) -> bool:
+        return (session.message_count or 0) == 0 and (
+            not (session.title or "").strip()
+            or session.title.strip() == cls.DEFAULT_TITLE
+        )
 
     @staticmethod
     def owned(db: Session, user_id: int, session_id: int) -> ChatSession:
@@ -164,13 +180,29 @@ class ChatSessionService:
             return self.owned(db, user_id, session_id), False
         return self.create(db, user_id, title), True
 
-    @staticmethod
-    def list_sessions(db: Session, user_id: int, page: int, page_size: int):
+    @classmethod
+    def list_sessions(cls, db: Session, user_id: int, page: int, page_size: int):
         query = db.query(ChatSession).filter(ChatSession.user_id == user_id)
         total = query.count()
         items = query.order_by(
             ChatSession.last_message_at.desc(), ChatSession.created_at.desc()
         ).offset((page - 1) * page_size).limit(page_size).all()
+        # 兼容功能上线前已经产生消息、但标题仍为“新会话”的记录。
+        titles_updated = False
+        for session in items:
+            if session.title != cls.DEFAULT_TITLE or (session.message_count or 0) <= 0:
+                continue
+            first_user_message = db.query(ChatMessage).filter(
+                ChatMessage.session_id == session.id,
+                ChatMessage.role == "user",
+            ).order_by(ChatMessage.id.asc()).first()
+            if first_user_message:
+                generated = cls.automatic_title(first_user_message.content)
+                if generated != cls.DEFAULT_TITLE:
+                    session.title = generated
+                    titles_updated = True
+        if titles_updated:
+            db.commit()
         return items, total
 
     def rename(self, db: Session, user_id: int, session_id: int, title: str) -> ChatSession:
@@ -219,28 +251,42 @@ class ChatSessionService:
             chat_memory_service.replace(user_id, session.session_uuid, memory)
         return memory
 
-    @staticmethod
+    @classmethod
     def save_turn(
+        cls,
         db: Session,
         session: ChatSession,
         user_content: str,
         assistant_content: str,
         agent_used: str,
         tool_calls: list[dict] | None = None,
+        tool_result: str | None = None,
+        user_attachments: list[dict] | None = None,
     ) -> None:
         """成功整轮先原子提交数据库；调用方随后 best-effort 更新 Redis。"""
         safe_user = ChatMemoryService.sanitize(user_content)
         safe_assistant = ChatMemoryService.sanitize(assistant_content)
+        if cls._should_generate_title(session):
+            session.title = cls.automatic_title(safe_user)
         db.add_all(
             [
-                ChatMessage(session_id=session.id, role="user", content=safe_user),
+                ChatMessage(
+                    session_id=session.id,
+                    role="user",
+                    content=safe_user,
+                    tool_result=(
+                        json.dumps({"attachments": user_attachments}, ensure_ascii=False)
+                        if user_attachments
+                        else None
+                    ),
+                ),
                 ChatMessage(
                     session_id=session.id,
                     role="assistant",
                     content=safe_assistant,
                     agent_used=agent_used,
                     tool_calls=tool_calls or None,
-                    tool_result=None,
+                    tool_result=tool_result,
                 ),
             ]
         )

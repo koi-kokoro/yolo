@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "rsod-dev-secret-key-2026"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ADMIN_REGISTRATION_CODE: str = ""
 
     ALLOWED_ORIGINS: str = (
         "http://localhost:3000,http://localhost:5173,http://localhost:8080"
@@ -118,6 +119,10 @@ class Settings(BaseSettings):
 
     CHAT_UPLOAD_DIR: str = "uploads/chat"
     RAG_DOCUMENT_DIR: str = "knowledge"
+    # Embedding uses its own provider/key/base URL and never reuses the chat model.
+    RAG_EMBEDDING_PROVIDER: str = "auto"
+    RAG_EMBEDDING_API_KEY: str = ""
+    RAG_EMBEDDING_BASE_URL: str = ""
     RAG_EMBEDDING_MODEL: str = "text-embedding-v3"
     RAG_EMBEDDING_DIMENSION: int = 1024
     RAG_TOP_K: int = 4
@@ -202,7 +207,9 @@ class Settings(BaseSettings):
         ]
 
     class Config:
-        env_file = ".env"
+        # Resolve from src/backend instead of the caller's current directory so
+        # Alembic, tests and the API process always use the same database.
+        env_file = Path(__file__).resolve().parents[2] / ".env"
         env_file_encoding = "utf-8"
 
 

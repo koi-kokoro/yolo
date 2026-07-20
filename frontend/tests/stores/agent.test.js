@@ -67,4 +67,22 @@ describe('agent session store', () => {
     await store.deleteSession(1)
     expect(store.currentSessionId).toBe(2)
   })
+
+  it('恢复历史消息中的导出下载信息', async () => {
+    listChatMessages.mockResolvedValue({
+      items: [{
+        id: 10,
+        role: 'assistant',
+        content: '已导出',
+        tool_result: JSON.stringify({
+          filename: 'evaluation_test.json',
+          download_url: '/api/chat/exports/evaluation_test.json',
+          format: 'json',
+        }),
+      }],
+    })
+    const store = useAgentStore()
+    await store.selectSession(1)
+    expect(store.messages[0].exportResult.filename).toBe('evaluation_test.json')
+  })
 })
