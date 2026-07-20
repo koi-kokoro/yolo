@@ -118,6 +118,10 @@ class Settings(BaseSettings):
 
     CHAT_UPLOAD_DIR: str = "uploads/chat"
     RAG_DOCUMENT_DIR: str = "knowledge"
+    # Embedding uses its own provider/key/base URL and never reuses the chat model.
+    RAG_EMBEDDING_PROVIDER: str = "auto"
+    RAG_EMBEDDING_API_KEY: str = ""
+    RAG_EMBEDDING_BASE_URL: str = ""
     RAG_EMBEDDING_MODEL: str = "text-embedding-v3"
     RAG_EMBEDDING_DIMENSION: int = 1024
     RAG_TOP_K: int = 4

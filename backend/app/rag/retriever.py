@@ -25,20 +25,58 @@ class RetrievedChunk:
 
 
 class EmbeddingService:
-    """OpenAI 兼容 embedding 客户端；未配置密钥时明确受控失败。"""
+    """通过 OpenAI 兼容接口调用已配置的 RAG embedding 服务。"""
+
+    _PROVIDERS = {"deepseek", "qwen", "openai"}
+
+    def _resolve_provider(self) -> tuple[str, str, str]:
+        """返回 provider、API key 和 base URL，不把聊天模型用于 embedding。"""
+        configured = settings.RAG_EMBEDDING_PROVIDER.strip().lower()
+        if configured != "auto" and configured not in self._PROVIDERS:
+            raise RuntimeError(f"不支持的 embedding provider: {configured}")
+
+        if configured == "auto":
+            # A custom RAG key/base URL is an explicit endpoint selection even when
+            # the provider remains auto; partial custom configuration is rejected.
+            if settings.RAG_EMBEDDING_API_KEY or settings.RAG_EMBEDDING_BASE_URL:
+                provider = "custom"
+                api_key = settings.RAG_EMBEDDING_API_KEY.strip()
+                base_url = settings.RAG_EMBEDDING_BASE_URL.strip()
+            elif settings.QWEN_API_KEY:
+                provider, api_key, base_url = "qwen", settings.QWEN_API_KEY, settings.QWEN_BASE_URL
+            elif settings.OPENAI_API_KEY:
+                provider, api_key, base_url = "openai", settings.OPENAI_API_KEY, settings.OPENAI_BASE_URL
+            elif settings.DEEPSEEK_API_KEY:
+                provider, api_key, base_url = "deepseek", settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_BASE_URL
+            else:
+                raise RuntimeError("embedding 服务未配置 API key")
+        else:
+            provider = configured
+            provider_settings = {
+                "deepseek": (settings.DEEPSEEK_API_KEY, settings.DEEPSEEK_BASE_URL),
+                "qwen": (settings.QWEN_API_KEY, settings.QWEN_BASE_URL),
+                "openai": (settings.OPENAI_API_KEY, settings.OPENAI_BASE_URL),
+            }
+            fallback_key, fallback_base_url = provider_settings[provider]
+            api_key = settings.RAG_EMBEDDING_API_KEY.strip() or fallback_key
+            base_url = settings.RAG_EMBEDDING_BASE_URL.strip() or fallback_base_url
+
+        if not api_key:
+            raise RuntimeError(f"embedding provider {provider} 未配置 API key")
+        if not base_url:
+            raise RuntimeError(f"embedding provider {provider} 未配置 base URL")
+        return provider, api_key, base_url
 
     def embed(self, value: str) -> list[float]:
-        api_key = settings.QWEN_API_KEY or settings.OPENAI_API_KEY
-        if not api_key:
-            raise RuntimeError("embedding 服务未配置")
+        _, api_key, base_url = self._resolve_provider()
         from openai import OpenAI
 
-        client = OpenAI(
-            api_key=api_key,
-            base_url=settings.QWEN_BASE_URL if settings.QWEN_API_KEY else settings.OPENAI_BASE_URL,
-        )
+        client = OpenAI(api_key=api_key, base_url=base_url)
         response = client.embeddings.create(model=settings.RAG_EMBEDDING_MODEL, input=value)
-        vector = response.data[0].embedding
+        try:
+            vector = response.data[0].embedding
+        except (AttributeError, IndexError, KeyError, TypeError) as exc:
+            raise RuntimeError("embedding 服务返回了无效向量") from exc
         if len(vector) != settings.RAG_EMBEDDING_DIMENSION:
             raise RuntimeError("embedding 维度与配置不一致")
         return vector
