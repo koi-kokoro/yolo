@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str = "rsod-dev-secret-key-2026"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ADMIN_REGISTRATION_CODE: str = ""
 
     ALLOWED_ORIGINS: str = (
         "http://localhost:3000,http://localhost:5173,http://localhost:8080"
@@ -206,7 +207,9 @@ class Settings(BaseSettings):
         ]
 
     class Config:
-        env_file = ".env"
+        # Resolve from src/backend instead of the caller's current directory so
+        # Alembic, tests and the API process always use the same database.
+        env_file = Path(__file__).resolve().parents[2] / ".env"
         env_file_encoding = "utf-8"
 
 

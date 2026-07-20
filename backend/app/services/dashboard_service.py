@@ -269,6 +269,78 @@ class DashboardService:
             db.close()
 
     @staticmethod
+    def get_semantic_risk_matrix(user_id: int, days: int = 30) -> dict:
+        """Return per-image semantic anomaly/reliability proxy points."""
+        db = SessionLocal()
+        try:
+            start_date = datetime.now() - timedelta(days=days)
+            tasks = (
+                db.query(DetectionTask)
+                .filter(
+                    DetectionTask.user_id == user_id,
+                    DetectionTask.created_at >= start_date,
+                    DetectionTask.semantic_metrics.isnot(None),
+                )
+                .order_by(DetectionTask.created_at.desc())
+                .all()
+            )
+
+            points = []
+            for task in tasks:
+                payload = task.semantic_metrics or {}
+                for sample in payload.get("samples", []):
+                    points.append(
+                        {
+                            "task_id": task.id,
+                            "task_type": task.task_type,
+                            "created_at": task.created_at.isoformat()
+                            if task.created_at
+                            else None,
+                            "name": sample.get("name") or f"任务 {task.id}",
+                            "anomaly_score": float(
+                                sample.get("anomaly_score") or 0
+                            ),
+                            "reliability_score": float(
+                                sample.get("reliability_score") or 0
+                            ),
+                            "domain_status": sample.get("domain_status"),
+                            "review_level": sample.get("review_level"),
+                            "total_pixels": int(sample.get("total_pixels") or 0),
+                        }
+                    )
+
+            points.sort(key=lambda item: item["anomaly_score"], reverse=True)
+            return {
+                "points": points,
+                "sample_count": len(points),
+                "period_days": days,
+                "metric_note": "基于 LoveDA 类别先验距离与验证集 IoU 的代理评估，非模型置信度",
+            }
+        finally:
+            db.close()
+
+    @staticmethod
+    def get_domain_health(user_id: int, days: int = 30) -> dict:
+        """Summarise semantic samples into input-domain health buckets."""
+        matrix = DashboardService.get_semantic_risk_matrix(user_id, days)
+        buckets = {
+            "in_domain": {"name": "域内", "value": 0},
+            "attention": {"name": "临界", "value": 0},
+            "out_of_domain": {"name": "域外", "value": 0},
+        }
+        for point in matrix["points"]:
+            status = point.get("domain_status")
+            if status in buckets:
+                buckets[status]["value"] += 1
+
+        return {
+            "distribution": list(buckets.values()),
+            "sample_count": matrix["sample_count"],
+            "period_days": days,
+            "metric_note": matrix["metric_note"],
+        }
+
+    @staticmethod
     def get_type_distribution(user_id: int, days: int = 30) -> dict:
         """
         获取各任务类型的分布（用于环形图）

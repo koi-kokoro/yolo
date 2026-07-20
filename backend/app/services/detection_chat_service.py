@@ -28,6 +28,10 @@ from app.core.logger import get_logger
 from app.database.session import SessionLocal
 from app.entity.db_models import DetectionResult, DetectionScene, DetectionTask, User
 from app.services.semantic_model_ops import semantic_model_ops
+from app.services.semantic_dashboard_metrics import (
+    build_semantic_metrics,
+    derive_semantic_sample,
+)
 from app.storage.minio_client import MinIOClient
 
 logger = get_logger(__name__)
@@ -217,6 +221,14 @@ class DetectionChatService:
                                 status="completed",
                                 total_images=1,
                                 total_objects=total_objects,
+                                semantic_metrics=build_semantic_metrics(
+                                    [
+                                        derive_semantic_sample(
+                                            class_statistics,
+                                            inference_result["filename"],
+                                        )
+                                    ]
+                                ),
                                 total_inference_time=float(
                                     inference_result.get("inference_time_ms") or 0.0
                                 ),
@@ -316,6 +328,15 @@ class DetectionChatService:
                                 status="completed",
                                 total_images=len(image_paths),
                                 total_objects=total_objects,
+                                semantic_metrics=build_semantic_metrics(
+                                    [
+                                        derive_semantic_sample(
+                                            image.get("class_statistics", []),
+                                            image.get("filename", "unknown"),
+                                        )
+                                        for image in successful
+                                    ]
+                                ),
                                 total_inference_time=round(total_inference_ms, 2),
                                 completed_at=datetime.now(),
                             )
@@ -470,6 +491,7 @@ class DetectionChatService:
             sample_set = set(sample_indices)
             key_frames: list[dict[str, Any]] = []
             frame_summaries: list[dict[str, Any]] = []
+            dashboard_samples: list[dict[str, Any]] = []
             class_counts: dict[str, int] = {}
             total_objects = 0
             total_inference_time = 0.0
@@ -489,6 +511,11 @@ class DetectionChatService:
                 pil_frame = Image.fromarray(rgb_frame)
                 inference_result = self._infer_one(pil_frame)
                 class_statistics = inference_result.get("class_statistics", [])
+                dashboard_sample = derive_semantic_sample(
+                    class_statistics, f"frame-{frame_idx + 1}"
+                )
+                if dashboard_sample:
+                    dashboard_samples.append(dashboard_sample)
                 frame_class_counts = _summarize_statistics(class_statistics)
                 for name, count in frame_class_counts.items():
                     class_counts[name] = class_counts.get(name, 0) + count
@@ -574,6 +601,7 @@ class DetectionChatService:
                 task.status = "completed"
                 task.total_objects = total_objects
                 task.total_inference_time = total_inference_time
+                task.semantic_metrics = build_semantic_metrics(dashboard_samples)
                 task.completed_at = datetime.now()
                 db.commit()
 
@@ -698,6 +726,7 @@ class DetectionChatService:
             collected_indices: list[int] = []
             key_frames: list[dict[str, Any]] = []
             frame_summaries: list[dict[str, Any]] = []
+            dashboard_samples: list[dict[str, Any]] = []
             class_counts: dict[str, int] = {}
             total_objects = 0
             total_inference_time = 0.0
@@ -721,6 +750,11 @@ class DetectionChatService:
                 pil_frame = Image.fromarray(rgb_frame)
                 inference_result = self._infer_one(pil_frame)
                 class_statistics = inference_result.get("class_statistics", [])
+                dashboard_sample = derive_semantic_sample(
+                    class_statistics, f"frame-{frame_idx + 1}"
+                )
+                if dashboard_sample:
+                    dashboard_samples.append(dashboard_sample)
                 frame_class_counts = _summarize_statistics(class_statistics)
                 for name, count in frame_class_counts.items():
                     class_counts[name] = class_counts.get(name, 0) + count
@@ -832,6 +866,7 @@ class DetectionChatService:
                 task.status = "completed"
                 task.total_objects = total_objects
                 task.total_inference_time = total_inference_time
+                task.semantic_metrics = build_semantic_metrics(dashboard_samples)
                 task.completed_at = datetime.now()
                 db.commit()
 

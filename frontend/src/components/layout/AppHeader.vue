@@ -1,5 +1,5 @@
 <script setup>
-import { ArrowDown, SwitchButton } from '@element-plus/icons-vue'
+import { ArrowDown, Expand, Fold, SwitchButton } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 import { useUserStore } from '@/stores/user'
@@ -7,6 +7,15 @@ import { useUserStore } from '@/stores/user'
 const router = useRouter()
 const userStore = useUserStore()
 const appTitle = import.meta.env.VITE_APP_TITLE || 'RSOD Agent Platform'
+
+defineProps({
+  sidebarCollapsed: {
+    type: Boolean,
+    default: false,
+  },
+})
+
+defineEmits(['toggle-sidebar'])
 
 function handleLogout() {
   userStore.logout()
@@ -16,7 +25,21 @@ function handleLogout() {
 
 <template>
   <header class="app-header">
-    <div class="app-header__brand">{{ appTitle }}</div>
+    <div class="app-header__leading">
+      <button
+        class="app-header__sidebar-toggle"
+        type="button"
+        :aria-label="sidebarCollapsed ? '显示任务栏' : '隐藏任务栏'"
+        :title="sidebarCollapsed ? '显示任务栏' : '隐藏任务栏'"
+        @click="$emit('toggle-sidebar')"
+      >
+        <el-icon :size="20">
+          <Expand v-if="sidebarCollapsed" />
+          <Fold v-else />
+        </el-icon>
+      </button>
+      <div class="app-header__brand">{{ appTitle }}</div>
+    </div>
     <el-dropdown trigger="click">
       <button class="app-header__user" type="button">
         <span>{{ userStore.username || '用户' }}</span>
@@ -46,6 +69,39 @@ function handleLogout() {
   font-size: 18px;
   font-weight: 700;
   color: $text-color;
+}
+
+.app-header__leading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.app-header__sidebar-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: $text-secondary;
+  cursor: pointer;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    color: $text-color;
+    background: $background-color;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($primary-color, 0.45);
+    outline-offset: 2px;
+  }
 }
 
 .app-header__user {

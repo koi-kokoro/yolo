@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import {
   createChatSession,
   deleteChatSession,
+  getChatImage,
   listChatMessages,
   listChatSessions,
   renameChatSession,
@@ -17,15 +18,79 @@ function normalizeSessionId(value) {
   return Number.isSafeInteger(id) && id > 0 ? id : null
 }
 
+function parseToolResult(value) {
+  if (!value) return null
+  try {
+    return typeof value === 'string' ? JSON.parse(value) : value
+  } catch {
+    return null
+  }
+}
+
 function mapMessage(message) {
+  const toolResult = parseToolResult(message.tool_result)
+  const isSegmentationResult = toolResult && (
+    toolResult.class_statistics
+    || toolResult.annotated_images
+    || toolResult.annotated_image
+    || toolResult.annotated_image_ref
+  )
   return {
     id: message.id,
     role: message.role,
     content: message.content || '',
     agentRoute: message.agent_used || null,
     toolCall: message.tool_calls?.[0] || null,
+    exportResult: toolResult?.filename && toolResult?.download_url ? toolResult : null,
+    attachmentRefs: message.role === 'user' ? toolResult?.attachments || [] : [],
+    segmentationResult: message.role === 'assistant' && isSegmentationResult ? toolResult : null,
     createdAt: message.created_at || new Date().toISOString(),
   }
+}
+
+async function hydrateMessages(messages) {
+  const refs = new Set()
+  messages.forEach((message) => {
+    message.attachmentRefs?.forEach((item) => refs.add(item.image_ref))
+    const result = message.segmentationResult
+    if (result?.annotated_image_ref) refs.add(result.annotated_image_ref)
+    result?.annotated_images?.forEach((item) => {
+      if (item.annotated_image_ref) refs.add(item.annotated_image_ref)
+    })
+  })
+
+  const urls = []
+  const urlByRef = new Map()
+  await Promise.all([...refs].filter(Boolean).map(async (ref) => {
+    try {
+      const blob = await getChatImage(ref)
+      const url = URL.createObjectURL(blob)
+      urls.push(url)
+      urlByRef.set(ref, url)
+    } catch {
+      // 单张历史图片过期时，其他文本和结果仍应正常展示。
+    }
+  }))
+
+  messages.forEach((message) => {
+    const attachmentUrls = (message.attachmentRefs || [])
+      .map((item) => urlByRef.get(item.image_ref))
+      .filter(Boolean)
+    message.imagePreview = attachmentUrls.length === 1 ? attachmentUrls[0] : null
+    message.images = attachmentUrls.length > 1 ? attachmentUrls : null
+
+    const result = message.segmentationResult
+    if (result?.annotated_image_ref) {
+      result.annotated_image_url = urlByRef.get(result.annotated_image_ref) || null
+    }
+    result?.annotated_images?.forEach((item) => {
+      if (item.annotated_image_ref) {
+        item.annotated_image_url = urlByRef.get(item.annotated_image_ref) || null
+      }
+    })
+  })
+
+  return { messages, urls }
 }
 
 export const useAgentStore = defineStore('agent', {
@@ -43,6 +108,7 @@ export const useAgentStore = defineStore('agent', {
     conversations: [],
     selectionSequence: 0,
     userId: null,
+    historyObjectUrls: [],
   }),
   actions: {
     setUser(userId) {
@@ -109,8 +175,15 @@ export const useAgentStore = defineStore('agent', {
       try {
         const data = await listChatMessages(id, { limit: 30 })
         if (sequence !== this.selectionSequence) return false
+        const hydrated = await hydrateMessages((data.items || []).map(mapMessage))
+        if (sequence !== this.selectionSequence) {
+          hydrated.urls.forEach((url) => URL.revokeObjectURL(url))
+          return false
+        }
+        this.historyObjectUrls.forEach((url) => URL.revokeObjectURL(url))
+        this.historyObjectUrls = hydrated.urls
         this.currentSessionId = id
-        this.messages = (data.items || []).map(mapMessage)
+        this.messages = hydrated.messages
         this.messagesCursor = data.next_cursor
         this.messagesHasMore = data.has_more
         this.persistCurrent()
@@ -130,7 +203,13 @@ export const useAgentStore = defineStore('agent', {
           before_id: this.messagesCursor,
         })
         if (sequence !== this.selectionSequence || sessionId !== this.currentSessionId) return
-        this.messages = [...(data.items || []).map(mapMessage), ...this.messages]
+        const hydrated = await hydrateMessages((data.items || []).map(mapMessage))
+        if (sequence !== this.selectionSequence || sessionId !== this.currentSessionId) {
+          hydrated.urls.forEach((url) => URL.revokeObjectURL(url))
+          return
+        }
+        this.historyObjectUrls.push(...hydrated.urls)
+        this.messages = [...hydrated.messages, ...this.messages]
         this.messagesCursor = data.next_cursor
         this.messagesHasMore = data.has_more
       } finally {
@@ -178,6 +257,8 @@ export const useAgentStore = defineStore('agent', {
     },
     clear() {
       this.abort()
+      this.historyObjectUrls.forEach((url) => URL.revokeObjectURL(url))
+      this.historyObjectUrls = []
       this.selectionSequence += 1
       this.currentSessionId = null
       this.messages = []

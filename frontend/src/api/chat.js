@@ -7,3 +7,5 @@ export const renameChatSession = (id, title) => request.patch(`/chat/sessions/${
 export const deleteChatSession = (id) => request.delete(`/chat/sessions/${id}`)
 export const listChatMessages = (id, params = {}) =>
   request.get(`/chat/sessions/${id}/messages`, { params })
+export const getChatImage = (imageRef) =>
+  request.get(`/chat/images/${encodeURIComponent(imageRef)}`, { responseType: 'blob' })

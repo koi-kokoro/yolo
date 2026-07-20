@@ -128,8 +128,8 @@ class QAAgent:
         except LLMUnavailableError as exc:
             logger.warning("QA LLM unavailable: %s", exc)
             yield {"type": "text_chunk", "content": self._fallback(query, hits)}
-        if sources:
-            yield {"type": "text_chunk", "content": f"\n\n知识来源：{', '.join(sources)}"}
+        # if sources:
+        #     yield {"type": "text_chunk", "content": f"\n\n知识来源：{', '.join(sources)}"}
 
 
 qa_agent = QAAgent()

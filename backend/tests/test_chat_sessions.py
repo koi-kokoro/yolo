@@ -64,6 +64,26 @@ def test_redis_miss_falls_back_to_database_and_refills(db_session):
     refill.assert_called_once()
 
 
+def test_first_successful_turn_generates_title_only_once(db_session):
+    service = ChatSessionService()
+    session = service.create(db_session, AuthUser.id, "新会话")
+
+    service.save_turn(db_session, session, "请分析一下这张图片：5185.png", "分析完成。", "detection")
+    assert session.title == "分析图片 5185.png"
+
+    service.save_turn(db_session, session, "换一个完全不同的话题", "好的。", "chat")
+    assert session.title == "分析图片 5185.png"
+
+
+def test_manual_title_is_not_overwritten_by_first_turn(db_session):
+    service = ChatSessionService()
+    session = service.create(db_session, AuthUser.id, "我的固定标题")
+
+    service.save_turn(db_session, session, "第一条消息", "回答。", "chat")
+
+    assert session.title == "我的固定标题"
+
+
 def test_continuous_loveda_followups_work_after_redis_miss(client):
     auth(client)
     session_id = client.post("/api/chat/sessions", json={"title": "连续知识问答"}).json()["id"]

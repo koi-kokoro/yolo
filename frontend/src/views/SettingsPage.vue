@@ -14,6 +14,9 @@
             <el-form-item label="用户名">
               <el-input :model-value="profileForm.username" disabled />
             </el-form-item>
+            <el-form-item label="用户类型">
+              <el-input :model-value="profileForm.is_superuser ? '管理员' : '普通用户'" disabled />
+            </el-form-item>
             <el-form-item label="邮箱">
               <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
             </el-form-item>
@@ -116,6 +119,7 @@ const userStore = useUserStore();
 // ── 个人信息 ──
 const profileForm = reactive({
   username: "",
+  is_superuser: false,
   email: "",
   phone: "",
   created_at: null,
@@ -163,6 +167,7 @@ async function loadUserInfo() {
   try {
     const res = await request.get("/auth/me");
     profileForm.username = res.username;
+    profileForm.is_superuser = Boolean(res.is_superuser);
     profileForm.email = res.email;
     profileForm.phone = res.phone || "";
     profileForm.created_at = res.created_at;

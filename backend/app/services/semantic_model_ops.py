@@ -624,8 +624,9 @@ class SemanticModelOpsService:
 
         original = ImageOps.exif_transpose(image).convert("RGB")
         tensor = preprocess(original, (IMGSZ, IMGSZ))
+        started = time.perf_counter()
         output = session.run([output_name], {input_name: tensor})[0]
-        elapsed = 0  # measured by caller if needed
+        elapsed = round((time.perf_counter() - started) * 1000, 2)
         artifacts = build_artifacts(original, output, classes, settings.SEMANTIC_OVERLAY_ALPHA)
 
         annotated_image = base64.b64encode(artifacts.overlay).decode("utf-8")

@@ -31,6 +31,10 @@ from app.services.detection_chat_service import (
     detection_chat_service,
     get_or_create_default_scene,
 )
+from app.services.semantic_dashboard_metrics import (
+    build_semantic_metrics,
+    derive_semantic_sample,
+)
 
 logger = get_logger(__name__)
 
@@ -49,6 +53,8 @@ _IMAGE_DATA_KEYS = {
 _PATH_KEYS = {"image_path", "image_paths", "zip_path", "path", "absolute_path"}
 _MAX_LLM_STRING_CHARS = 4000
 _DETECTION_INTENT_WORDS = (
+    "看看",
+    "查看",
     "识别",
     "检测",
     "分割",
@@ -269,6 +275,7 @@ class DetectionAgent:
         user_id: int | None = None,
         scene_id: int | None = None,
         memory: list[dict[str, str]] | None = None,
+        workflow_state: dict[str, Any] | None = None,
     ) -> AsyncGenerator[dict[str, Any], None]:
         """可信当前图片确定性优先执行；LLM 仅总结已清洗结构化结果。"""
         if not image_path:
@@ -282,7 +289,11 @@ class DetectionAgent:
             yield {"type": "text_chunk", "content": "请在当前消息中上传图片后再进行检测；历史路径不会被重新读取。"}
             return
 
-        if any(word in message for word in _DETECTION_INTENT_WORDS):
+        planned_detection = any(
+            item.get("agent") == "detection"
+            for item in ((workflow_state or {}).get("plan") or {}).get("steps", [])
+        )
+        if planned_detection or any(word in message for word in _DETECTION_INTENT_WORDS):
             tool_name = "segment_single_image"
             safe_input = _safe_tool_input(tool_name, {"image_path": image_path})
             yield {"type": "tool_call", "tool": tool_name, "input": safe_input}
@@ -460,6 +471,42 @@ class DetectionAgent:
                                                 total_objects = 0
                                                 total_inference_time = 0.0
 
+                                            if mode == "single":
+                                                metric_sources = [
+                                                    {
+                                                        "name": parsed.get("filename")
+                                                        or "chat-image",
+                                                        "class_statistics": parsed.get(
+                                                            "class_statistics", []
+                                                        ),
+                                                    }
+                                                ]
+                                            elif mode in {"batch", "zip"}:
+                                                metric_sources = [
+                                                    {
+                                                        "name": image.get("filename")
+                                                        or "chat-image",
+                                                        "class_statistics": image.get(
+                                                            "class_statistics", []
+                                                        ),
+                                                    }
+                                                    for image in parsed.get(
+                                                        "annotated_images", []
+                                                    )
+                                                ]
+                                            else:
+                                                metric_sources = []
+
+                                            semantic_metrics = build_semantic_metrics(
+                                                [
+                                                    derive_semantic_sample(
+                                                        source["class_statistics"],
+                                                        source["name"],
+                                                    )
+                                                    for source in metric_sources
+                                                ]
+                                            )
+
                                             task = DetectionTask(
                                                 user_id=user_id,
                                                 scene_id=scene.id,
@@ -467,6 +514,7 @@ class DetectionAgent:
                                                 status="completed",
                                                 total_images=total_images,
                                                 total_objects=total_objects,
+                                                semantic_metrics=semantic_metrics,
                                                 total_inference_time=total_inference_time,
                                                 completed_at=datetime.now(),
                                             )

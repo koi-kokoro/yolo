@@ -81,11 +81,16 @@
           <div ref="trendChartRef" class="chart-container"></div>
         </el-card>
       </el-col>
-      <!-- 类别分布（饼图） -->
+      <!-- 语义异常度—参考可信度矩阵 -->
       <el-col :span="8">
         <el-card shadow="hover">
           <template #header>
-            <span>类别分布</span>
+            <div class="chart-title">
+              <span>异常度—参考可信度</span>
+              <el-tooltip content="由语义 Mask、LoveDA 类别先验和验证集 IoU 派生，并非模型置信度">
+                <el-icon class="chart-help"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
           </template>
           <div ref="classChartRef" class="chart-container"></div>
         </el-card>
@@ -93,11 +98,16 @@
     </el-row>
 
     <el-row :gutter="16" class="chart-row">
-      <!-- 场景分布（柱状图） -->
+      <!-- 输入域健康度 -->
       <el-col :span="12">
         <el-card shadow="hover">
           <template #header>
-            <span>场景分布</span>
+            <div class="chart-title">
+              <span>输入域健康度</span>
+              <el-tooltip content="按语义类别结构与 LoveDA 训练先验的距离划分域内、临界和域外">
+                <el-icon class="chart-help"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
           </template>
           <div ref="sceneChartRef" class="chart-container"></div>
         </el-card>
@@ -127,13 +137,13 @@
  *   - ECharts 环形图：任务类型分布
  */
 import {
-  getClassDistribution,
-  getSceneDistribution,
+  getDomainHealth,
+  getSemanticRiskMatrix,
   getStatistics,
   getTrend,
   getTypeDistribution,
 } from "@/api/dashboard";
-import { Aim, Document, PictureFilled, Timer } from "@element-plus/icons-vue";
+import { Aim, Document, PictureFilled, QuestionFilled, Timer } from "@element-plus/icons-vue";
 import * as echarts from "echarts";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
@@ -190,14 +200,14 @@ async function loadAllData() {
     const [statsRes, trendRes, classRes, sceneRes, typeRes] = await Promise.all([
       getStatistics(days),
       getTrend(days),
-      getClassDistribution(days),
-      getSceneDistribution(days),
+      getSemanticRiskMatrix(days),
+      getDomainHealth(days),
       getTypeDistribution(days),
     ]);
 
     stats.value = statsRes;
     renderTrendChart(trendRes.trend);
-    renderClassChart(classRes.distribution);
+    renderClassChart(classRes.points);
     renderSceneChart(sceneRes.distribution);
     renderTypeChart(typeRes.distribution);
   } catch (err) {
@@ -282,39 +292,88 @@ function renderTrendChart(trend) {
 }
 
 // ── 渲染饼图：类别分布 ──
-function renderClassChart(distribution) {
+function renderClassChart(points = []) {
   if (!classChart) {
     classChart = echarts.init(classChartRef.value);
   }
 
+  if (!points.length) {
+    classChart.clear();
+    classChart.setOption(emptyChartOption("暂无语义评估数据\n完成新的语义分割任务后自动生成"));
+    return;
+  }
+
+  const reviewColors = {
+    low: "#67c23a",
+    medium: "#e6a23c",
+    high: "#f56c6c",
+  };
+  const data = points.map((point) => ({
+    name: point.name,
+    value: [point.anomaly_score, point.reliability_score, point.total_pixels],
+    taskId: point.task_id,
+    taskType: point.task_type,
+    reviewLevel: point.review_level,
+    domainStatus: point.domain_status,
+    itemStyle: { color: reviewColors[point.review_level] || "#909399" },
+  }));
+
+  classChart.clear();
   classChart.setOption({
     tooltip: {
       trigger: "item",
-      formatter: "{b}: {c} ({d}%)",
+      formatter(params) {
+        const value = params.value || [];
+        const levelNames = { low: "低", medium: "中", high: "高" };
+        return [
+          `<strong>${params.name}</strong>`,
+          `任务 #${params.data.taskId}`,
+          `异常度：${value[0]}`,
+          `参考可信度：${value[1]}`,
+          `复核优先级：${levelNames[params.data.reviewLevel] || "未知"}`,
+        ].join("<br/>");
+      },
     },
-    legend: {
-      type: "scroll",
-      orient: "vertical",
-      right: 10,
-      top: 20,
-      bottom: 20,
+    grid: {
+      left: 50,
+      right: 20,
+      top: 28,
+      bottom: 45,
+    },
+    xAxis: {
+      type: "value",
+      name: "异常度",
+      min: 0,
+      max: 100,
+      axisLabel: { formatter: "{value}" },
+    },
+    yAxis: {
+      type: "value",
+      name: "参考可信度",
+      min: 0,
+      max: 100,
     },
     series: [
       {
-        type: "pie",
-        radius: "65%",
-        center: ["35%", "50%"],
-        data: distribution,
-        emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: "rgba(0,0,0,0.3)",
-          },
+        type: "scatter",
+        data,
+        symbolSize(value) {
+          const pixels = Math.max(1, Number(value[2]) || 1);
+          return Math.max(10, Math.min(28, 8 + Math.log10(pixels)));
         },
-        label: {
-          formatter: "{b}\n{d}%",
-          fontSize: 12,
+        emphasis: {
+          scale: 1.35,
+        },
+        markLine: {
+          silent: true,
+          symbol: "none",
+          lineStyle: { type: "dashed", color: "#c0c4cc" },
+          label: { color: "#909399", fontSize: 10 },
+          data: [
+            { xAxis: 25, name: "临界" },
+            { xAxis: 45, name: "域外" },
+            { yAxis: 50, name: "建议复核" },
+          ],
         },
       },
     ],
@@ -322,51 +381,54 @@ function renderClassChart(distribution) {
 }
 
 // ── 渲染柱状图：场景分布 ──
-function renderSceneChart(distribution) {
+function renderSceneChart(distribution = []) {
   if (!sceneChart) {
     sceneChart = echarts.init(sceneChartRef.value);
   }
 
+  const validData = distribution.filter((item) => Number(item.value) > 0);
+  if (!validData.length) {
+    sceneChart.clear();
+    sceneChart.setOption(emptyChartOption("暂无输入域评估数据"));
+    return;
+  }
+
+  const colors = ["#67c23a", "#e6a23c", "#f56c6c"];
+  sceneChart.clear();
   sceneChart.setOption({
     tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
+      trigger: "item",
+      formatter: "{b}: {c} 个样本 ({d}%)",
     },
-    grid: {
-      left: 80,
-      right: 20,
-      top: 20,
-      bottom: 30,
-    },
-    xAxis: {
-      type: "value",
-      axisLabel: { fontSize: 11 },
-    },
-    yAxis: {
-      type: "category",
-      data: distribution.map((d) => d.name),
-      axisLabel: { fontSize: 12 },
-    },
+    legend: { bottom: 0, itemGap: 24 },
+    color: colors,
     series: [
       {
-        type: "bar",
-        data: distribution.map((d) => d.value),
-        barWidth: "50%",
-        itemStyle: {
-          borderRadius: [0, 4, 4, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: "#409eff" },
-            { offset: 1, color: "#79bbff" },
-          ]),
-        },
-        label: {
-          show: true,
-          position: "right",
-          fontSize: 12,
-        },
+        type: "pie",
+        radius: ["42%", "68%"],
+        center: ["50%", "45%"],
+        data: validData,
+        label: { formatter: "{b}\n{c} ({d}%)", fontSize: 12 },
       },
     ],
   });
+}
+
+function emptyChartOption(message) {
+  return {
+    graphic: {
+      type: "text",
+      left: "center",
+      top: "middle",
+      style: {
+        text: message,
+        textAlign: "center",
+        fill: "#909399",
+        fontSize: 14,
+        lineHeight: 22,
+      },
+    },
+  };
 }
 
 // ── 渲染环形图：任务类型分布 ──
@@ -528,5 +590,16 @@ onBeforeUnmount(() => {
 .chart-container {
   height: 320px;
   width: 100%;
+}
+
+.chart-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-help {
+  color: #909399;
+  cursor: help;
 }
 </style>

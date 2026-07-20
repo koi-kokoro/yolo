@@ -41,15 +41,44 @@
 
         <!-- AI 消息 -->
         <div v-else-if="msg.role === 'assistant'" class="message-bubble assistant-bubble">
+          <div v-if="msg.workflow" class="workflow-progress">
+            <div class="workflow-title">
+              <span>{{ msg.workflow.reason }}</span>
+              <el-tag size="small" :type="workflowStatusType(msg.workflow.status)">
+                {{ workflowStatusLabel(msg.workflow.status) }}
+              </el-tag>
+            </div>
+            <div class="workflow-steps">
+              <el-tag
+                v-for="step in msg.workflow.steps"
+                :key="step.id"
+                size="small"
+                effect="plain"
+                :type="workflowStatusType(step.status)"
+              >
+                {{ agentLabel(step.agent) }} · {{ workflowStatusLabel(step.status) }}
+              </el-tag>
+            </div>
+          </div>
           <div v-if="msg.loading" class="typing-indicator">
             <span></span><span></span><span></span>
           </div>
-          <div v-else class="message-content" style="white-space: pre-wrap">{{ msg.content }}</div>
+          <div v-else class="message-content markdown-content" v-html="renderMarkdown(msg.content)"></div>
 
           <SegmentationResultCard
             v-if="msg.segmentationResult"
             :result="msg.segmentationResult"
           />
+
+          <el-button
+            v-if="msg.exportResult"
+            class="export-download"
+            type="primary"
+            plain
+            @click="downloadExport(msg.exportResult)"
+          >
+            下载 {{ msg.exportResult.format?.toUpperCase() }} 文件
+          </el-button>
         </div>
 
         <div v-if="msg.toolCall" class="tool-call-info">
@@ -133,6 +162,35 @@
     </el-dialog>
 
     <!-- 输入区 -->
+    <div v-if="selectedAttachments.length" class="pending-attachments">
+      <div
+        v-for="attachment in selectedAttachments"
+        :key="attachment.id"
+        class="pending-attachment-card"
+      >
+        <img
+          v-if="attachment.preview"
+          :src="attachment.preview"
+          :alt="attachment.file.name"
+          class="pending-attachment-preview"
+        />
+        <div v-else class="pending-attachment-file">ZIP</div>
+        <button
+          type="button"
+          class="pending-attachment-remove"
+          :aria-label="`移除 ${attachment.file.name}`"
+          :title="`移除 ${attachment.file.name}`"
+          @click="removeSelectedAttachment(attachment.id)"
+        >
+          ×
+        </button>
+        <span class="pending-attachment-name" :title="attachment.file.name">
+          {{ attachment.file.name }}
+        </span>
+        <span class="pending-attachment-size">{{ formatFileSize(attachment.file.size) }}</span>
+      </div>
+    </div>
+
     <div class="input-area">
       <el-button class="attach-btn" @click="triggerFileInput" :disabled="agentStore.isLoading" circle>
         📎
@@ -141,6 +199,7 @@
         ref="fileInputRef"
         type="file"
         accept="image/*,.zip"
+        multiple
         style="display: none"
         @change="handleFileSelect"
       />
@@ -182,17 +241,18 @@ import { segmentBatch, segmentSingle, segmentVideo, segmentZip } from '@/api/seg
 import SegmentationResultCard from '@/components/SegmentationResultCard.vue'
 import { useAgentStore } from '@/stores/agent'
 import { useUserStore } from '@/stores/user'
+import { renderMarkdown } from '@/utils/markdown'
 import { createEventStream } from '@/utils/stream'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const agentStore = useAgentStore()
 
 const userStore = useUserStore()
 
 const inputText = ref('')
-const selectedFile = ref(null)
+const selectedAttachments = ref([])
 const messageListRef = ref(null)
 const fileInputRef = ref(null)
 const cameraVideoRef = ref(null)
@@ -203,9 +263,10 @@ const cameraCaptureInProgress = ref(false)
 const cameraRealtimeRunning = ref(false)
 const cameraRealtimeStopRequested = ref(false)
 let cameraMediaStream = null
+let attachmentSequence = 0
 
 const canSend = computed(() => {
-  return inputText.value.trim() || selectedFile.value
+  return inputText.value.trim() || selectedAttachments.value.length > 0
 })
 
 function scrollToBottom() {
@@ -216,22 +277,44 @@ function scrollToBottom() {
   })
 }
 
+function refreshSessionTitles() {
+  void agentStore.listSessions().catch(() => {
+    // 标题刷新失败不影响当前对话。
+  })
+}
+
 async function sendMessage() {
   if (!canSend.value) return
 
   const message = inputText.value.trim()
-  const fileToSend = selectedFile.value
-  const imagePreview = fileToSend ? URL.createObjectURL(fileToSend) : null
+  const attachmentsToSend = [...selectedAttachments.value]
+  const filesToSend = attachmentsToSend.map((attachment) => attachment.file)
+  const imageFiles = filesToSend.filter((file) => file.type.startsWith('image/'))
+
+  if (filesToSend.length > 1 && imageFiles.length !== filesToSend.length) {
+    ElMessage.warning('多附件发送仅支持图片，请移除 ZIP 后重试')
+    return
+  }
+
+  const isBatch = imageFiles.length > 1
+  const fileToSend = filesToSend[0] || null
+  const messageImages = imageFiles.map((file) => URL.createObjectURL(file))
+  const effectiveMessage = message || (isBatch
+    ? `[批量分割] ${imageFiles.length} 张图片`
+    : fileToSend
+      ? `请分析图片：${fileToSend.name}`
+      : '')
 
   agentStore.addMessage({
     role: 'user',
-    content: message,
+    content: effectiveMessage,
     image: fileToSend ? fileToSend.name : null,
-    imagePreview,
+    imagePreview: messageImages.length === 1 ? messageImages[0] : null,
+    images: messageImages.length > 1 ? messageImages : null,
   })
 
   inputText.value = ''
-  selectedFile.value = null
+  clearSelectedAttachments()
 
   agentStore.addMessage({
     role: 'assistant',
@@ -241,13 +324,18 @@ async function sendMessage() {
 
   scrollToBottom()
 
-  let serverImagePath = null
+  if (isBatch) {
+    await sendSelectedImageBatch(imageFiles, effectiveMessage)
+    return
+  }
+
+  let serverImageRef = null
   if (fileToSend) {
     try {
       const formData = new FormData()
       formData.append('file', fileToSend)
       const uploadResult = await request.post('/chat/upload', formData)
-      serverImagePath = uploadResult.image_path
+      serverImageRef = uploadResult.image_ref
     } catch (err) {
       const lastMsg = agentStore.messages[agentStore.messages.length - 1]
       lastMsg.content = `图片上传失败：${err.response?.data?.detail || err.message || '未知错误'}，请重试`
@@ -260,9 +348,9 @@ async function sendMessage() {
 
   const requestSessionId = agentStore.currentSessionId
   const requestBody = {
-    message,
+    message: effectiveMessage,
     session_id: requestSessionId,
-    ...(serverImagePath ? { image_path: serverImagePath } : {}),
+    ...(serverImageRef ? { image_ref: serverImageRef } : {}),
   }
 
   let fullContent = ''
@@ -283,6 +371,27 @@ async function sendMessage() {
 
       if (data.type === 'session') {
         agentStore.handleSessionEvent(data, requestSessionId)
+      } else if (data.type === 'workflow_plan') {
+        lastMsg.workflow = {
+          id: data.workflow_id,
+          reason: data.plan?.reason || '多 Agent 协作',
+          status: 'running',
+          steps: (data.plan?.steps || []).map((step) => ({ ...step, status: 'pending' })),
+        }
+      } else if (data.type === 'workflow_node') {
+        const step = lastMsg.workflow?.steps?.find((item) => item.id === data.node)
+        if (step) step.status = data.status
+      } else if (data.type === 'workflow_retry') {
+        const step = lastMsg.workflow?.steps?.find((item) => item.id === data.node)
+        if (step) {
+          step.status = 'running'
+          step.attempt = data.attempt
+        }
+      } else if (data.type === 'workflow_complete') {
+        if (lastMsg.workflow) {
+          lastMsg.workflow.status = data.status
+          lastMsg.workflow.review = data.review
+        }
       } else if (data.type === 'agent_route') {
         lastMsg.agentRoute = data.agent
       } else if (data.type === 'text_chunk') {
@@ -296,6 +405,9 @@ async function sendMessage() {
           const result = JSON.parse(data.result)
           if (result.class_statistics || result.annotated_images || result.annotated_image) {
             lastMsg.segmentationResult = result
+          }
+          if (result.download_url && result.filename) {
+            lastMsg.exportResult = result
           }
         } catch {
           lastMsg.content += `\n[工具结果: ${data.result?.substring(0, 100)}...]`
@@ -315,6 +427,7 @@ async function sendMessage() {
         lastMsg.loading = false
       }
       agentStore.setLoading(false)
+      refreshSessionTitles()
     },
     onError: (err) => {
       if (requestSessionId !== agentStore.currentSessionId) return
@@ -330,6 +443,58 @@ async function sendMessage() {
   agentStore.setAbortController(stop)
 }
 
+const AGENT_LABELS = {
+  detection: '图像分割',
+  analysis: '证据分析',
+  review: '结果审核',
+  report: '报告生成',
+  evaluation: '模型评估',
+  export: '数据导出',
+  qa: '知识问答',
+  chat: '通用对话',
+}
+
+function agentLabel(agent) {
+  return AGENT_LABELS[agent] || agent
+}
+
+function workflowStatusLabel(status) {
+  return {
+    pending: '等待',
+    running: '执行中',
+    completed: '完成',
+    partial: '部分完成',
+    failed: '失败',
+    skipped: '跳过',
+  }[status] || status
+}
+
+function workflowStatusType(status) {
+  if (status === 'completed') return 'success'
+  if (status === 'failed' || status === 'partial') return 'danger'
+  if (status === 'running') return 'primary'
+  if (status === 'skipped') return 'warning'
+  return 'info'
+}
+
+async function downloadExport(exportResult) {
+  try {
+    const blob = await request.get(`/chat/exports/${encodeURIComponent(exportResult.filename)}`, {
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = exportResult.filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error(error.message || '导出文件下载失败')
+  }
+}
+
 function handleStop() {
   agentStore.abort()
   const lastMsg = agentStore.messages[agentStore.messages.length - 1]
@@ -343,11 +508,74 @@ function triggerFileInput() {
   fileInputRef.value?.click()
 }
 
+function clearSelectedAttachments() {
+  selectedAttachments.value.forEach((attachment) => {
+    if (attachment.preview) URL.revokeObjectURL(attachment.preview)
+  })
+  selectedAttachments.value = []
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+function removeSelectedAttachment(id) {
+  const attachment = selectedAttachments.value.find((item) => item.id === id)
+  if (attachment?.preview) URL.revokeObjectURL(attachment.preview)
+  selectedAttachments.value = selectedAttachments.value.filter((item) => item.id !== id)
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 function handleFileSelect(event) {
-  const file = event.target.files[0]
-  if (file) {
-    selectedFile.value = file
-    ElMessage.info(`${file.name} 已选择`)
+  const files = Array.from(event.target.files || [])
+  if (!files.length) return
+
+  const additions = files.map((file) => ({
+    id: `attachment-${Date.now()}-${attachmentSequence++}`,
+    file,
+    preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+  }))
+  selectedAttachments.value = [...selectedAttachments.value, ...additions]
+  event.target.value = ''
+  ElMessage.info(files.length === 1 ? `${files[0].name} 已添加` : `已添加 ${files.length} 个附件`)
+}
+
+async function sendSelectedImageBatch(files, message) {
+  agentStore.setLoading(true)
+  const formData = new FormData()
+  files.forEach((file) => formData.append('files', file))
+  formData.append('session_id', String(agentStore.currentSessionId))
+  formData.append('message', message)
+
+  try {
+    const result = await segmentBatch(formData)
+    agentStore.handleSessionEvent({ session_id: result.session_id }, agentStore.currentSessionId)
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    if (result.error) {
+      lastMsg.content = `批量分割失败：${result.error}`
+      lastMsg.error = true
+    } else {
+      lastMsg.content = `批量分割完成！共 ${result.successful_images} 张图片。`
+      lastMsg.segmentationResult = result
+    }
+    lastMsg.loading = false
+    refreshSessionTitles()
+  } catch (err) {
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    lastMsg.content = `批量分割失败：${err.message || err}`
+    lastMsg.loading = false
+    lastMsg.error = true
+  } finally {
+    agentStore.setLoading(false)
+    scrollToBottom()
   }
 }
 
@@ -450,6 +678,7 @@ async function captureCameraImage() {
       lastMsg.loading = false
       lastMsg.segmentationResult = result
     }
+    refreshSessionTitles()
     scrollToBottom()
   } catch (err) {
     closeCameraDialog()
@@ -517,6 +746,7 @@ async function captureCameraVideo() {
       lastMsg.loading = false
       lastMsg.segmentationResult = result
     }
+    refreshSessionTitles()
     scrollToBottom()
   } catch (err) {
     closeCameraDialog()
@@ -656,6 +886,7 @@ async function handleQuickSegment(type) {
         lastMsg.content = `分割完成！图片尺寸 ${result.image_width}×${result.image_height}。`
         lastMsg.loading = false
         lastMsg.segmentationResult = result
+        refreshSessionTitles()
       } catch (err) {
         const lastMsg = agentStore.messages[agentStore.messages.length - 1]
         lastMsg.content = '分割失败，请重试'
@@ -764,6 +995,7 @@ async function handleQuickSegment(type) {
         lastMsg.content = `批量分割完成！共 ${result.successful_images} 张图。`
         lastMsg.loading = false
         lastMsg.segmentationResult = result
+        refreshSessionTitles()
       } catch (err) {
         const lastMsg = agentStore.messages[agentStore.messages.length - 1]
         lastMsg.content = `批量分割失败：${err.message || err}`
@@ -810,6 +1042,12 @@ onMounted(async () => {
   } catch (error) {
     ElMessage.error(`会话初始化失败：${error.message || error}`)
   }
+})
+
+onBeforeUnmount(() => {
+  selectedAttachments.value.forEach((attachment) => {
+    if (attachment.preview) URL.revokeObjectURL(attachment.preview)
+  })
 })
 </script>
 
@@ -884,6 +1122,130 @@ onMounted(async () => {
   border-bottom-left-radius: 4px;
 }
 
+.workflow-progress {
+  min-width: 320px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #d9ecff;
+  border-radius: 8px;
+  background: #f5f9ff;
+}
+
+.workflow-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #303133;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.workflow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.markdown-content {
+  overflow-x: auto;
+  white-space: normal;
+
+  :deep(> :first-child) {
+    margin-top: 0;
+  }
+
+  :deep(> :last-child) {
+    margin-bottom: 0;
+  }
+
+  :deep(h1),
+  :deep(h2),
+  :deep(h3),
+  :deep(h4),
+  :deep(h5),
+  :deep(h6) {
+    margin: 1em 0 0.5em;
+    color: #303133;
+    line-height: 1.3;
+  }
+
+  :deep(h1) { font-size: 1.5em; }
+  :deep(h2) { font-size: 1.3em; }
+  :deep(h3) { font-size: 1.15em; }
+
+  :deep(p),
+  :deep(ul),
+  :deep(ol),
+  :deep(blockquote),
+  :deep(pre),
+  :deep(table) {
+    margin: 0.65em 0;
+  }
+
+  :deep(ul),
+  :deep(ol) {
+    padding-left: 1.6em;
+  }
+
+  :deep(table) {
+    width: max-content;
+    min-width: 100%;
+    border-spacing: 0;
+    border-collapse: collapse;
+  }
+
+  :deep(th),
+  :deep(td) {
+    padding: 6px 10px;
+    border: 1px solid #dcdfe6;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  :deep(th) {
+    background: #f5f7fa;
+    font-weight: 600;
+  }
+
+  :deep(blockquote) {
+    padding-left: 12px;
+    border-left: 4px solid #dcdfe6;
+    color: #606266;
+  }
+
+  :deep(pre) {
+    overflow-x: auto;
+    padding: 12px;
+    border-radius: 6px;
+    background: #282c34;
+    color: #f8f8f2;
+  }
+
+  :deep(code) {
+    padding: 0.15em 0.35em;
+    border-radius: 4px;
+    background: #f2f3f5;
+    font-family: Consolas, Monaco, monospace;
+  }
+
+  :deep(pre code) {
+    padding: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  :deep(a) {
+    color: #409eff;
+    text-decoration: none;
+  }
+
+  :deep(a:hover) {
+    text-decoration: underline;
+  }
+}
+
 .typing-indicator {
   display: flex;
   gap: 4px;
@@ -922,6 +1284,84 @@ onMounted(async () => {
   .el-input {
     flex: 1;
   }
+}
+
+.pending-attachments {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 10px 20px;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
+}
+
+.pending-attachment-card {
+  position: relative;
+  display: flex;
+  width: 82px;
+  min-width: 82px;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pending-attachment-preview,
+.pending-attachment-file {
+  width: 80px;
+  height: 80px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+}
+
+.pending-attachment-preview {
+  object-fit: cover;
+}
+
+.pending-attachment-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pending-attachment-name {
+  width: 80px;
+  overflow: hidden;
+  color: #303133;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pending-attachment-size {
+  color: #909399;
+  font-size: 12px;
+}
+
+.pending-attachment-remove {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  display: flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #f56c6c;
+  color: #fff;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  z-index: 1;
+}
+
+.pending-attachment-remove:hover {
+  background: #f89898;
 }
 
 .message-attachment {
