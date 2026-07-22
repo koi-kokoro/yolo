@@ -246,6 +246,8 @@ class TestSegmentationRoutes:
                 "class_counts": {},
                 "annotated_images": [],
             },
+        ), patch(
+            "app.api.chat.facility_detection_service.runtime", Mock(ready=False)
         ):
             resp = authenticated_client.post(
                 "/api/segmentation/batch",
@@ -255,6 +257,56 @@ class TestSegmentationRoutes:
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert data["mode"] == "batch"
+
+    def test_segment_batch_route_runs_dior_on_the_same_images(
+        self, authenticated_client: TestClient
+    ) -> None:
+        image_bytes = io.BytesIO()
+        Image.fromarray(np.zeros((64, 64, 3), dtype=np.uint8)).save(
+            image_bytes, format="PNG"
+        )
+        image_bytes.seek(0)
+        semantic = {
+            "mode": "batch",
+            "total_images": 1,
+            "successful_images": 1,
+            "total_inference_ms": 42.0,
+            "class_counts": {},
+            "annotated_images": [],
+        }
+        facility = {
+            "mode": "single",
+            "total_images": 1,
+            "total_objects": 2,
+            "total_inference_ms": 12.0,
+            "class_statistics": [
+                {"class_name": "airplane", "class_name_cn": "飞机", "count": 2}
+            ],
+            "images": [],
+        }
+
+        with patch(
+            "app.api.chat.detection_chat_service.segment_batch",
+            return_value=semantic,
+        ), patch(
+            "app.api.chat.facility_detection_service.runtime", Mock(ready=True)
+        ), patch(
+            "app.api.chat.facility_detection_service.detect", return_value=facility
+        ) as detect, patch(
+            "app.api.chat._prepare_facility_chat_result",
+            side_effect=lambda result, _user_id: {**result, "kind": "facility_detection"},
+        ):
+            response = authenticated_client.post(
+                "/api/segmentation/batch",
+                files={"files": ("test.png", image_bytes, "image/png")},
+            )
+
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["facility_detection"]["total_objects"] == 2
+        validated_images = detect.call_args.args[2]
+        assert len(validated_images) == 1
+        assert validated_images[0].original_filename == "test.png"
 
     def test_segment_zip_route(self, authenticated_client: TestClient) -> None:
         zip_bytes = io.BytesIO()
@@ -308,6 +360,31 @@ class TestSegmentationRoutes:
         assert resp.status_code == 200, resp.text
         data = resp.json()
         assert data["mode"] == "video"
+
+    def test_dior_video_route(self, authenticated_client: TestClient) -> None:
+        video_bytes = io.BytesIO(b"fake-video")
+
+        with patch(
+            "app.api.detection.facility_detection_service.detect_video",
+            return_value={
+                "mode": "video",
+                "video": {"processed_frames": 2},
+                "total_images": 2,
+                "total_objects": 3,
+                "images": [],
+                "class_statistics": [],
+            },
+        ) as detect_video:
+            resp = authenticated_client.post(
+                "/api/detection/video",
+                files={"file": ("test.mp4", video_bytes, "video/mp4")},
+                data={"frame_sample_rate": 2, "max_frames": 3},
+            )
+
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["mode"] == "video"
+        assert detect_video.call_args.kwargs["frame_sample_rate"] == 2
+        assert detect_video.call_args.kwargs["max_frames"] == 3
 
     def test_chat_upload(self, authenticated_client: TestClient) -> None:
         image_bytes = io.BytesIO()

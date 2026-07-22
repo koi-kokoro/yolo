@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
+from app.config.settings import settings
 from app.core.logger import get_logger
 from app.database.session import get_db
 from app.entity.db_models import User
@@ -46,6 +47,8 @@ from app.services.chat_session_service import (
 from app.services.agent_export_service import agent_export_service
 from app.services.chat_image_reference_service import chat_image_reference_service
 from app.services.detection_chat_service import detection_chat_service
+from app.services.facility_detection_service import facility_detection_service
+from app.utils.image_validation import ValidatedImage, validate_upload
 
 logger = get_logger(__name__)
 
@@ -87,6 +90,37 @@ def _persistent_segmentation_result(result: dict, user_id: int) -> dict:
                 base64.b64decode(encoded),
             )
 
+    return persisted
+
+
+def _prepare_facility_chat_result(result: dict, user_id: int) -> dict:
+    """把 DIOR 标注图保存为会话安全引用，同时保留本轮可直接展示的 URL。"""
+    storage = facility_detection_service._storage_client()
+    for index, image in enumerate(result.get("images") or []):
+        image.pop("source_object_key", None)
+        annotated_key = image.pop("annotated_object_key", None)
+        if not annotated_key:
+            continue
+        try:
+            content = storage.read_bytes(annotated_key)
+            stem = os.path.splitext(image.get("filename") or f"image-{index + 1}")[0]
+            image["annotated_image_ref"] = _save_chat_image(
+                user_id, f"{stem}-dior.jpg", content
+            )
+        except Exception:
+            logger.warning("Could not persist batch DIOR result image", exc_info=True)
+    result["kind"] = "facility_detection"
+    return result
+
+
+def _persistent_facility_result(result: dict) -> dict:
+    """移除临时签名 URL；历史消息通过 annotated_image_ref 重新取图。"""
+    persisted = copy.deepcopy(result)
+    for image in persisted.get("images") or []:
+        image.pop("source_url", None)
+        image.pop("annotated_image_url", None)
+        image.pop("source_object_key", None)
+        image.pop("annotated_object_key", None)
     return persisted
 
 
@@ -491,7 +525,7 @@ async def segment_single_api(
 
 
 @segmentation_router.post(
-    "/batch", response_model=SegmentationBatchResponse, summary="批量语义分割"
+    "/batch", response_model=SegmentationBatchResponse, summary="批量联合检测"
 )
 async def segment_batch_api(
     files: list[UploadFile] = File(..., description="多张待分割图片"),
@@ -504,48 +538,106 @@ async def segment_batch_api(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Shortcut batch semantic segmentation (bypasses LLM)."""
+    """Run LoveDA segmentation and DIOR facility detection on the same image batch."""
     temp_paths: list[str] = []
+    validated_images: list[ValidatedImage] = []
     original_attachments: list[dict] = []
     try:
         for upload in files:
-            suffix = os.path.splitext(upload.filename)[1] or ".jpg"
-            content = upload.file.read()
+            validated = await validate_upload(upload)
+            validated_images.append(validated)
+            content = validated.temp_path.read_bytes()
             original_ref = _save_chat_image(
-                current_user.id, upload.filename or f"image{suffix}", content
+                current_user.id, validated.original_filename, content
             )
             original_attachments.append(
-                {"filename": upload.filename or "image", "image_ref": original_ref}
+                {"filename": validated.original_filename, "image_ref": original_ref}
             )
-            with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                tmp.write(content)
-                temp_paths.append(tmp.name)
+            temp_paths.append(str(validated.temp_path))
 
         result = detection_chat_service.segment_batch(
             image_paths=temp_paths,
             user_id=current_user.id,
             scene_id=scene_id,
         )
+        facility_result: dict | None = None
+        facility_error: str | None = None
+        if len(validated_images) > settings.DIOR_MAX_BATCH_IMAGES:
+            facility_error = (
+                f"DIOR 每批最多支持 {settings.DIOR_MAX_BATCH_IMAGES} 张图片"
+            )
+        elif not facility_detection_service.runtime.ready:
+            facility_error = "DIOR 检测模型当前不可用"
+        else:
+            try:
+                facility_result = facility_detection_service.detect(
+                    db,
+                    current_user.id,
+                    validated_images,
+                    settings.DIOR_CONF_THRESHOLD,
+                    settings.DIOR_IOU_THRESHOLD,
+                    settings.DIOR_INPUT_SIZE,
+                    include_object_keys=True,
+                )
+                facility_result = _prepare_facility_chat_result(
+                    facility_result, current_user.id
+                )
+                result["facility_detection"] = facility_result
+            except Exception as exc:
+                logger.exception(
+                    "Batch DIOR detection failed: exception_type=%s",
+                    type(exc).__name__,
+                )
+                facility_error = "DIOR 设施检测失败，LoveDA 分割结果仍可用"
+        if facility_error:
+            result["facility_detection_error"] = facility_error
+
         if session_id is not None:
             try:
                 session = chat_session_service.owned(db, current_user.id, session_id)
             except SessionAccessError as exc:
                 raise _not_found(exc) from exc
             summary = _segmentation_summary(result, "批量分割")
-            display_summary = (
-                f"批量分割完成！共 {result.get('successful_images', 0)} 张图片。"
+            if facility_result is not None:
+                display_summary = (
+                    f"联合检测完成！LoveDA 已处理 {result.get('successful_images', 0)} 张图片，"
+                    f"DIOR 共检测到 {facility_result.get('total_objects', 0)} 个设施目标。"
+                )
+            else:
+                display_summary = (
+                    f"LoveDA 批量分割完成，共 {result.get('successful_images', 0)} 张图片；"
+                    f"{facility_error or 'DIOR 未返回结果'}。"
+                )
+            semantic_payload = {
+                key: value
+                for key, value in result.items()
+                if key not in {"facility_detection", "facility_detection_error"}
+            }
+            semantic_persisted = _persistent_segmentation_result(
+                semantic_payload, current_user.id
             )
+            persisted_tool_result = json.dumps(
+                semantic_persisted, ensure_ascii=False
+            )
+            if facility_result is not None:
+                persisted_tool_result = _merge_detection_tool_result(
+                    json.dumps(semantic_persisted, ensure_ascii=False),
+                    "facility_detection",
+                    _persistent_facility_result(facility_result),
+                )
             chat_session_service.save_turn(
                 db,
                 session,
                 message or f"[快捷分割] {len(files)} 张图片",
                 display_summary,
-                "detection",
-                [{"tool": "segment_batch"}],
-                json.dumps(
-                    _persistent_segmentation_result(result, current_user.id),
-                    ensure_ascii=False,
-                ),
+                "combined_detection" if facility_result is not None else "detection",
+                [
+                    {"tool": "segment_batch"},
+                    {"tool": "detect_dior_facilities"},
+                ]
+                if facility_result is not None
+                else [{"tool": "segment_batch"}],
+                persisted_tool_result,
                 original_attachments,
             )
             chat_memory_service.append_turn(
@@ -553,16 +645,13 @@ async def segment_batch_api(
                 session.session_uuid,
                 message or "[快捷分割] 批量图片",
                 summary,
-                "detection",
+                "combined_detection" if facility_result is not None else "detection",
             )
             result["session_id"] = session.id
         return result
     finally:
-        for path in temp_paths:
-            try:
-                os.unlink(path)
-            except Exception:
-                pass
+        for validated in validated_images:
+            validated.cleanup()
 
 
 @segmentation_router.post(

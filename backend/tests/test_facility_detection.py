@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
+import cv2
+import numpy as np
 from PIL import Image
 
 from app.entity.db_models import DetectionResult, DetectionScene, DetectionTask, ModelVersion, User
 from app.orchestration.supervisor import Supervisor
 from app.api.chat import _merge_detection_tool_result, _requests_session_image
 from app.services.facility_detection_service import FacilityDetectionService
+from app.services.facility_detection_service import settings as facility_settings
 from app.utils.image_validation import ValidatedImage
 
 
@@ -56,6 +60,44 @@ class FakeRuntime:
             "annotated_jpeg": b"jpeg-result",
             "inference_time_ms": 12.5,
         }
+
+
+class UnavailableRuntime:
+    ready = False
+    error = "ultralytics is not installed"
+    engine = None
+
+    def model_info(self):
+        return {"ready": False, "message": self.error}
+
+
+def test_model_info_keeps_deployment_metadata_when_runtime_is_unavailable(tmp_path, monkeypatch):
+    metadata = {
+        "model": "dior-yolo11n",
+        "version": "artifact-v1",
+        "task": "detection",
+        "runtime": "ultralytics-pt",
+        "input_size": 640,
+        "classes": ["airplane", "ship"],
+    }
+    metrics = {"map50": 0.87, "map50_95": 0.65, "precision": 0.9, "recall": 0.81}
+    (tmp_path / "metadata.json").write_text(json.dumps(metadata), encoding="utf-8")
+    (tmp_path / "metrics.json").write_text(json.dumps(metrics), encoding="utf-8")
+    monkeypatch.setattr(facility_settings, "DIOR_DEPLOY_DIR", str(tmp_path))
+
+    service = FacilityDetectionService()
+    service.runtime = UnavailableRuntime()
+    info = service.model_info()
+
+    assert info["ready"] is False
+    assert info["artifact_available"] is True
+    assert info["model"] == "dior-yolo11n"
+    assert info["version"] == "artifact-v1"
+    assert info["metrics"] == metrics
+    assert info["classes"] == [
+        {"id": 0, "name": "airplane", "display_name": "飞机"},
+        {"id": 1, "name": "ship", "display_name": "船舶"},
+    ]
 
 
 class FakeStorage:
@@ -115,6 +157,44 @@ def test_service_persists_dior_task_and_boxes(db_session, tmp_path):
     assert detection.bbox == {"x1": 1.0, "y1": 2.0, "x2": 20.0, "y2": 18.0}
     assert db_session.query(DetectionScene).one().name == "dior_facility_detection"
     assert db_session.query(ModelVersion).one().task_kind == "detection"
+
+
+def test_service_detects_sampled_dior_video_frames(db_session, tmp_path):
+    user = User(username="dior-video-user", email="dior-video@test.local", hashed_password="x")
+    db_session.add(user)
+    db_session.commit()
+    video_path = tmp_path / "sample.mp4"
+    writer = cv2.VideoWriter(
+        str(video_path), cv2.VideoWriter_fourcc(*"mp4v"), 5.0, (32, 24)
+    )
+    for value in range(5):
+        writer.write(np.full((24, 32, 3), value * 20, dtype=np.uint8))
+    writer.release()
+
+    service = FacilityDetectionService()
+    service.runtime = FakeRuntime()
+    service._storage = FakeStorage()
+    result = service.detect_video(
+        db_session,
+        user.id,
+        str(video_path),
+        "sample.mp4",
+        0.25,
+        0.45,
+        640,
+        frame_sample_rate=2,
+        max_frames=2,
+    )
+
+    assert result["mode"] == "video"
+    assert result["video"]["processed_frames"] == 2
+    assert [frame["frame_index"] for frame in result["images"]] == [0, 4]
+    assert [frame["timestamp"] for frame in result["images"]] == [0.0, 0.8]
+    assert result["total_objects"] == 2
+    task = db_session.query(DetectionTask).one()
+    assert task.task_type == "video"
+    assert task.total_images == 2
+    assert db_session.query(DetectionResult).count() == 2
 
 
 def test_supervisor_only_routes_explicit_facility_intent_to_dior():

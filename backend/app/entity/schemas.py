@@ -507,7 +507,7 @@ class SegmentationSingleResponse(BaseModel):
 
 
 class SegmentationBatchResponse(BaseModel):
-    """Batch / ZIP segmentation shortcut response."""
+    """Batch / ZIP segmentation response, optionally enriched by DIOR detection."""
 
     mode: str
     session_id: Optional[int] = None
@@ -517,6 +517,8 @@ class SegmentationBatchResponse(BaseModel):
     class_counts: dict[str, int]
     annotated_images: list[dict]
     zip_filename: Optional[str] = None
+    facility_detection: Optional[dict] = None
+    facility_detection_error: Optional[str] = None
 
 
 class ChatUploadResponse(BaseModel):

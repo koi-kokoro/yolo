@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
 
-import { detectBatch, detectSingle, getDetectionModelInfo } from '@/api/detection'
+import { detectBatch, detectSingle, detectVideo, getDetectionModelInfo } from '@/api/detection'
 
 const modelInfo = ref(null)
 const selectedFiles = ref([])
@@ -14,9 +14,22 @@ const activeImage = ref(0)
 const conf = ref(0.25)
 const iou = ref(0.45)
 const imageSize = ref(640)
+const inputMode = ref('image')
+const frameSampleRate = ref(5)
+const maxFrames = ref(30)
 
 const currentImage = computed(() => result.value?.images?.[activeImage.value] || null)
-const canSubmit = computed(() => modelInfo.value?.ready && selectedFiles.value.length && !loading.value)
+const canSubmit = computed(() => (
+  modelInfo.value?.ready
+  && selectedFiles.value.length
+  && (inputMode.value === 'image' || selectedFiles.value.length === 1)
+  && !loading.value
+))
+const uploadAccept = computed(() => (
+  inputMode.value === 'video'
+    ? 'video/*,.mp4,.avi,.mov,.mkv,.webm'
+    : '.jpg,.jpeg,.png,image/jpeg,image/png'
+))
 
 function onFilesChanged(_file, uploadFiles) {
   selectedFiles.value = uploadFiles.map((item) => item.raw).filter(Boolean)
@@ -35,13 +48,25 @@ function clear() {
   activeImage.value = 0
 }
 
+function changeInputMode() {
+  clear()
+}
+
 async function submit() {
   if (!canSubmit.value) return
   loading.value = true
   const form = new FormData()
   const params = { conf: conf.value, iou: iou.value, image_size: imageSize.value }
   try {
-    if (selectedFiles.value.length === 1) {
+    if (inputMode.value === 'video') {
+      form.append('file', selectedFiles.value[0])
+      form.append('conf', String(conf.value))
+      form.append('iou', String(iou.value))
+      form.append('image_size', String(imageSize.value))
+      form.append('frame_sample_rate', String(frameSampleRate.value))
+      form.append('max_frames', String(maxFrames.value))
+      result.value = await detectVideo(form)
+    } else if (selectedFiles.value.length === 1) {
       form.append('file', selectedFiles.value[0])
       result.value = await detectSingle(form, params)
     } else {
@@ -86,24 +111,36 @@ onMounted(async () => {
 
     <div class="top-grid">
       <el-card shadow="never">
-        <template #header><span>上传遥感图像</span></template>
+        <template #header>
+          <div class="card-title">
+            <span>上传遥感影像</span>
+            <el-radio-group v-model="inputMode" size="small" :disabled="loading" @change="changeInputMode">
+              <el-radio-button value="image">图片</el-radio-button>
+              <el-radio-button value="video">视频</el-radio-button>
+            </el-radio-group>
+          </div>
+        </template>
         <el-upload
           ref="uploadRef"
           drag
-          multiple
+          :multiple="inputMode === 'image'"
           :auto-upload="false"
-          :limit="20"
-          accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+          :limit="inputMode === 'video' ? 1 : 20"
+          :accept="uploadAccept"
           :disabled="loading"
           :on-change="onFilesChanged"
           :on-remove="onFilesRemoved"
         >
           <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
-          <div class="el-upload__text">拖放图片到此处，或<em>点击选择</em></div>
-          <template #tip><div class="el-upload__tip">支持 1–20 张 JPEG/PNG，单张最大 20 MiB</div></template>
+          <div class="el-upload__text">拖放{{ inputMode === 'video' ? '视频' : '图片' }}到此处，或<em>点击选择</em></div>
+          <template #tip>
+            <div class="el-upload__tip">
+              {{ inputMode === 'video' ? '支持常见视频格式；DIOR 将按间隔采样关键帧检测' : '支持 1–20 张 JPEG/PNG，单张最大 20 MiB' }}
+            </div>
+          </template>
         </el-upload>
         <div class="actions">
-          <span>已选择 {{ selectedFiles.length }} 张图片</span>
+          <span>已选择 {{ selectedFiles.length }} 个{{ inputMode === 'video' ? '视频' : '图片' }}</span>
           <div>
             <el-button :disabled="loading" @click="clear">清空</el-button>
             <el-button type="primary" :loading="loading" :disabled="!canSubmit" @click="submit">
@@ -130,6 +167,14 @@ onMounted(async () => {
               <el-option :value="1024" label="1024 × 1024" />
             </el-select>
           </el-form-item>
+          <template v-if="inputMode === 'video'">
+            <el-form-item label="采样间隔（帧）">
+              <el-input-number v-model="frameSampleRate" :min="1" :max="300" />
+            </el-form-item>
+            <el-form-item label="最多处理帧数">
+              <el-input-number v-model="maxFrames" :min="1" :max="100" />
+            </el-form-item>
+          </template>
         </el-form>
         <el-descriptions v-if="modelInfo?.ready" :column="1" border>
           <el-descriptions-item label="模型">{{ modelInfo.model }}</el-descriptions-item>
@@ -145,7 +190,10 @@ onMounted(async () => {
         <template #header>
           <div class="card-title">
             <span>检测结果</span>
-            <span>共 {{ result.total_images }} 张图、{{ result.total_objects }} 个目标、{{ result.total_inference_ms }} ms</span>
+            <span>
+              {{ result.mode === 'video' ? `已采样 ${result.video?.processed_frames || result.total_images} 帧` : `共 ${result.total_images} 张图` }}、
+              {{ result.total_objects }} 个目标、{{ result.total_inference_ms }} ms
+            </span>
           </div>
         </template>
         <el-tabs v-if="result.images.length > 1" v-model="activeImage" type="card">
@@ -159,7 +207,11 @@ onMounted(async () => {
         <div v-if="currentImage" class="result-grid">
           <div class="image-panel">
             <img :src="currentImage.annotated_image_url" :alt="`${currentImage.filename} 检测结果`">
-            <p>{{ currentImage.filename }} · {{ currentImage.width }} × {{ currentImage.height }} · {{ currentImage.inference_time_ms }} ms</p>
+            <p>
+              {{ currentImage.filename }} · {{ currentImage.width }} × {{ currentImage.height }}
+              <span v-if="currentImage.timestamp !== undefined"> · {{ currentImage.timestamp }} s</span>
+              · {{ currentImage.inference_time_ms }} ms
+            </p>
           </div>
           <el-table :data="currentImage.detections" max-height="520" empty-text="当前阈值下未检测到目标">
             <el-table-column prop="class_name_cn" label="类别" min-width="110" />

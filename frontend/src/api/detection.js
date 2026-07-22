@@ -14,3 +14,9 @@ export const detectBatch = (formData, params = {}) => request.post(
   { params, headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 },
 )
 
+export const detectVideo = (formData) => request.post(
+  '/detection/video',
+  formData,
+  { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 300000 },
+)
+

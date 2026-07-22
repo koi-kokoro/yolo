@@ -45,6 +45,7 @@ function mapMessage(message) {
     content: message.content || '',
     agentRoute: message.agent_used || null,
     toolCall: message.tool_calls?.[0] || null,
+    toolCalls: message.tool_calls || [],
     exportResult: toolResult?.filename && toolResult?.download_url ? toolResult : null,
     attachmentRefs: message.role === 'user' ? toolResult?.attachments || [] : [],
     segmentationResult: message.role === 'assistant' && isSegmentationResult ? semanticResult : null,

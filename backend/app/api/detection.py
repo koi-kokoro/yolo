@@ -1,8 +1,10 @@
 """Authenticated DIOR facility-detection endpoints."""
 
+import os
+import tempfile
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.auth import get_current_user
@@ -63,4 +65,40 @@ async def detect_batch(
     finally:
         for validated in validated_images:
             validated.cleanup()
+
+
+@router.post("/video")
+async def detect_video(
+    file: Annotated[UploadFile, File(...)],
+    frame_sample_rate: int = Form(default=5, ge=1, le=300),
+    max_frames: int = Form(default=30, ge=1, le=100),
+    conf: float = Form(default=settings.DIOR_CONF_THRESHOLD, ge=0.01, le=1.0),
+    iou: float = Form(default=settings.DIOR_IOU_THRESHOLD, ge=0.01, le=1.0),
+    image_size: int = Form(default=settings.DIOR_INPUT_SIZE, ge=320, le=2048),
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Sample an uploaded video and run DIOR detection on selected frames."""
+    suffix = os.path.splitext(file.filename or "video.mp4")[1] or ".mp4"
+    tmp_path = ""
+    try:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp_path = tmp.name
+            while chunk := await file.read(1024 * 1024):
+                tmp.write(chunk)
+        return facility_detection_service.detect_video(
+            db=db,
+            user_id=current_user.id,
+            video_path=tmp_path,
+            original_filename=file.filename or "video.mp4",
+            conf=conf,
+            iou=iou,
+            image_size=image_size,
+            frame_sample_rate=frame_sample_rate,
+            max_frames=max_frames,
+        )
+    finally:
+        await file.close()
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 

@@ -2,14 +2,35 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const trainingPagePath = resolve(process.cwd(), 'src/views/TrainingPage.vue')
+const diorPanelPath = resolve(process.cwd(), 'src/components/training/DiorModelPanel.vue')
 const summaryPath = resolve(process.cwd(), 'public/model-dashboard/v2_training_summary.json')
 
 const pageSource = readFileSync(trainingPagePath, 'utf8')
+const diorPanelSource = readFileSync(diorPanelPath, 'utf8')
 const summary = JSON.parse(readFileSync(summaryPath, 'utf8'))
 
 const asPercent = (value) => `${(value * 100).toFixed(3)}%`
 
 describe('TrainingPage V2 数据口径', () => {
+  it('提供 LoveDA 与 DIOR 双模型入口，并按查询参数保存当前选择', () => {
+    expect(pageSource).toContain("route.query.model === 'dior'")
+    expect(pageSource).toContain("switchModel('loveda')")
+    expect(pageSource).toContain("switchModel('dior')")
+    expect(pageSource).toContain('<DiorModelPanel v-else ref="diorPanel" />')
+  })
+
+  it('DIOR 面板使用目标检测指标与真实单图检测接口，不复用 LoveDA 指标口径', () => {
+    expect(diorPanelSource).toContain('getDetectionModelInfo')
+    expect(diorPanelSource).toContain('detectSingle')
+    expect(diorPanelSource).toContain('验证集 mAP50-95')
+    expect(diorPanelSource).toContain('Precision')
+    expect(diorPanelSource).toContain('Recall')
+    expect(diorPanelSource).toContain('DIOR 20 类目标')
+    expect(diorPanelSource).toContain('当前未开放 DIOR 网页在线训练')
+    expect(diorPanelSource).not.toContain('metrics.miou')
+    expect(diorPanelSource).not.toContain('metrics.pixel_accuracy')
+  })
+
   it('仅加载隔离的 V2 训练与独立评估资产，不加载 baseline 资产', () => {
     expect(pageSource).toContain("fetch('/model-dashboard/v2_training_summary.json')")
     expect(pageSource).toContain("fetch('/model-dashboard/v2_evaluation_metrics.json')")

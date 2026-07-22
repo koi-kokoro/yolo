@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
 import { getSemanticModelInfo } from '@/api/semantic'
 import {
   evaluateSemanticModel,
@@ -12,10 +13,15 @@ import {
   predictSemanticImage,
 } from '@/api/modelOps'
 import { downloadTrainingArtifact } from '@/api/training'
+import DiorModelPanel from '@/components/training/DiorModelPanel.vue'
 import TrainingMetricsChart from '@/components/training/TrainingMetricsChart.vue'
 import { useTrainingStore } from '@/stores/training'
 import { formatInputSize, resolveRuntimeModelIdentity } from '@/utils/semanticModelIdentity'
 
+const route = useRoute()
+const router = useRouter()
+const activeModel = ref(route.query.model === 'dior' ? 'dior' : 'loveda')
+const diorPanel = ref(null)
 const loading = ref(true)
 const loadError = ref('')
 const report = ref(null)
@@ -275,6 +281,16 @@ async function runPredict() {
   }
 }
 
+function switchModel(model) {
+  activeModel.value = model
+  router.replace({ query: { ...route.query, model } })
+}
+
+function refreshActiveModel() {
+  if (activeModel.value === 'dior') return diorPanel.value?.refresh()
+  return loadDashboard()
+}
+
 onMounted(() => {
   loadDashboard()
   trainingStore.initVisibilityHandling()
@@ -284,18 +300,42 @@ onBeforeUnmount(() => trainingStore.dispose())
 </script>
 
 <template>
-  <section v-loading="loading" class="training-dashboard">
+  <section v-loading="activeModel === 'loveda' && loading" class="training-dashboard">
     <header class="dashboard-header">
       <div>
         <div class="eyebrow">MODEL MANAGEMENT</div>
-        <h1>模型管理看板</h1>
+        <h1>模型中枢</h1>
         <p>
-          展示当前 V2 语义模型的部署身份、真实训练期摘要与运行状态。支持模型评估、导出、下载与单图测试验证。
+          统一审阅 LoveDA 语义分割与 DIOR 设施目标检测模型的部署身份、评估指标和运行状态。
         </p>
       </div>
-      <el-button :loading="loading" @click="loadDashboard">刷新状态</el-button>
+      <el-button :loading="activeModel === 'loveda' && loading" @click="refreshActiveModel">刷新状态</el-button>
     </header>
 
+    <nav class="model-switcher" aria-label="模型选择">
+      <button
+        type="button"
+        class="model-choice"
+        :class="{ active: activeModel === 'loveda' }"
+        @click="switchModel('loveda')"
+      >
+        <span class="choice-icon semantic">S</span>
+        <span><strong>LoveDA</strong><small>语义分割 · 7 类土地覆盖</small></span>
+        <el-tag size="small" type="success">Semantic</el-tag>
+      </button>
+      <button
+        type="button"
+        class="model-choice"
+        :class="{ active: activeModel === 'dior' }"
+        @click="switchModel('dior')"
+      >
+        <span class="choice-icon detection">D</span>
+        <span><strong>DIOR</strong><small>目标检测 · 20 类遥感设施</small></span>
+        <el-tag size="small" type="warning">Detection</el-tag>
+      </button>
+    </nav>
+
+    <template v-if="activeModel === 'loveda'">
     <el-alert v-if="loadError" :title="loadError" type="error" show-icon :closable="false" />
     <el-alert
       v-if="evalWarning"
@@ -561,6 +601,9 @@ onBeforeUnmount(() => trainingStore.dispose())
       </article>
       <el-empty v-else description="暂无选中的在线训练任务" />
     </section>
+    </template>
+
+    <DiorModelPanel v-else ref="diorPanel" />
 
     <!-- Export dialog -->
     <el-dialog v-model="showExportDialog" title="导出模型" width="500px">
@@ -672,6 +715,45 @@ onBeforeUnmount(() => trainingStore.dispose())
   }
 }
 .dashboard-section { margin-bottom: 28px; }
+.model-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.model-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  color: $text-primary;
+  text-align: left;
+  background: rgba(255, 255, 255, .84);
+  border: 1px solid rgba(122, 146, 181, .2);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+  > span:nth-child(2) { flex: 1; min-width: 0; }
+  strong, small { display: block; }
+  strong { font-size: 16px; }
+  small { margin-top: 4px; color: $text-secondary; }
+  &:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(20, 33, 56, .07); }
+  &.active { border-color: rgba($primary-color, .62); box-shadow: 0 0 0 3px rgba($primary-color, .08); }
+}
+.choice-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #fff;
+  border-radius: 11px;
+  font-size: 19px;
+  font-weight: 800;
+  &.semantic { background: linear-gradient(135deg, $primary-color, $info-color); }
+  &.detection { background: linear-gradient(135deg, #d97706, #f59e0b); }
+}
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: 18px 0 14px; }
 .section-heading span { color: $primary-color; font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
 .section-heading h2 { margin: 4px 0 0; font-size: 21px; }
@@ -1039,6 +1121,9 @@ onBeforeUnmount(() => trainingStore.dispose())
   }
 }
 @media (max-width: 640px) {
+  .model-switcher {
+    grid-template-columns: 1fr;
+  }
   .dashboard-header {
     flex-direction: column;
   }

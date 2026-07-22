@@ -37,6 +37,9 @@
           <div v-if="msg.imagePreview" class="message-attachment">
             <img :src="msg.imagePreview" alt="附件图片" />
           </div>
+          <div v-if="msg.videoPreview" class="message-attachment">
+            <video :src="msg.videoPreview" controls preload="metadata" />
+          </div>
           <div v-if="msg.images?.length" class="message-attachments-grid">
             <img v-for="(src, i) in msg.images" :key="i" :src="src" alt="附件图片" />
           </div>
@@ -89,7 +92,19 @@
           </el-button>
         </div>
 
-        <div v-if="msg.toolCall" class="tool-call-info">
+        <div v-if="msg.toolCalls?.length" class="tool-call-info">
+          <el-tag
+            v-for="(toolCall, toolIndex) in msg.toolCalls"
+            :key="`${toolCall.tool}-${toolIndex}`"
+            size="small"
+            type="info"
+            effect="light"
+          >
+            <el-icon><Tools /></el-icon>
+            调用工具: {{ toolCall.tool }}
+          </el-tag>
+        </div>
+        <div v-else-if="msg.toolCall" class="tool-call-info">
           <el-tag size="small" type="info" effect="light">
             <el-icon><Tools /></el-icon>
             调用工具: {{ msg.toolCall.tool }}
@@ -106,11 +121,15 @@
       </el-button>
       <el-button @click="handleQuickSegment('batch')" :disabled="agentStore.isLoading">
         <el-icon><FolderOpened /></el-icon>
-        批量/ZIP 分割
+        批量联合检测 / ZIP
       </el-button>
       <el-button @click="handleQuickSegment('video')" :disabled="agentStore.isLoading">
         <el-icon><VideoCamera /></el-icon>
-        视频
+        LoveDA 视频
+      </el-button>
+      <el-button @click="handleQuickSegment('dior-video')" :disabled="agentStore.isLoading">
+        <el-icon><VideoCamera /></el-icon>
+        DIOR 视频
       </el-button>
       <el-button @click="handleQuickSegment('camera')" :disabled="agentStore.isLoading">
         <el-icon><Camera /></el-icon>
@@ -119,7 +138,7 @@
     </div>
 
     <el-dialog
-      title="摄像头拍照"
+      title="摄像头识别"
       :model-value="cameraDialogVisible"
       custom-class="camera-dialog"
       width="640px"
@@ -128,6 +147,13 @@
       @close="closeCameraDialog"
     >
       <div class="camera-dialog-body">
+        <el-radio-group
+          v-model="cameraModel"
+          :disabled="cameraCaptureInProgress || cameraRealtimeRunning"
+        >
+          <el-radio-button value="loveda">LoveDA 地物分割</el-radio-button>
+          <el-radio-button value="dior">DIOR 设施检测</el-radio-button>
+        </el-radio-group>
         <div v-if="cameraStream" class="camera-preview-wrapper">
           <video
             ref="cameraVideoRef"
@@ -150,21 +176,21 @@
           :disabled="!cameraStream || cameraCaptureInProgress || cameraRealtimeRunning"
           @click="captureCameraImage"
         >
-          {{ cameraCaptureInProgress ? '拍照中...' : '拍照并分析' }}
+          {{ cameraCaptureInProgress ? '拍照中...' : `${cameraModelLabel} 拍照识别` }}
         </el-button>
         <el-button
           type="success"
           :disabled="!cameraStream || cameraCaptureInProgress || cameraRealtimeRunning"
           @click="captureCameraVideo"
         >
-          {{ cameraCaptureInProgress ? '视频采样中...' : '视频采样分析' }}
+          {{ cameraCaptureInProgress ? '视频采样中...' : `${cameraModelLabel} 采样识别` }}
         </el-button>
         <el-button
           type="warning"
           :disabled="!cameraStream || cameraCaptureInProgress || cameraRealtimeRunning"
           @click="startRealtimeRecognition"
         >
-          {{ cameraRealtimeRunning ? '实时识别中...' : '开始实时识别' }}
+          {{ cameraRealtimeRunning ? `${cameraModelLabel} 实时识别中...` : `${cameraModelLabel} 实时识别` }}
         </el-button>
         <el-button
           type="danger"
@@ -184,10 +210,17 @@
         class="pending-attachment-card"
       >
         <img
-          v-if="attachment.preview"
+          v-if="attachment.preview && !attachment.isVideo"
           :src="attachment.preview"
           :alt="attachment.file.name"
           class="pending-attachment-preview"
+        />
+        <video
+          v-else-if="attachment.preview && attachment.isVideo"
+          :src="attachment.preview"
+          class="pending-attachment-preview"
+          muted
+          preload="metadata"
         />
         <div v-else class="pending-attachment-file">ZIP</div>
         <button
@@ -213,7 +246,7 @@
       <input
         ref="fileInputRef"
         type="file"
-        accept="image/*,.zip"
+        accept="image/*,video/*,.mp4,.avi,.mov,.mkv,.webm,.zip"
         multiple
         style="display: none"
         @change="handleFileSelect"
@@ -221,7 +254,7 @@
 
       <el-input
         v-model="inputText"
-        placeholder="输入消息，或拖拽图片/ZIP 到这里..."
+        placeholder="输入消息，或添加图片、视频、ZIP 附件..."
         @keyup.enter="sendMessage"
         :disabled="agentStore.isLoading"
       />
@@ -254,6 +287,11 @@
  *   - Stop generation
  */
 import { segmentBatch, segmentSingle, segmentVideo, segmentZip } from '@/api/segmentation'
+import {
+  detectBatch as detectDiorBatch,
+  detectSingle as detectDiorSingle,
+  detectVideo as detectDiorVideo,
+} from '@/api/detection'
 import FacilityDetectionResultCard from '@/components/FacilityDetectionResultCard.vue'
 import SegmentationResultCard from '@/components/SegmentationResultCard.vue'
 import { useAgentStore } from '@/stores/agent'
@@ -280,6 +318,9 @@ const cameraError = ref('')
 const cameraCaptureInProgress = ref(false)
 const cameraRealtimeRunning = ref(false)
 const cameraRealtimeStopRequested = ref(false)
+const cameraModel = ref('loveda')
+const cameraModelLabel = computed(() => (cameraModel.value === 'dior' ? 'DIOR' : 'LoveDA'))
+const VIDEO_EXTENSION_PATTERN = /\.(mp4|avi|mov|mkv|webm)$/i
 let cameraMediaStream = null
 let attachmentSequence = 0
 
@@ -308,16 +349,26 @@ async function sendMessage() {
   const attachmentsToSend = [...selectedAttachments.value]
   const filesToSend = attachmentsToSend.map((attachment) => attachment.file)
   const imageFiles = filesToSend.filter((file) => file.type.startsWith('image/'))
+  const videoFiles = filesToSend.filter(isVideoFile)
+
+  if (videoFiles.length && (filesToSend.length !== 1 || videoFiles.length !== 1)) {
+    ElMessage.warning('视频需要作为单个附件发送，请移除其他附件后重试')
+    return
+  }
 
   if (filesToSend.length > 1 && imageFiles.length !== filesToSend.length) {
-    ElMessage.warning('多附件发送仅支持图片，请移除 ZIP 后重试')
+    ElMessage.warning('多附件发送仅支持图片，请移除视频或 ZIP 后重试')
     return
   }
 
   const isBatch = imageFiles.length > 1
+  const isVideo = videoFiles.length === 1
   const fileToSend = filesToSend[0] || null
   const messageImages = imageFiles.map((file) => URL.createObjectURL(file))
-  const effectiveMessage = message || (isBatch
+  const messageVideo = isVideo ? URL.createObjectURL(videoFiles[0]) : null
+  const effectiveMessage = message || (isVideo
+    ? `请分析视频：${fileToSend.name}`
+    : isBatch
     ? `[批量分割] ${imageFiles.length} 张图片`
     : fileToSend
       ? `请分析图片：${fileToSend.name}`
@@ -329,6 +380,7 @@ async function sendMessage() {
     image: fileToSend ? fileToSend.name : null,
     imagePreview: messageImages.length === 1 ? messageImages[0] : null,
     images: messageImages.length > 1 ? messageImages : null,
+    videoPreview: messageVideo,
   })
 
   inputText.value = ''
@@ -344,6 +396,12 @@ async function sendMessage() {
 
   if (isBatch) {
     await sendSelectedImageBatch(imageFiles, effectiveMessage)
+    return
+  }
+
+
+  if (isVideo) {
+    await sendSelectedVideo(videoFiles[0], effectiveMessage)
     return
   }
 
@@ -418,6 +476,7 @@ async function sendMessage() {
         scrollToBottom()
       } else if (data.type === 'tool_call') {
         lastMsg.toolCall = { tool: data.tool, input: data.input }
+        lastMsg.toolCalls = [...(lastMsg.toolCalls || []), lastMsg.toolCall]
       } else if (data.type === 'tool_result') {
         try {
           const result = JSON.parse(data.result)
@@ -468,6 +527,7 @@ async function sendMessage() {
 const AGENT_LABELS = {
   detection: '图像分割',
   facility_detection: '设施检测',
+  combined_detection: '联合检测',
   analysis: '证据分析',
   review: '结果审核',
   report: '报告生成',
@@ -557,6 +617,10 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+function isVideoFile(file) {
+  return file.type.startsWith('video/') || VIDEO_EXTENSION_PATTERN.test(file.name)
+}
+
 function handleFileSelect(event) {
   const files = Array.from(event.target.files || [])
   if (!files.length) return
@@ -564,11 +628,77 @@ function handleFileSelect(event) {
   const additions = files.map((file) => ({
     id: `attachment-${Date.now()}-${attachmentSequence++}`,
     file,
-    preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : '',
+    isVideo: isVideoFile(file),
+    preview: file.type.startsWith('image/') || isVideoFile(file)
+      ? URL.createObjectURL(file)
+      : '',
   }))
   selectedAttachments.value = [...selectedAttachments.value, ...additions]
   event.target.value = ''
   ElMessage.info(files.length === 1 ? `${files[0].name} 已添加` : `已添加 ${files.length} 个附件`)
+}
+
+function requestedVideoModels(message) {
+  const lowered = message.toLowerCase()
+  const wantsDior = /dior|设施|目标|检测框|飞机|机场|船舶|储油罐|车辆/.test(lowered)
+  const wantsLoveda = /loveda|地物|土地覆盖|语义分割|建筑|道路|水体|森林|农田/.test(lowered)
+  if (wantsDior && !wantsLoveda) return ['dior']
+  if (wantsLoveda && !wantsDior) return ['loveda']
+  return ['loveda', 'dior']
+}
+
+async function sendSelectedVideo(file, message) {
+  agentStore.setLoading(true)
+  const models = requestedVideoModels(message)
+  const requests = models.map(async (model) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('frame_sample_rate', '5')
+    formData.append('max_frames', '30')
+    const result = model === 'dior'
+      ? await detectDiorVideo(formData)
+      : await segmentVideo(formData)
+    if (result.error) throw new Error(result.error)
+    return { model, result }
+  })
+
+  try {
+    const settled = await Promise.allSettled(requests)
+    const successful = settled
+      .filter((item) => item.status === 'fulfilled')
+      .map((item) => item.value)
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    if (!successful.length) {
+      const reason = settled.find((item) => item.status === 'rejected')?.reason
+      throw reason || new Error('视频识别失败')
+    }
+
+    const summaries = []
+    const toolCalls = []
+    successful.forEach(({ model, result }) => {
+      if (model === 'dior') {
+        lastMsg.facilityDetectionResult = result
+        summaries.push(`DIOR 处理 ${result.video?.processed_frames || result.total_images} 帧，发现 ${result.total_objects || 0} 个设施目标`)
+        toolCalls.push({ tool: 'detect_dior_video' })
+      } else {
+        lastMsg.segmentationResult = result
+        summaries.push(`LoveDA 处理 ${result.processed_frames || 0} 帧`)
+        toolCalls.push({ tool: 'segment_video' })
+      }
+    })
+    const failedCount = settled.length - successful.length
+    lastMsg.content = `视频识别完成：${summaries.join('；')}${failedCount ? `；另有 ${failedCount} 个模型处理失败` : ''}。`
+    lastMsg.loading = false
+    lastMsg.toolCalls = toolCalls
+  } catch (err) {
+    const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+    lastMsg.content = `视频识别失败：${err instanceof Error ? err.message : err}`
+    lastMsg.loading = false
+    lastMsg.error = true
+  } finally {
+    agentStore.setLoading(false)
+    scrollToBottom()
+  }
 }
 
 async function sendSelectedImageBatch(files, message) {
@@ -586,8 +716,15 @@ async function sendSelectedImageBatch(files, message) {
       lastMsg.content = `批量分割失败：${result.error}`
       lastMsg.error = true
     } else {
-      lastMsg.content = `批量分割完成！共 ${result.successful_images} 张图片。`
+      const facility = result.facility_detection
+      lastMsg.content = facility
+        ? `联合检测完成！LoveDA 已处理 ${result.successful_images} 张图片，DIOR 共检测到 ${facility.total_objects || 0} 个设施目标。`
+        : `LoveDA 批量分割完成！共 ${result.successful_images} 张图片。${result.facility_detection_error ? ` DIOR：${result.facility_detection_error}。` : ''}`
       lastMsg.segmentationResult = result
+      lastMsg.facilityDetectionResult = facility || null
+      lastMsg.toolCalls = facility
+        ? [{ tool: 'segment_batch' }, { tool: 'detect_dior_facilities' }]
+        : [{ tool: 'segment_batch' }]
     }
     lastMsg.loading = false
     refreshSessionTitles()
@@ -674,22 +811,28 @@ async function captureCameraImage() {
 
     agentStore.addMessage({
       role: 'user',
-      content: '[快捷分割] 摄像头拍照',
+      content: `[${cameraModelLabel.value}] 摄像头拍照识别`,
       image: file.name,
     })
     agentStore.addMessage({
       role: 'assistant',
-      content: '正在处理摄像头图像...',
+      content: `正在使用 ${cameraModelLabel.value} 处理摄像头图像...`,
       loading: true,
     })
 
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('session_id', String(agentStore.currentSessionId))
     const requestSessionId = agentStore.currentSessionId
-    const result = await segmentSingle(formData)
+    if (cameraModel.value === 'loveda') {
+      formData.append('session_id', String(agentStore.currentSessionId))
+    }
+    const result = cameraModel.value === 'dior'
+      ? await detectDiorSingle(formData)
+      : await segmentSingle(formData)
     if (requestSessionId !== agentStore.currentSessionId) return
-    agentStore.handleSessionEvent({ session_id: result.session_id }, requestSessionId)
+    if (cameraModel.value === 'loveda') {
+      agentStore.handleSessionEvent({ session_id: result.session_id }, requestSessionId)
+    }
 
     const lastMsg = agentStore.messages[agentStore.messages.length - 1]
     if (result.error) {
@@ -697,9 +840,16 @@ async function captureCameraImage() {
       lastMsg.loading = false
       lastMsg.error = true
     } else {
-      lastMsg.content = `摄像头图像处理完成！尺寸 ${result.image_width}×${result.image_height}。`
+      lastMsg.content = cameraModel.value === 'dior'
+        ? `DIOR 摄像头识别完成！共发现 ${result.total_objects} 个设施目标。`
+        : `LoveDA 摄像头分割完成！尺寸 ${result.image_width}×${result.image_height}。`
       lastMsg.loading = false
-      lastMsg.segmentationResult = result
+      if (cameraModel.value === 'dior') {
+        lastMsg.facilityDetectionResult = result
+        lastMsg.toolCalls = [{ tool: 'detect_dior_camera' }]
+      } else {
+        lastMsg.segmentationResult = result
+      }
     }
     refreshSessionTitles()
     scrollToBottom()
@@ -743,21 +893,27 @@ async function captureCameraVideo() {
 
     agentStore.addMessage({
       role: 'user',
-      content: '[快捷分割] 摄像头视频采样',
+      content: `[${cameraModelLabel.value}] 摄像头视频采样识别`,
     })
     agentStore.addMessage({
       role: 'assistant',
-      content: '正在处理摄像头视频帧...',
+      content: `正在使用 ${cameraModelLabel.value} 处理摄像头采样帧...`,
       loading: true,
     })
 
     const formData = new FormData()
     files.forEach((file) => formData.append('files', file))
-    formData.append('session_id', String(agentStore.currentSessionId))
     const requestSessionId = agentStore.currentSessionId
-    const result = await segmentBatch(formData)
+    if (cameraModel.value === 'loveda') {
+      formData.append('session_id', String(agentStore.currentSessionId))
+    }
+    const result = cameraModel.value === 'dior'
+      ? await detectDiorBatch(formData)
+      : await segmentBatch(formData)
     if (requestSessionId !== agentStore.currentSessionId) return
-    agentStore.handleSessionEvent({ session_id: result.session_id }, requestSessionId)
+    if (cameraModel.value === 'loveda') {
+      agentStore.handleSessionEvent({ session_id: result.session_id }, requestSessionId)
+    }
 
     const lastMsg = agentStore.messages[agentStore.messages.length - 1]
     if (result.error) {
@@ -765,9 +921,16 @@ async function captureCameraVideo() {
       lastMsg.loading = false
       lastMsg.error = true
     } else {
-      lastMsg.content = `摄像头视频分析完成！共 ${result.successful_images} 帧。`
+      lastMsg.content = cameraModel.value === 'dior'
+        ? `DIOR 摄像头采样识别完成！共 ${result.total_images} 帧，发现 ${result.total_objects} 个设施目标。`
+        : `LoveDA 摄像头采样分析完成！共 ${result.successful_images} 帧。`
       lastMsg.loading = false
-      lastMsg.segmentationResult = result
+      if (cameraModel.value === 'dior') {
+        lastMsg.facilityDetectionResult = result
+        lastMsg.toolCalls = [{ tool: 'detect_dior_camera_batch' }]
+      } else {
+        lastMsg.segmentationResult = result
+      }
     }
     refreshSessionTitles()
     scrollToBottom()
@@ -792,11 +955,11 @@ async function startRealtimeRecognition() {
 
   agentStore.addMessage({
     role: 'user',
-    content: '[快捷分割] 摄像头实时识别',
+    content: `[${cameraModelLabel.value}] 摄像头实时识别`,
   })
   agentStore.addMessage({
     role: 'assistant',
-    content: '实时识别已启动，将显示每帧结果。',
+    content: `${cameraModelLabel.value} 实时识别已启动，将显示每帧结果。`,
     loading: false,
   })
   scrollToBottom()
@@ -823,7 +986,9 @@ async function startRealtimeRecognition() {
       const formData = new FormData()
       formData.append('file', file)
       // 实时识别不携带 session_id，避免逐帧写入会话；停止时仅保留前端聚合提示。
-      const result = await segmentSingle(formData)
+      const result = cameraModel.value === 'dior'
+        ? await detectDiorSingle(formData)
+        : await segmentSingle(formData)
 
       if (result.error) {
         agentStore.addMessage({
@@ -836,12 +1001,20 @@ async function startRealtimeRecognition() {
         break
       }
 
-      agentStore.addMessage({
+      const realtimeMessage = {
         role: 'assistant',
-        content: `实时识别第 ${frameIndex} 帧：检测到 ${result.class_statistics?.length || 0} 类。`,
+        content: cameraModel.value === 'dior'
+          ? `DIOR 实时识别第 ${frameIndex} 帧：发现 ${result.total_objects || 0} 个设施目标。`
+          : `LoveDA 实时识别第 ${frameIndex} 帧：检测到 ${result.class_statistics?.length || 0} 类。`,
         loading: false,
-        segmentationResult: result,
-      })
+      }
+      if (cameraModel.value === 'dior') {
+        realtimeMessage.facilityDetectionResult = result
+        realtimeMessage.toolCalls = [{ tool: 'detect_dior_camera_realtime' }]
+      } else {
+        realtimeMessage.segmentationResult = result
+      }
+      agentStore.addMessage(realtimeMessage)
       scrollToBottom()
     } catch (err) {
       agentStore.addMessage({
@@ -913,6 +1086,46 @@ async function handleQuickSegment(type) {
       } catch (err) {
         const lastMsg = agentStore.messages[agentStore.messages.length - 1]
         lastMsg.content = '分割失败，请重试'
+        lastMsg.loading = false
+        lastMsg.error = true
+      }
+      scrollToBottom()
+    }
+    input.click()
+  } else if (type === 'dior-video') {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'video/*'
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      agentStore.addMessage({
+        role: 'user',
+        content: `[DIOR 视频检测] ${file.name}`,
+        image: file.name,
+      })
+      agentStore.addMessage({
+        role: 'assistant',
+        content: '正在使用 DIOR 检测视频关键帧...',
+        loading: true,
+      })
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('frame_sample_rate', '5')
+      formData.append('max_frames', '30')
+
+      try {
+        const result = await detectDiorVideo(formData)
+        const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+        lastMsg.content = `DIOR 视频检测完成！处理 ${result.video?.processed_frames || result.total_images} 帧，共发现 ${result.total_objects} 个目标。`
+        lastMsg.loading = false
+        lastMsg.facilityDetectionResult = result
+        lastMsg.toolCalls = [{ tool: 'detect_dior_video' }]
+      } catch (err) {
+        const lastMsg = agentStore.messages[agentStore.messages.length - 1]
+        lastMsg.content = `DIOR 视频检测失败：${err.message || err}`
         lastMsg.loading = false
         lastMsg.error = true
       }
@@ -1015,9 +1228,16 @@ async function handleQuickSegment(type) {
           return
         }
 
-        lastMsg.content = `批量分割完成！共 ${result.successful_images} 张图。`
+        const facility = result.facility_detection
+        lastMsg.content = facility
+          ? `联合检测完成！LoveDA 已处理 ${result.successful_images} 张图片，DIOR 共检测到 ${facility.total_objects || 0} 个设施目标。`
+          : `LoveDA 批量分割完成！共 ${result.successful_images} 张图。${result.facility_detection_error ? ` DIOR：${result.facility_detection_error}。` : ''}`
         lastMsg.loading = false
         lastMsg.segmentationResult = result
+        lastMsg.facilityDetectionResult = facility || null
+        lastMsg.toolCalls = facility
+          ? [{ tool: 'segment_batch' }, { tool: 'detect_dior_facilities' }]
+          : [{ tool: 'segment_batch' }]
         refreshSessionTitles()
       } catch (err) {
         const lastMsg = agentStore.messages[agentStore.messages.length - 1]
@@ -1452,6 +1672,13 @@ onBeforeUnmount(() => {
     max-width: 200px;
     border-radius: 8px;
     border: 1px solid rgba(122, 146, 181, 0.16);
+  }
+
+  video {
+    width: min(360px, 100%);
+    max-height: 240px;
+    border-radius: 8px;
+    background: #000;
   }
 }
 

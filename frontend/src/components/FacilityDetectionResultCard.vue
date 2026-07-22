@@ -36,6 +36,7 @@ const activeImage = computed(() => props.result.images?.[activeIndex.value] || n
           <div v-else class="image-unavailable">标注图不可用，请重新检测</div>
           <div class="image-meta">
             {{ activeImage.filename }} · {{ activeImage.width }}×{{ activeImage.height }} ·
+            <span v-if="activeImage.timestamp !== undefined">{{ activeImage.timestamp }} s · </span>
             {{ activeImage.inference_time_ms || 0 }} ms
           </div>
         </div>

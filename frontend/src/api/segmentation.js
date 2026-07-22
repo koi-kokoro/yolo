@@ -18,9 +18,9 @@ export function segmentSingle(formData) {
 }
 
 /**
- * Segment multiple images.
+ * Run LoveDA segmentation and DIOR facility detection on multiple images.
  * @param {FormData} formData - contains multiple `files` fields
- * @returns {Promise<object>} batch segmentation result card payload
+ * @returns {Promise<object>} semantic result plus optional `facility_detection`
  */
 export function segmentBatch(formData) {
   return request.post('/segmentation/batch', formData, {
